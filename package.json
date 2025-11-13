@@ -1,0 +1,73 @@
+{
+  "name": "autonomous-coding-agents",
+  "version": "0.1.0",
+  "description": "24/7 Autonomous Software Development with Multi-Agent AI System",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/cli/index.ts",
+    "build": "tsc",
+    "start": "node dist/cli/index.js",
+    "start:agents": "pm2 start ecosystem.config.js",
+    "start:coder": "tsx src/agents/coder/index.ts",
+    "start:reviewer": "tsx src/agents/reviewer/index.ts",
+    "start:repo-manager": "tsx src/agents/repo-manager/index.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit",
+    "db:migrate": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "keywords": [
+    "ai",
+    "automation",
+    "coding-agent",
+    "multi-agent",
+    "llm",
+    "github",
+    "code-review",
+    "autonomous-development"
+  ],
+  "author": "Kevin",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@google/generative-ai": "^0.21.0",
+    "@prisma/client": "^6.1.0",
+    "commander": "^12.1.0",
+    "ioredis": "^5.4.2",
+    "nats": "^2.29.1",
+    "octokit": "^4.0.2",
+    "openai": "^4.75.0",
+    "simple-git": "^3.27.0",
+    "winston": "^3.17.0",
+    "zod": "^3.24.1",
+    "dotenv": "^16.4.5",
+    "chalk": "^5.3.0",
+    "ora": "^8.1.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.17.10",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.4.2",
+    "prisma": "^6.1.0",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

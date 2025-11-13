@@ -1,0 +1,215 @@
+// Prisma Schema for Multi-Agent Coding System
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// Job: Represents a project/task
+// ==========================================
+model Job {
+  id            String    @id @default(uuid())
+  requirements  String    @db.Text
+  repository    String
+  branch        String
+  status        JobStatus @default(PENDING)
+  features      Feature[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("jobs")
+}
+
+enum JobStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ==========================================
+// Feature: Individual feature to implement
+// ==========================================
+model Feature {
+  id                String        @id @default(uuid())
+  jobId             String
+  job               Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  title             String
+  description       String        @db.Text
+  complexity        Complexity
+  priority          Int
+  dependencies      String[]      // Array of feature IDs
+  status            FeatureStatus @default(PENDING)
+  prNumber          Int?
+  prUrl             String?
+  branch            String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  completedAt       DateTime?
+  estimatedDuration Int?          // minutes
+  actualDuration    Int?          // minutes
+
+  reviews Review[]
+
+  @@index([jobId, status])
+  @@index([status])
+  @@map("features")
+}
+
+enum Complexity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FeatureStatus {
+  PENDING
+  PLANNING
+  IMPLEMENTING
+  PR_OPEN
+  IN_REVIEW
+  APPROVED
+  MERGED
+  FAILED
+}
+
+// ==========================================
+// AgentState: Current state of each agent
+// ==========================================
+model AgentState {
+  id           String    @id @default(uuid())
+  agentType    AgentType
+  state        String    // Current state in state machine
+  jobId        String?
+  featureId    String?
+  context      Json      @default("{}")
+  lastActivity DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([agentType])
+  @@index([lastActivity])
+  @@map("agent_states")
+}
+
+enum AgentType {
+  CODER
+  REVIEWER
+  REPO_MANAGER
+}
+
+// ==========================================
+// Message: Inter-agent communication
+// ==========================================
+model Message {
+  id            String      @id @default(uuid())
+  timestamp     DateTime    @default(now())
+  from          AgentType
+  to            AgentType
+  type          MessageType
+  payload       Json
+  correlationId String?
+  processed     Boolean     @default(false)
+  processedAt   DateTime?
+
+  @@index([to, processed])
+  @@index([correlationId])
+  @@index([timestamp])
+  @@map("messages")
+}
+
+enum MessageType {
+  START_PROJECT
+  PR_CREATED
+  REVIEW_COMMENTS_POSTED
+  REVIEW_APPROVED
+  COMMITS_PUSHED
+  PR_MERGED
+  CONTINUE_NEXT_FEATURE
+  ALL_FEATURES_COMPLETE
+  ERROR_OCCURRED
+  AGENT_HEARTBEAT
+}
+
+// ==========================================
+// Review: Code review sessions
+// ==========================================
+model Review {
+  id             String         @id @default(uuid())
+  jobId          String
+  featureId      String
+  feature        Feature        @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  prNumber       Int
+  githubReviewId Int?
+  status         ReviewStatus   @default(PENDING)
+  comments       Json           @default("[]") // Array of ReviewComment objects
+  decision       ReviewDecision
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([featureId])
+  @@index([status])
+  @@map("reviews")
+}
+
+enum ReviewStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ReviewDecision {
+  COMMENT
+  REQUEST_CHANGES
+  APPROVE
+}
+
+// ==========================================
+// LLMInteraction: Track LLM API calls for debugging
+// ==========================================
+model LLMInteraction {
+  id            String   @id @default(uuid())
+  agentType     AgentType
+  provider      String   // claude, openai, gemini
+  model         String   // model name
+  prompt        String   @db.Text
+  response      String   @db.Text
+  tokenCount    Int?
+  durationMs    Int?
+  cost          Float?   // in USD
+  success       Boolean
+  error         String?  @db.Text
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  @@index([agentType])
+  @@index([provider])
+  @@index([createdAt])
+  @@map("llm_interactions")
+}
+
+// ==========================================
+// GitHubEvent: Track GitHub API events
+// ==========================================
+model GitHubEvent {
+  id         String   @id @default(uuid())
+  eventType  String   // pr_created, pr_merged, comment_posted, etc.
+  repository String
+  prNumber   Int?
+  payload    Json
+  createdAt  DateTime @default(now())
+
+  @@index([eventType])
+  @@index([repository])
+  @@index([createdAt])
+  @@map("github_events")
+}
