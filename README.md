@@ -22,16 +22,19 @@
 ### 3개의 전문화된 AI 에이전트
 
 **1. Coding Agent (코딩 에이전트)**
+
 - 요구사항 분석 및 구현 계획 수립
 - 코드 작성 및 테스트 생성
 - PR 생성 및 피드백 반영
 
 **2. Reviewer Agent (코드 리뷰 에이전트)**
+
 - PR 자동 감지 및 분석
 - 버그, 보안, 성능 이슈 탐지
 - 개선 제안 및 자동 승인/거부
 
 **3. Repository Manager Agent (레포 관리 에이전트)**
+
 - 에이전트 간 작업 조율
 - PR 자동 머지
 - 워크플로우 관리
@@ -103,11 +106,13 @@ multi-agent auto-fix --repo . --owner user --name repo
 ## 📚 문서
 
 ### 핵심 문서
+
 - **[시스템 설계](./MULTI_AGENT_SYSTEM_DESIGN.md)** - 아키텍처 및 기술 설계
 - **[PRD](./PRD.md)** - 제품 요구사항 명세
 - **[기능 목록](./FEATURE_LIST.md)** - 상세 기능 리스트
 
 ### 사용 가이드
+
 - **[CLI 사용법](./docs/CLI_USAGE.md)** - 명령어 레퍼런스
 - **[배포 가이드](./docs/DEPLOYMENT.md)** - PM2 프로덕션 배포
 - **[Webhook 설정](./docs/WEBHOOK_SETUP.md)** - GitHub Webhook 연동
@@ -118,6 +123,7 @@ multi-agent auto-fix --repo . --owner user --name repo
 ## 🏗️ 기술 스택
 
 ### Core
+
 - **TypeScript** 5.0+ - 타입 안정성
 - **Node.js** 20+ - 런타임
 - **NATS** - 메시지 브로커
@@ -125,11 +131,13 @@ multi-agent auto-fix --repo . --owner user --name repo
 - **Prisma** - ORM
 
 ### AI/LLM
+
 - **Anthropic Claude** (Sonnet 4.5, Opus)
 - **OpenAI** (GPT-4o, o1)
 - **Google Gemini** (2.5 Pro)
 
 ### DevOps
+
 - **PM2** - 프로세스 관리
 - **GitHub API** - Git 작업 및 PR 관리
 - **Zod** - 스키마 검증
@@ -139,12 +147,12 @@ multi-agent auto-fix --repo . --owner user --name repo
 
 ## 📊 구현 현황
 
-| Phase | 상태 |
-|-------|------|
-| Phase 1: 핵심 인프라 | ✅ 완료 |
-| Phase 2: 에이전트 구현 | ✅ 완료 |
+| Phase                    | 상태    |
+| ------------------------ | ------- |
+| Phase 1: 핵심 인프라     | ✅ 완료 |
+| Phase 2: 에이전트 구현   | ✅ 완료 |
 | Phase 3: 프로덕션 인프라 | ✅ 완료 |
-| Phase 4: 고급 기능 | ✅ 완료 |
+| Phase 4: 고급 기능       | ✅ 완료 |
 
 **현재 버전**: 0.1.0 (Production Ready 🚀)
 
@@ -168,10 +176,6 @@ npm run test:coverage
 
 ## 📄 라이선스
 
-이 프로젝트는 [MIT License](LICENSE) 하에 배포됩니다.
+이 프로젝트는 [AGPL-3.0 License](LICENSE) 하에 배포됩니다.
 
 ---
-
-<p align="center">
-  Made with ❤️ by AI Agents
-</p>
