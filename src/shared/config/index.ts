@@ -1,0 +1,336 @@
+import { z } from 'zod';
+import dotenv from 'dotenv';
+import path from 'path';
+
+/**
+ * Environment Configuration Management
+ *
+ * Provides type-safe configuration loading and validation.
+ * All environment variables are validated using Zod schemas.
+ *
+ * Feature: F1.4 - Environment Configuration Management
+ */
+
+// Load .env file
+dotenv.config({ path: path.join(process.cwd(), '.env') });
+
+/**
+ * LLM Provider Configuration Schema
+ */
+const LLMProviderSchema = z.enum(['claude', 'openai', 'gemini']);
+export type LLMProvider = z.infer<typeof LLMProviderSchema>;
+
+/**
+ * Log Level Schema
+ */
+const LogLevelSchema = z.enum(['error', 'warn', 'info', 'debug']);
+export type LogLevel = z.infer<typeof LogLevelSchema>;
+
+/**
+ * Node Environment Schema
+ */
+const NodeEnvSchema = z.enum(['development', 'production', 'test']);
+export type NodeEnv = z.infer<typeof NodeEnvSchema>;
+
+/**
+ * Complete Configuration Schema
+ */
+const ConfigSchema = z.object({
+  // Node Environment
+  nodeEnv: NodeEnvSchema.default('development'),
+
+  // LLM Configuration
+  llm: z.object({
+    provider: LLMProviderSchema.default('claude'),
+    anthropicApiKey: z.string().optional(),
+    openaiApiKey: z.string().optional(),
+    geminiApiKey: z.string().optional(),
+  }),
+
+  // GitHub Configuration
+  github: z.object({
+    token: z.string().min(1, 'GitHub token is required'),
+    owner: z.string().min(1, 'GitHub owner is required'),
+    repo: z.string().optional(),
+  }),
+
+  // NATS Configuration
+  nats: z.object({
+    url: z.string().url().default('nats://localhost:4222'),
+  }),
+
+  // Database Configuration
+  database: z.object({
+    url: z.string().url(),
+  }),
+
+  // Agent Configuration
+  agent: z.object({
+    autoMergeEnabled: z.boolean().default(false),
+    humanApprovalRequired: z.boolean().default(true),
+    maxConcurrentFeatures: z.number().int().positive().default(3),
+    timeoutMinutes: z.number().int().positive().default(240),
+    maxTurnsPerFeature: z.number().int().positive().default(50),
+  }),
+
+  // Logging Configuration
+  logging: z.object({
+    level: LogLevelSchema.default('info'),
+    toFile: z.boolean().default(true),
+    directory: z.string().default('./logs'),
+  }),
+
+  // Notification Configuration
+  notifications: z.object({
+    slackWebhookUrl: z.string().url().optional(),
+    discordWebhookUrl: z.string().url().optional(),
+    smtpHost: z.string().optional(),
+    smtpPort: z.number().int().positive().optional(),
+    smtpUser: z.string().optional(),
+    smtpPass: z.string().optional(),
+    notificationEmail: z.string().email().optional(),
+  }),
+
+  // Server Configuration
+  server: z.object({
+    port: z.number().int().positive().default(3000),
+  }),
+});
+
+export type Config = z.infer<typeof ConfigSchema>;
+
+/**
+ * Parse and validate environment variables
+ */
+function parseEnv(): Config {
+  const env = process.env;
+
+  // Helper to parse boolean
+  const parseBoolean = (value: string | undefined, defaultValue: boolean): boolean => {
+    if (!value) return defaultValue;
+    return value.toLowerCase() === 'true';
+  };
+
+  // Helper to parse number
+  const parseNumber = (value: string | undefined, defaultValue?: number): number | undefined => {
+    if (!value) return defaultValue;
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? defaultValue : parsed;
+  };
+
+  const rawConfig = {
+    nodeEnv: (env.NODE_ENV || 'development') as NodeEnv,
+
+    llm: {
+      provider: (env.LLM_PROVIDER || 'claude') as LLMProvider,
+      anthropicApiKey: env.ANTHROPIC_API_KEY,
+      openaiApiKey: env.OPENAI_API_KEY,
+      geminiApiKey: env.GEMINI_API_KEY,
+    },
+
+    github: {
+      token: env.GITHUB_TOKEN || '',
+      owner: env.GITHUB_OWNER || '',
+      repo: env.GITHUB_REPO,
+    },
+
+    nats: {
+      url: env.NATS_URL || 'nats://localhost:4222',
+    },
+
+    database: {
+      url: env.DATABASE_URL || '',
+    },
+
+    agent: {
+      autoMergeEnabled: parseBoolean(env.AUTO_MERGE_ENABLED, false),
+      humanApprovalRequired: parseBoolean(env.HUMAN_APPROVAL_REQUIRED, true),
+      maxConcurrentFeatures: parseNumber(env.MAX_CONCURRENT_FEATURES, 3)!,
+      timeoutMinutes: parseNumber(env.AGENT_TIMEOUT_MINUTES, 240)!,
+      maxTurnsPerFeature: parseNumber(env.MAX_TURNS_PER_FEATURE, 50)!,
+    },
+
+    logging: {
+      level: (env.LOG_LEVEL || 'info') as LogLevel,
+      toFile: parseBoolean(env.LOG_TO_FILE, true),
+      directory: env.LOG_DIR || './logs',
+    },
+
+    notifications: {
+      slackWebhookUrl: env.SLACK_WEBHOOK_URL,
+      discordWebhookUrl: env.DISCORD_WEBHOOK_URL,
+      smtpHost: env.SMTP_HOST,
+      smtpPort: parseNumber(env.SMTP_PORT),
+      smtpUser: env.SMTP_USER,
+      smtpPass: env.SMTP_PASS,
+      notificationEmail: env.NOTIFICATION_EMAIL,
+    },
+
+    server: {
+      port: parseNumber(env.PORT, 3000)!,
+    },
+  };
+
+  return ConfigSchema.parse(rawConfig);
+}
+
+/**
+ * Validate configuration and throw errors if invalid
+ */
+export function validateConfig(config: Config): void {
+  // Check that at least one LLM API key is provided
+  const { anthropicApiKey, openaiApiKey, geminiApiKey, provider } = config.llm;
+
+  const hasApiKey =
+    (provider === 'claude' && anthropicApiKey) ||
+    (provider === 'openai' && openaiApiKey) ||
+    (provider === 'gemini' && geminiApiKey);
+
+  if (!hasApiKey) {
+    throw new Error(
+      `LLM API key for provider '${provider}' is required. ` +
+        `Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env file.`
+    );
+  }
+
+  // Check database URL
+  if (!config.database.url) {
+    throw new Error('DATABASE_URL is required in .env file');
+  }
+
+  // Check GitHub configuration
+  if (!config.github.token) {
+    throw new Error('GITHUB_TOKEN is required in .env file');
+  }
+
+  if (!config.github.owner) {
+    throw new Error('GITHUB_OWNER is required in .env file');
+  }
+
+  // Validate notification config consistency
+  const { smtpHost, smtpPort, smtpUser, smtpPass } = config.notifications;
+  const smtpConfigured = smtpHost || smtpPort || smtpUser || smtpPass;
+
+  if (smtpConfigured && (!smtpHost || !smtpPort || !smtpUser || !smtpPass)) {
+    throw new Error(
+      'Incomplete SMTP configuration. All of SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS are required.'
+    );
+  }
+}
+
+/**
+ * Load and validate configuration
+ */
+export function loadConfig(): Config {
+  try {
+    const config = parseEnv();
+    validateConfig(config);
+    return config;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errorMessages = error.errors
+        .map((err) => `${err.path.join('.')}: ${err.message}`)
+        .join('\n');
+      throw new Error(`Configuration validation failed:\n${errorMessages}`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get configuration value by path
+ */
+export function getConfigValue<K extends keyof Config>(
+  config: Config,
+  key: K
+): Config[K] {
+  return config[key];
+}
+
+/**
+ * Get LLM API key based on provider
+ */
+export function getLLMApiKey(config: Config): string {
+  const { provider, anthropicApiKey, openaiApiKey, geminiApiKey } = config.llm;
+
+  switch (provider) {
+    case 'claude':
+      if (!anthropicApiKey) {
+        throw new Error('Anthropic API key not configured');
+      }
+      return anthropicApiKey;
+    case 'openai':
+      if (!openaiApiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+      return openaiApiKey;
+    case 'gemini':
+      if (!geminiApiKey) {
+        throw new Error('Gemini API key not configured');
+      }
+      return geminiApiKey;
+    default:
+      throw new Error(`Unknown LLM provider: ${provider}`);
+  }
+}
+
+/**
+ * Check if a specific notification method is configured
+ */
+export function isNotificationConfigured(config: Config, method: 'slack' | 'discord' | 'email'): boolean {
+  switch (method) {
+    case 'slack':
+      return !!config.notifications.slackWebhookUrl;
+    case 'discord':
+      return !!config.notifications.discordWebhookUrl;
+    case 'email':
+      return !!(
+        config.notifications.smtpHost &&
+        config.notifications.smtpPort &&
+        config.notifications.smtpUser &&
+        config.notifications.smtpPass &&
+        config.notifications.notificationEmail
+      );
+    default:
+      return false;
+  }
+}
+
+/**
+ * Get environment-specific settings
+ */
+export function isProduction(config: Config): boolean {
+  return config.nodeEnv === 'production';
+}
+
+export function isDevelopment(config: Config): boolean {
+  return config.nodeEnv === 'development';
+}
+
+export function isTest(config: Config): boolean {
+  return config.nodeEnv === 'test';
+}
+
+/**
+ * Export singleton instance
+ */
+let configInstance: Config | null = null;
+
+export function getConfig(): Config {
+  if (!configInstance) {
+    configInstance = loadConfig();
+  }
+  return configInstance;
+}
+
+/**
+ * Reset configuration (useful for testing)
+ */
+export function resetConfig(): void {
+  configInstance = null;
+}
+
+// Export config instance
+export const config = getConfig();
+
+export default config;
