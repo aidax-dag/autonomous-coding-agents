@@ -111,17 +111,35 @@ npm run start:reviewer
 npm run start:repo-manager
 ```
 
-### 프로젝트 시작
+### CLI 사용
 
 ```bash
-# CLI로 새 프로젝트 시작
-npm run cli start-project \
+# 전역 설치 (선택사항)
+npm run build
+npm link
+
+# 새 프로젝트 시작
+multi-agent start-project \
+  --repo https://github.com/username/my-app \
+  --requirements "사용자 인증이 있는 블로그 시스템 만들기" \
+  --priority high
+
+# 또는 개발 모드로 실행
+npm run cli -- start-project \
   --repo https://github.com/username/my-app \
   --requirements "사용자 인증이 있는 블로그 시스템 만들기"
 
-# 진행 상황 모니터링
-npm run cli job-status <job-id>
+# 진행 상황 확인
+multi-agent job-status task-1234567890-abc123
+
+# 모든 작업 목록 조회
+multi-agent list-jobs --status in_progress
+
+# 시스템 상태 확인
+multi-agent health
 ```
+
+자세한 CLI 사용법은 **[docs/CLI_USAGE.md](./docs/CLI_USAGE.md)** 참조
 
 ---
 
@@ -135,10 +153,16 @@ npm run cli job-status <job-id>
 | **[PRD.md](./PRD.md)** | Product Requirements Document (제품 요구사항 명세) |
 | **[FEATURE_LIST.md](./FEATURE_LIST.md)** | 상세 기능 리스트 및 구현 계획 (48개 기능) |
 
+### 운영 가이드
+
+| 문서 | 설명 |
+|------|------|
+| **[docs/CLI_USAGE.md](./docs/CLI_USAGE.md)** | CLI 명령어 사용법 및 예제 |
+| **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** | PM2를 사용한 프로덕션 배포 가이드 |
+
 ### 추가 문서 (작성 예정)
 
 - [ ] API Documentation
-- [ ] Deployment Guide
 - [ ] Troubleshooting Guide
 - [ ] Contributing Guidelines
 - [ ] Agent Prompt Engineering Guide
