@@ -4,36 +4,30 @@
 
 **Feature**: F4.4 - Interactive Feedback System
 
----
+## Overview
 
-## 📖 Overview
+Monitor agent tasks in real-time and provide feedback during development. Guide development direction, approve plans, and make adjustments as agents work.
 
-Interactive Mode allows you to monitor agent tasks in real-time and provide feedback during development. This enables you to guide the direction of development, approve plans, and make adjustments as needed.
-
-### Benefits
-
-- **📊 Real-time Monitoring**: See what agents are doing as they work
-- **💬 Direct Feedback**: Provide guidance and corrections during development
-- **⚡ Quick Adjustments**: Modify direction without waiting for completion
-- **🎯 Better Control**: Approve plans before implementation begins
-- **📝 Full History**: Track all updates and feedback throughout the task
+**Benefits:**
+- Real-time agent monitoring
+- Direct feedback during development
+- Plan approval before implementation
+- Pause/resume control
+- Full update history
 
 ---
 
-## 🚀 Quick Start
-
-### Starting Interactive Mode
+## Quick Start
 
 ```bash
-# Start a task first
+# 1. Start a task
 multi-agent start-project \
   --repo https://github.com/username/my-app \
-  --requirements "Build a user authentication system"
+  --requirements "Build user authentication"
 
-# Output includes task ID:
-# Task ID: task-1234567890-abc123
+# Output: Task ID: task-1234567890-abc123
 
-# Start interactive mode for that task
+# 2. Start interactive mode
 multi-agent interactive task-1234567890-abc123
 ```
 
@@ -62,9 +56,7 @@ Type /help for available commands
    Options:
    1. Approve - Proceed with this plan
    2. Modify - Suggest changes
-   3. Reject - Start over with different approach
-
-   Reply with: /respond req-001 <choice> [message]
+   3. Reject - Start over
 
 > /respond req-001 approve
 
@@ -74,18 +66,17 @@ Type /help for available commands
    Creating database schema
 
 ✅ Feature implemented successfully!
+
+> /quit
+👋 Interactive session ended
 ```
 
 ---
 
-## 📋 Available Commands
+## Available Commands
 
 ### `/help`
-Display available commands and usage information.
-
-```
-> /help
-```
+Display available commands.
 
 ### `/status`
 Show current task status and statistics.
@@ -94,7 +85,6 @@ Show current task status and statistics.
 > /status
 
 Task Status:
-
   Task ID:          task-1234567890-abc123
   Session uptime:   15m 30s
   Last activity:    5s ago
@@ -103,50 +93,40 @@ Task Status:
 ```
 
 ### `/pending`
-List all pending feedback requests.
+List pending feedback requests.
 
 ```
 > /pending
 
 Pending Feedback Requests:
-
   ID: req-002
   Code Review Approval
   Please review the authentication implementation
 ```
 
 ### `/respond <id> <choice> [message]`
-Respond to a specific feedback request.
+Respond to feedback request.
 
 ```
-# Approve a request
+# Approve
 > /respond req-001 approve
 
-# Suggest modifications
-> /respond req-001 modify Please use Redis instead of PostgreSQL for sessions
+# Modify
+> /respond req-001 modify Use Redis for sessions
 
-# Reject a proposal
-> /respond req-001 reject This approach doesn't fit our architecture
+# Reject
+> /respond req-001 reject Doesn't fit our architecture
 ```
 
-**Choice options:**
-- `approve` / `yes` - Accept and proceed
-- `modify` / `change` - Request changes (include message with details)
-- `reject` / `no` - Decline and start over
-- Any custom text - Provide specific instructions
+**Choices:** `approve`/`yes`, `modify`/`change`, `reject`/`no`, or custom text
 
-### `/pause`
-Pause task execution temporarily.
+### `/pause` / `/resume`
+Pause or resume task execution.
 
 ```
 > /pause
 ⏸️  Task paused
-```
 
-### `/resume`
-Resume paused task execution.
-
-```
 > /resume
 ▶️  Task resumed
 ```
@@ -154,18 +134,13 @@ Resume paused task execution.
 ### `/quit` or `/exit`
 Exit interactive mode.
 
-```
-> /quit
-👋 Interactive session ended
-```
-
 ---
 
-## 💬 Sending Feedback
+## Sending Feedback
 
 ### General Feedback
 
-Type any message (without `/` prefix) to send general feedback to the agent:
+Type any message without `/` prefix:
 
 ```
 > Can you add rate limiting to the login endpoint?
@@ -174,7 +149,7 @@ Type any message (without `/` prefix) to send general feedback to the agent:
 
 ### Responding to Requests
 
-When an agent requests feedback, use `/respond`:
+Use `/respond` when agent requests feedback:
 
 ```
 💬 Feedback Requested
@@ -188,298 +163,171 @@ When an agent requests feedback, use `/respond`:
 
 ---
 
-## 📊 Update Types
+## Update Types
 
-Interactive mode displays different types of updates:
-
-### Status Changes
+**Status Changes:**
 ```
 📊 Planning Phase Started
-   Creating implementation plan
 ```
 
-### Progress Updates
+**Progress:**
 ```
 ⏳ Implementation Started [████████░░░░░░░░░░░░] 40%
-   Creating database schema
 ```
 
-### Information
+**Information:**
 ```
 ℹ️  Using PostgreSQL for user storage
 ```
 
-### Warnings
+**Warnings:**
 ```
 ⚠️  No tests found for authentication module
 ```
 
-### Errors
+**Errors:**
 ```
 ❌ Build failed: TypeScript compilation error
 ```
 
-### Success
+**Success:**
 ```
 ✅ All tests passed!
 ```
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
-### Environment Variables
-
-No special configuration needed. Interactive mode uses your existing NATS connection:
+Uses existing NATS connection from `.env`:
 
 ```bash
-# .env
 NATS_URL=nats://localhost:4222
 ```
 
-### NATS Topics
-
-Interactive mode subscribes to these topics:
-
-- `task.{taskId}.updates` - Agent status updates
-- `task.{taskId}.feedback-request` - Feedback requests from agents
-- `task.{taskId}.control` - Control messages (pause/resume)
-
-And publishes to:
-
-- `task.{taskId}.feedback` - User feedback responses
+**NATS Topics:**
+- `task.{taskId}.updates` - Agent updates
+- `task.{taskId}.feedback-request` - Feedback requests
+- `task.{taskId}.feedback` - User responses
+- `task.{taskId}.control` - Control commands
 
 ---
 
-## 🎯 Use Cases
+## Use Cases
 
 ### 1. Plan Approval
 
 ```
-💬 Feedback Requested
-   Plan Approval Needed
-
-   Implementation plan for user authentication:
-   1. Create User model and database schema
-   2. Implement registration endpoint
-   3. Implement login endpoint with JWT
-   4. Add password reset functionality
-
+💬 Feedback Requested: Plan Approval
 > /respond req-001 approve
 ```
 
-### 2. Direction Changes
+### 2. Direction Change
 
 ```
-> Can you also add email verification before allowing login?
-✓ Feedback sent
+💬 Feedback Requested: Technology Choice
+   Should I use REST or GraphQL?
 
-📊 Plan Updated
-   Adding email verification step
+> /respond req-002 REST We already have REST infrastructure
 ```
 
 ### 3. Error Resolution
 
 ```
-❌ Build failed: Missing dependency 'jsonwebtoken'
+❌ Test failed: Invalid token format
 
-💬 Feedback Requested
-   How should I proceed?
-   1. Install jsonwebtoken
-   2. Use a different library
-   3. Implement JWT manually
-
-> /respond req-002 1
-✓ Response sent
-
-✅ Dependency installed successfully
+> Add proper JWT validation with error handling
+✓ Feedback sent
 ```
 
-### 4. Real-time Monitoring
+### 4. Code Review
 
 ```
-⏳ Running tests [████████████████████] 100%
-   245 tests passed, 0 failed
+💬 Feedback Requested: Code Review
+   Please review the implementation
 
-⏳ Building project [██████████░░░░░░░░░░] 50%
-   Compiling TypeScript files
-
-✅ Build completed successfully!
+> /respond req-003 modify Add input validation and improve error messages
 ```
 
 ---
 
-## 💡 Best Practices
+## Best Practices
 
-### 1. Monitor Critical Phases
+**Provide Clear Feedback:**
+- Be specific about what to change
+- Include reasoning when rejecting
+- Use examples when helpful
 
-Start interactive mode for important tasks:
-- New feature implementation
-- Complex refactoring
-- Architecture changes
-- Production deployments
+**Monitor Regularly:**
+- Keep interactive mode open during development
+- Respond to feedback requests promptly
+- Review progress updates
 
-### 2. Provide Clear Feedback
+**Use Pause/Resume:**
+- Pause before major direction changes
+- Resume after clarifying requirements
 
-Be specific in your feedback:
-
-```
-❌ Too vague:
-> Change it
-
-✅ Clear:
-> Please use SHA-256 instead of MD5 for hashing
-```
-
-### 3. Respond Promptly
-
-Some feedback requests may have timeouts. Respond quickly to avoid delays:
-
-```
-💬 Feedback Requested (expires in 5 minutes)
-   ...
-```
-
-### 4. Review Plans Before Approval
-
-Always read the full plan before approving:
-
-```
-# Read carefully, then respond
-> /respond req-001 approve
-```
-
-### 5. Use Pause for Research
-
-If you need time to make a decision:
-
-```
-> /pause
-⏸️  Task paused
-
-# Research the options...
-
-> /resume
-▶️  Task resumed
-
-> /respond req-001 modify Use approach B instead
-```
+**Keep History:**
+- All updates and feedback are logged
+- Review history to understand decisions
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
-### Interactive Mode Won't Start
+**No updates appearing:**
+- Ensure agents are running (`pm2 status`)
+- Check NATS connection (`curl http://localhost:8222/healthz`)
+- Verify task ID is correct
 
-```
-❌ Failed to start interactive mode
-Error: NATS_URL environment variable is required
-```
+**Cannot send feedback:**
+- Check NATS connection
+- Ensure task is active (not completed)
+- Try restarting interactive mode
 
-**Solution**: Ensure NATS is running and `NATS_URL` is set in `.env`
-
-```bash
-# Check NATS is running
-docker ps | grep nats
-
-# Or start NATS
-docker run -d -p 4222:4222 nats:latest
-```
-
-### No Updates Appearing
-
-**Possible causes:**
-1. Task ID is incorrect
-2. Agent hasn't started yet
-3. NATS connection issues
-
-**Check:**
-```bash
-# Verify task exists
-multi-agent list-jobs | grep task-123
-
-# Check NATS connection
-curl http://localhost:3000/health
-```
-
-### Feedback Not Being Received
-
-**Solution**: Agents must be configured to listen for feedback. Check agent logs:
-
-```bash
-pm2 logs coder-agent | grep feedback
-```
+**Feedback request timeout:**
+- Agent may be waiting for response
+- Use `/pending` to see all requests
+- Respond or pause task to prevent timeout
 
 ---
 
-## 🔄 Integration with Agents
+## Advanced
 
-### Agent-Side Implementation
+### Multiple Tasks
 
-Agents can request feedback during execution:
+Run interactive mode in separate terminals for multiple tasks:
+
+```bash
+# Terminal 1
+multi-agent interactive task-XXX
+
+# Terminal 2
+multi-agent interactive task-YYY
+```
+
+### Integration with Scripts
+
+Automate responses for testing:
+
+```bash
+echo "/respond req-001 approve" | multi-agent interactive task-XXX
+```
+
+### Custom Update Handlers
+
+Subscribe to update topics directly for custom processing:
 
 ```typescript
-// In CoderAgent
-async implementFeature(feature: Feature): Promise<void> {
-  // Create plan
-  const plan = await this.createPlan(feature);
-
-  // Request approval
-  await this.requestFeedback({
-    type: FeedbackRequestType.PLAN_APPROVAL,
-    title: 'Plan Approval Needed',
-    content: plan,
-    options: [
-      { value: 'approve', label: 'Approve', description: 'Proceed with this plan' },
-      { value: 'modify', label: 'Modify', description: 'Suggest changes' },
-      { value: 'reject', label: 'Reject', description: 'Start over' },
-    ],
-  });
-
-  // Wait for response
-  const response = await this.waitForFeedback();
-
-  if (response.type === FeedbackResponseType.APPROVE) {
-    // Proceed with implementation
-  } else if (response.type === FeedbackResponseType.MODIFY) {
-    // Update plan based on feedback
-    await this.updatePlan(response.message);
-  }
-}
-```
-
-### Publishing Updates
-
-Agents should publish regular updates:
-
-```typescript
-// Publish status update
-await this.publishUpdate({
-  type: AgentUpdateType.PROGRESS,
-  title: 'Implementation Started',
-  message: 'Creating database schema',
-  progress: 40,
+await natsClient.subscribe(`task.${taskId}.updates`, (data) => {
+  const update = JSON.parse(data);
+  // Custom handling
 });
 ```
 
 ---
 
-## 📚 Related Documentation
+## See Also
 
-- [CLI Usage Guide](./CLI_USAGE.md) - General CLI commands
-- [Agent Architecture](../MULTI_AGENT_SYSTEM_DESIGN.md) - How agents work
-- [NATS Messaging](../MULTI_AGENT_SYSTEM_DESIGN.md#messaging) - Message bus details
-
----
-
-## 🆘 Support
-
-If you encounter issues:
-
-1. Check this troubleshooting guide
-2. Review logs: `pm2 logs`
-3. Verify NATS connection: `multi-agent health`
-4. Open an issue with:
-   - Error messages
-   - Task ID
-   - Steps to reproduce
+- [CLI Usage Guide](./CLI_USAGE.md) - All CLI commands
+- [Webhook Setup](./WEBHOOK_SETUP.md) - Real-time GitHub events
