@@ -18,6 +18,9 @@ import {
   TaskStatus,
   FeatureRequest,
 } from '@/agents/base/types';
+import { InteractiveCLI } from '@/cli/interactive';
+import { StaticAnalyzer } from '@/shared/analysis/static-analyzer';
+import { AutoFixService } from '@/shared/analysis/auto-fix-service';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -554,6 +557,165 @@ program
       } else {
         console.error(chalk.red('Error:'), error instanceof Error ? error.message : String(error));
       }
+      process.exit(1);
+    }
+  });
+
+// Interactive Mode Command
+program
+  .command('interactive <task-id>')
+  .description('Start interactive monitoring mode for a task')
+  .action(async (taskId: string) => {
+    console.log(chalk.bold.cyan('\n🚀 Starting Interactive Mode...\n'));
+
+    try {
+      // Validate NATS configuration
+      if (!process.env.NATS_URL) {
+        throw new Error('NATS_URL environment variable is required');
+      }
+
+      // Connect to NATS
+      const natsClient = await initializeNatsClient({
+        url: process.env.NATS_URL,
+        reconnect: true,
+        maxReconnectAttempts: 10,
+      });
+
+      // Create and start interactive CLI
+      const interactive = new InteractiveCLI(natsClient, taskId);
+      await interactive.start();
+
+      // Handle process termination
+      process.on('SIGINT', async () => {
+        await interactive.stop();
+        await natsClient.close();
+        process.exit(0);
+      });
+
+      process.on('SIGTERM', async () => {
+        await interactive.stop();
+        await natsClient.close();
+        process.exit(0);
+      });
+    } catch (error) {
+      console.error(chalk.red('\n❌ Failed to start interactive mode'));
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+// Analyze Code Command
+program
+  .command('analyze [directory]')
+  .description('Analyze code for issues using ESLint and TypeScript')
+  .option('--format <type>', 'Output format (text|markdown|json)', 'text')
+  .option('--output <file>', 'Save report to file')
+  .action(async (directory: string = '.', options) => {
+    const spinner = ora('Analyzing code...').start();
+
+    try {
+      const analyzer = new StaticAnalyzer();
+
+      spinner.text = 'Running static analysis...';
+      const report = await analyzer.analyzeAll(directory);
+
+      spinner.succeed(chalk.green('Analysis complete!'));
+
+      // Format report
+      let output: string;
+      if (options.format === 'markdown') {
+        output = analyzer.formatReportMarkdown(report);
+      } else if (options.format === 'json') {
+        output = JSON.stringify(report, null, 2);
+      } else {
+        output = analyzer.formatReportText(report);
+      }
+
+      // Output to file or console
+      if (options.output) {
+        await require('fs/promises').writeFile(options.output, output);
+        console.log(chalk.green(`\n✓ Report saved to ${options.output}\n`));
+      } else {
+        console.log('\n' + output + '\n');
+      }
+
+      // Print summary
+      console.log(chalk.bold('Summary:'));
+      console.log(chalk.gray('  Files analyzed:  ') + chalk.cyan(report.totalFiles.toString()));
+      console.log(chalk.gray('  Total issues:    ') + chalk.yellow(report.totalIssues.toString()));
+      console.log(chalk.gray('  Errors:          ') + chalk.red(report.errors.toString()));
+      console.log(chalk.gray('  Warnings:        ') + chalk.yellow(report.warnings.toString()));
+      console.log(chalk.gray('  Fixable:         ') + chalk.green(report.fixable.toString()));
+      console.log();
+
+    } catch (error) {
+      spinner.fail(chalk.red('Analysis failed'));
+      console.error();
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  });
+
+// Auto-Fix Command
+program
+  .command('auto-fix')
+  .description('Automatically fix code issues and create PR')
+  .requiredOption('--repo <path>', 'Repository path')
+  .requiredOption('--owner <name>', 'GitHub repository owner')
+  .requiredOption('--name <name>', 'GitHub repository name')
+  .option('--branch <name>', 'Base branch', 'main')
+  .option('--no-pr', 'Skip PR creation')
+  .option('--no-issue', 'Skip issue creation')
+  .action(async (options) => {
+    const spinner = ora('Running auto-fix...').start();
+
+    try {
+      // Check for GitHub token
+      if (!process.env.GITHUB_TOKEN && !process.env.GH_TOKEN) {
+        throw new Error('GITHUB_TOKEN or GH_TOKEN environment variable required');
+      }
+
+      const service = new AutoFixService({
+        repoPath: options.repo,
+        owner: options.owner,
+        repo: options.name,
+        baseBranch: options.branch,
+        autoCreatePR: options.pr !== false,
+        autoCreateIssue: options.issue !== false,
+        githubToken: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
+      });
+
+      spinner.text = 'Scanning and fixing issues...';
+      const report = await service.scanAndFix();
+
+      spinner.succeed(chalk.green('Auto-fix complete!'));
+
+      // Display results
+      console.log();
+      console.log(chalk.bold('Fix Report:'));
+      console.log(chalk.gray('  Fixed:           ') + chalk.green(report.fixed.length.toString()));
+      console.log(chalk.gray('  Failed:          ') + chalk.red(report.failed.length.toString()));
+      console.log(chalk.gray('  Manual:          ') + chalk.yellow(report.manual.length.toString()));
+      console.log(chalk.gray('  Files modified:  ') + chalk.cyan(report.filesModified.length.toString()));
+
+      if (report.prCreated) {
+        console.log();
+        console.log(chalk.green('✓ PR created:'));
+        console.log(chalk.cyan(`  ${report.prCreated.url}`));
+      }
+
+      if (report.issueCreated) {
+        console.log();
+        console.log(chalk.yellow('ℹ Issue created for manual fixes:'));
+        console.log(chalk.cyan(`  ${report.issueCreated.url}`));
+      }
+
+      console.log();
+
+    } catch (error) {
+      spinner.fail(chalk.red('Auto-fix failed'));
+      console.error();
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
   });
