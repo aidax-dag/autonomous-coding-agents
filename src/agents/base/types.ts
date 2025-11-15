@@ -303,25 +303,35 @@ export interface FeatureResult extends TaskResult {
       owner: string;
       repo: string;
     };
-    pullRequest?: {
+    feature: {
+      title: string;
+      description: string;
+    };
+    pullRequest: {
       number: number;
       url: string;
       merged: boolean;
+      mergeCommitSha?: string;
     };
     implementation: {
       branch: string;
-      commits: string[];
-      filesChanged: number;
+      commits: Array<{
+        sha: string;
+        message: string;
+        files: string[];
+      }>;
+      filesChanged: Array<{
+        path: string;
+        status: 'added' | 'modified' | 'deleted';
+        additions?: number;
+        deletions?: number;
+      }>;
     };
     review?: {
-      approved: boolean;
-      comments: number;
+      decision: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT';
+      summary: string;
+      issuesFound: number;
     };
-    timeline: Array<{
-      step: string;
-      completedAt: number;
-      duration: number;
-    }>;
   };
 }
 
