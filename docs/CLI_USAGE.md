@@ -334,6 +334,144 @@ multi-agent list-jobs --status in_progress --limit 5
 
 ---
 
+### `analyze`
+
+Analyze code for issues using ESLint and TypeScript compiler.
+
+**Usage:**
+```bash
+multi-agent analyze [directory] [--format <type>] [--output <file>]
+```
+
+**Arguments:**
+- `[directory]` - Directory to analyze (default: current directory)
+
+**Options:**
+- `--format <type>` - Output format: `text`, `markdown`, `json` (default: `text`)
+- `--output <file>` - Save report to file
+
+**Example:**
+```bash
+# Analyze current directory
+multi-agent analyze
+
+# Analyze specific directory
+multi-agent analyze ./src
+
+# Output as markdown
+multi-agent analyze --format markdown
+
+# Save to file
+multi-agent analyze --format markdown --output report.md
+```
+
+**Output:**
+```
+✓ Analysis complete!
+
+================================================================================
+CODE ANALYSIS REPORT
+================================================================================
+
+Generated: 2025-11-16T00:30:00.000Z
+Duration: 1234ms
+
+SUMMARY:
+  Total Files:   42
+  Total Issues:  15
+  Errors:        3
+  Warnings:      12
+  Infos:         0
+  Fixable:       10
+
+ISSUES:
+
+  src/agents/coder/coder-agent.ts
+    [FIX] ERROR    25:10      @typescript-eslint/no-unused-vars: 'unused' is defined but never used
+    [FIX] WARNING  45:30      @typescript-eslint/no-explicit-any: Unexpected any
+
+Summary:
+  Files analyzed:  42
+  Total issues:    15
+  Errors:          3
+  Warnings:        12
+  Fixable:         10
+```
+
+---
+
+### `auto-fix`
+
+Automatically fix code issues and create a pull request.
+
+**Usage:**
+```bash
+multi-agent auto-fix \
+  --repo <path> \
+  --owner <name> \
+  --name <name> \
+  [--branch <name>] \
+  [--no-pr] \
+  [--no-issue]
+```
+
+**Options:**
+- `--repo <path>` - Repository path (required)
+- `--owner <name>` - GitHub repository owner (required)
+- `--name <name>` - GitHub repository name (required)
+- `--branch <name>` - Base branch (default: `main`)
+- `--no-pr` - Skip PR creation
+- `--no-issue` - Skip issue creation for manual fixes
+
+**Prerequisites:**
+- `GITHUB_TOKEN` or `GH_TOKEN` environment variable must be set
+
+**Example:**
+```bash
+# Run auto-fix and create PR
+export GITHUB_TOKEN=your_token_here
+
+multi-agent auto-fix \
+  --repo /path/to/repo \
+  --owner myorg \
+  --name myrepo
+
+# Run auto-fix without creating PR
+multi-agent auto-fix \
+  --repo /path/to/repo \
+  --owner myorg \
+  --name myrepo \
+  --no-pr
+```
+
+**Output:**
+```
+✓ Auto-fix complete!
+
+Fix Report:
+  Fixed:           10
+  Failed:          0
+  Manual:          5
+  Files modified:  3
+
+✓ PR created:
+  https://github.com/myorg/myrepo/pull/123
+
+ℹ Issue created for manual fixes:
+  https://github.com/myorg/myrepo/issues/456
+```
+
+**What it does:**
+1. Runs ESLint and TypeScript analysis
+2. Automatically fixes all fixable issues
+3. Creates a new branch
+4. Commits the fixes
+5. Pushes to GitHub
+6. Creates a PR with fix summary
+7. Creates an issue for non-fixable problems
+
+---
+
 ### `health`
 
 Check system health and agent status.
