@@ -62,7 +62,7 @@ const FeaturePayloadSchema = z.object({
  * Repo Manager Agent Implementation
  */
 export class RepoManagerAgent extends BaseAgent {
-  private customLLMClient?: ILLMClient;
+  private _customLLMClient?: ILLMClient;
   private githubClient: GitHubClient;
   private readonly NATS_TIMEOUT = 300000; // 5 minutes
 
@@ -73,7 +73,7 @@ export class RepoManagerAgent extends BaseAgent {
     githubClient?: GitHubClient
   ) {
     super(config, natsClient);
-    this.customLLMClient = llmClient;
+    this._customLLMClient = llmClient;
     this.githubClient = githubClient || new GitHubClient(process.env.GITHUB_TOKEN || '');
   }
 
