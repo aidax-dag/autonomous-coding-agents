@@ -439,6 +439,40 @@ export class GitHubClient {
   }
 
   /**
+   * Merge a pull request
+   */
+  async mergePullRequest(
+    repo: GitHubRepo,
+    prNumber: number,
+    options?: {
+      commitTitle?: string;
+      commitMessage?: string;
+      sha?: string;
+      mergeMethod?: 'merge' | 'squash' | 'rebase';
+    }
+  ): Promise<{ merged: boolean; sha: string; message: string }> {
+    try {
+      const response = await this.octokit.pulls.merge({
+        owner: repo.owner,
+        repo: repo.repo,
+        pull_number: prNumber,
+        commit_title: options?.commitTitle,
+        commit_message: options?.commitMessage,
+        sha: options?.sha,
+        merge_method: options?.mergeMethod || 'merge',
+      });
+
+      return {
+        merged: true,
+        sha: response.data.sha,
+        message: response.data.message,
+      };
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Map Octokit pull request to our format
    */
   private mapPullRequest(pr: any): PullRequest {

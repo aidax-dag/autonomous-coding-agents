@@ -289,6 +289,36 @@ export class NatsClient {
   }
 
   /**
+   * Send a request and wait for a response (request-reply pattern)
+   */
+  async request(
+    subject: string,
+    data: string | Uint8Array,
+    options?: { timeout?: number }
+  ): Promise<{ data: Uint8Array; subject: string }> {
+    if (!this.connection || this.connection.isClosed()) {
+      throw new Error('Not connected to NATS');
+    }
+
+    try {
+      const payload = typeof data === 'string' ? this.codec.encode(data) : data;
+      const msg = await this.connection.request(subject, payload, {
+        timeout: options?.timeout || 30000,
+      });
+
+      console.log(`[NATS] Request-reply completed for ${subject}`);
+
+      return {
+        data: msg.data,
+        subject: msg.subject,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Request to ${subject} failed: ${message}`);
+    }
+  }
+
+  /**
    * Close all subscriptions and connection
    */
   async close(): Promise<void> {
