@@ -17,6 +17,7 @@ import { NatsClient } from '@/shared/messaging/nats-client';
 import { ILLMClient } from '@/shared/llm/base-client';
 import { GitHubClient, PullRequest } from '@/shared/github/client';
 import { AgentError, ErrorCode } from '@/shared/errors/custom-errors';
+import { Notifier, NotificationEvent } from '@/shared/notifications/index.js';
 import { z } from 'zod';
 
 /**
@@ -62,19 +63,21 @@ const FeaturePayloadSchema = z.object({
  * Repo Manager Agent Implementation
  */
 export class RepoManagerAgent extends BaseAgent {
-  private customLLMClient?: ILLMClient;
   private githubClient: GitHubClient;
+  private notifier?: Notifier;
   private readonly NATS_TIMEOUT = 300000; // 5 minutes
 
   constructor(
     config: AgentConfig,
     natsClient: NatsClient,
-    llmClient?: ILLMClient,
-    githubClient?: GitHubClient
+    _llmClient?: ILLMClient,
+    githubClient?: GitHubClient,
+    notifier?: Notifier
   ) {
     super(config, natsClient);
-    this.customLLMClient = llmClient;
+    // _llmClient parameter kept for compatibility but not used
     this.githubClient = githubClient || new GitHubClient(process.env.GITHUB_TOKEN || '');
+    this.notifier = notifier;
   }
 
   getAgentType(): AgentType {
@@ -137,6 +140,22 @@ export class RepoManagerAgent extends BaseAgent {
         prNumber: pullRequest.number,
       });
 
+      // Notify PR created
+      await this.notifier?.send({
+        title: `PR Created: ${feature.title}`,
+        message: `Pull request #${pullRequest.number} has been created for feature "${feature.title}" in ${repository.owner}/${repository.repo}`,
+        level: 'info',
+        event: NotificationEvent.PR_CREATED,
+        url: pullRequest.url,
+        timestamp: Date.now(),
+        metadata: {
+          taskId: task.id,
+          repository: `${repository.owner}/${repository.repo}`,
+          prNumber: pullRequest.number,
+          branch,
+        },
+      });
+
       // Step 3: Request review from Reviewer agent
       const reviewResult = await this.requestReview(repository, pullRequest.number, feature.title);
 
@@ -166,6 +185,22 @@ export class RepoManagerAgent extends BaseAgent {
             prNumber: pullRequest.number,
             sha: mergeCommitSha,
           });
+
+          // Notify PR merged
+          await this.notifier?.send({
+            title: `PR Merged: ${feature.title}`,
+            message: `Pull request #${pullRequest.number} has been successfully merged into ${repository.owner}/${repository.repo}`,
+            level: 'info',
+            event: NotificationEvent.PR_MERGED,
+            url: pullRequest.url,
+            timestamp: Date.now(),
+            metadata: {
+              taskId: task.id,
+              repository: `${repository.owner}/${repository.repo}`,
+              prNumber: pullRequest.number,
+              mergeCommitSha,
+            },
+          });
         } catch (error) {
           this.logger.error('Failed to merge PR', {
             taskId: task.id,
@@ -177,6 +212,21 @@ export class RepoManagerAgent extends BaseAgent {
         this.logger.info('Review requested changes, PR not merged', {
           taskId: task.id,
           prNumber: pullRequest.number,
+        });
+
+        // Notify changes requested
+        await this.notifier?.send({
+          title: `Changes Requested: ${feature.title}`,
+          message: `Review requested changes for PR #${pullRequest.number} in ${repository.owner}/${repository.repo}`,
+          level: 'warning',
+          event: NotificationEvent.REVIEW_REQUESTED_CHANGES,
+          url: pullRequest.url,
+          timestamp: Date.now(),
+          metadata: {
+            taskId: task.id,
+            repository: `${repository.owner}/${repository.repo}`,
+            prNumber: pullRequest.number,
+          },
         });
       } else if (!reviewDecision && requireApproval) {
         this.logger.info('Review incomplete, PR not merged', {
@@ -226,11 +276,48 @@ export class RepoManagerAgent extends BaseAgent {
         merged,
       });
 
+      // Notify task completed
+      await this.notifier?.send({
+        title: `Task Completed: ${feature.title}`,
+        message: `Feature "${feature.title}" has been successfully implemented in ${repository.owner}/${repository.repo}. PR #${pullRequest.number}${merged ? ' (merged)' : ' (awaiting merge)'}`,
+        level: 'info',
+        event: NotificationEvent.TASK_COMPLETED,
+        url: pullRequest.url,
+        timestamp: Date.now(),
+        metadata: {
+          taskId: task.id,
+          repository: `${repository.owner}/${repository.repo}`,
+          prNumber: pullRequest.number,
+          merged,
+          filesChanged: implementationResult.data.filesChanged,
+        },
+      });
+
       return result;
     } catch (error) {
       this.logger.error('Feature request failed', {
         taskId: task.id,
         error,
+      });
+
+      // Extract feature info for notification
+      const featureRequest = task as FeatureRequest;
+      const featureTitle =
+        featureRequest.payload?.feature?.title || 'Unknown Feature';
+
+      // Notify task failed
+      await this.notifier?.send({
+        title: `Task Failed: ${featureTitle}`,
+        message: `Failed to implement feature "${featureTitle}": ${error instanceof Error ? error.message : String(error)}`,
+        level: 'error',
+        event: NotificationEvent.TASK_FAILED,
+        timestamp: Date.now(),
+        metadata: {
+          taskId: task.id,
+          error: error instanceof Error ? error.message : String(error),
+          errorCode:
+            error instanceof AgentError ? error.code : ErrorCode.WORKFLOW_ERROR,
+        },
       });
 
       return {

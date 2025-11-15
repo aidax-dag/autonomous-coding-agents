@@ -50,6 +50,14 @@ node_modules/.prisma/
 # PM2
 .pm2/
 ecosystem.config.js.bak
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Agent working directories
+/tmp/autonomous-coding-agents/
+/work/
 
 # Misc
 .cache/

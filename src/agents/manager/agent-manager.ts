@@ -40,12 +40,27 @@ const TaskSchema = z.object({
 /**
  * Agent Manager class
  */
+export interface SystemHealth {
+  healthy: boolean;
+  agentCount: number;
+  uptime: number;
+  agents: {
+    type: AgentType;
+    count: number;
+    healthy: number;
+    idle: number;
+    working: number;
+  }[];
+}
+
 export class AgentManager {
   private agents: Map<string, BaseAgent>;
   private agentsByType: Map<AgentType, BaseAgent[]>;
   private roundRobinIndex: Map<AgentType, number>;
   private logger: AgentLogger;
   private isCleanedUp: boolean;
+  private startTime: number;
+  private isRunning: boolean;
 
   constructor() {
     this.agents = new Map();
@@ -53,6 +68,8 @@ export class AgentManager {
     this.roundRobinIndex = new Map();
     this.logger = createAgentLogger('MANAGER', 'agent-manager');
     this.isCleanedUp = false;
+    this.startTime = Date.now();
+    this.isRunning = false;
 
     // Initialize agent type arrays
     Object.values(AgentType).forEach((type) => {
@@ -335,6 +352,91 @@ export class AgentManager {
    */
   getAgentsByType(type: AgentType): BaseAgent[] {
     return this.agentsByType.get(type) ?? [];
+  }
+
+  /**
+   * Start the agent manager
+   */
+  async start(): Promise<void> {
+    if (this.isRunning) {
+      return;
+    }
+
+    this.logger.info('Starting agent manager');
+    this.isRunning = true;
+    this.startTime = Date.now();
+    this.logger.info('Agent manager started successfully');
+  }
+
+  /**
+   * Stop the agent manager
+   */
+  async stop(): Promise<void> {
+    if (!this.isRunning) {
+      return;
+    }
+
+    this.logger.info('Stopping agent manager');
+    await this.cleanup();
+    this.isRunning = false;
+    this.logger.info('Agent manager stopped successfully');
+  }
+
+  /**
+   * Get all registered agents
+   */
+  listAgents(): BaseAgent[] {
+    return Array.from(this.agents.values());
+  }
+
+  /**
+   * Get system health status
+   */
+  async getSystemHealth(): Promise<SystemHealth> {
+    const agentStats = new Map<AgentType, { count: number; healthy: number; idle: number; working: number }>();
+
+    // Initialize stats for all agent types
+    Object.values(AgentType).forEach((type) => {
+      agentStats.set(type, { count: 0, healthy: 0, idle: 0, working: 0 });
+    });
+
+    // Count agents by type and state
+    for (const agent of this.agents.values()) {
+      const type = agent.getAgentType();
+      const stats = agentStats.get(type)!;
+
+      stats.count++;
+
+      const health = agent.getHealth();
+      if (health.healthy) {
+        stats.healthy++;
+      }
+
+      const state = agent.getState();
+      if (state === 'IDLE') {
+        stats.idle++;
+      } else if (state === 'WORKING') {
+        stats.working++;
+      }
+    }
+
+    // Calculate overall health
+    const totalAgents = this.agents.size;
+    const healthyAgents = Array.from(this.agents.values()).filter(
+      (agent) => agent.getHealth().healthy
+    ).length;
+
+    const healthy = totalAgents === 0 || healthyAgents === totalAgents;
+
+    return {
+      healthy,
+      agentCount: totalAgents,
+      uptime: Date.now() - this.startTime,
+      agents: Array.from(agentStats.entries()).map(([type, stats]) => ({
+        type,
+        ...stats,
+      })),
+    };
   }
 
   /**
