@@ -17,6 +17,7 @@ import * as http from 'http';
 import { AgentManager, SystemHealth } from '@/agents/manager/agent-manager';
 import { NatsClient } from '@/shared/messaging/nats-client';
 import { createAgentLogger } from '@/shared/logging/logger';
+import { WebhookServer, WebhookServerStatus } from './webhook/index.js';
 
 export interface HealthServerConfig {
   port: number;
@@ -36,6 +37,7 @@ export interface HealthResponse {
         subscriptions: number;
       };
     };
+    webhook?: WebhookServerStatus;
   };
 }
 
@@ -60,7 +62,8 @@ export class HealthServer {
   constructor(
     private config: HealthServerConfig,
     private agentManager: AgentManager,
-    private natsClient: NatsClient
+    private natsClient: NatsClient,
+    private webhookServer?: WebhookServer
   ) {}
 
   /**
@@ -161,6 +164,12 @@ export class HealthServer {
           'GET /health/agents/:agentId',
           'GET /metrics',
         ],
+        webhook: this.webhookServer
+          ? {
+              enabled: this.webhookServer.getStatus().running,
+              port: this.webhookServer.getStatus().port,
+            }
+          : { enabled: false },
       });
     } else {
       this.sendError(res, 404, 'Not Found');
@@ -184,6 +193,7 @@ export class HealthServer {
           connected: this.natsClient.isConnected(),
           stats: natsStats || undefined,
         },
+        webhook: this.webhookServer ? this.webhookServer.getStatus() : undefined,
       },
     };
 

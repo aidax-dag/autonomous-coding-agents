@@ -9,6 +9,7 @@
  */
 
 import { HealthServer } from '@/server/health-server';
+import { WebhookServer, WebhookHandlers, WebhookConfig } from '@/server/webhook';
 import { AgentManager } from '@/agents/manager/agent-manager';
 import { initializeNatsClient } from '@/shared/messaging/nats-client';
 import { CoderAgent } from '@/agents/coder/coder-agent';
@@ -102,6 +103,41 @@ async function main(): Promise<void> {
 
     logger.info('Agents registered for monitoring');
 
+    // Create and start webhook server (if enabled)
+    let webhookServer: WebhookServer | undefined;
+
+    if (process.env.WEBHOOK_ENABLED === 'true') {
+      const webhookConfig: WebhookConfig = {
+        port: parseInt(process.env.WEBHOOK_PORT || '3001', 10),
+        host: process.env.WEBHOOK_HOST || '0.0.0.0',
+        path: process.env.WEBHOOK_PATH || '/webhook',
+        secret: process.env.WEBHOOK_SECRET || '',
+        enabled: true,
+      };
+
+      if (!webhookConfig.secret) {
+        logger.warn('WEBHOOK_SECRET not set. Webhook server will not start.');
+      } else {
+        webhookServer = new WebhookServer(webhookConfig);
+
+        // Create and register webhook handlers
+        const handlers = new WebhookHandlers(natsClient);
+
+        webhookServer.on('pull_request', (event) => handlers.handlePullRequest(event));
+        webhookServer.on('pull_request_review', (event) => handlers.handlePullRequestReview(event));
+        webhookServer.on('ping', (event) => handlers.handlePing(event));
+
+        await webhookServer.start();
+
+        logger.info('Webhook Server started successfully', {
+          port: webhookConfig.port,
+          path: webhookConfig.path,
+        });
+      }
+    } else {
+      logger.info('Webhook server disabled');
+    }
+
     // Create and start health server
     const healthServer = new HealthServer(
       {
@@ -109,7 +145,8 @@ async function main(): Promise<void> {
         host: process.env.HEALTH_HOST || '0.0.0.0',
       },
       agentManager,
-      natsClient
+      natsClient,
+      webhookServer
     );
 
     await healthServer.start();
@@ -124,6 +161,9 @@ async function main(): Promise<void> {
 
       try {
         await healthServer.stop();
+        if (webhookServer) {
+          await webhookServer.stop();
+        }
         await agentManager.stop();
         await natsClient.close();
         logger.info('Health Server stopped successfully');
