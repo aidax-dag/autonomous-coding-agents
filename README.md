@@ -49,8 +49,8 @@ Multi-Agent Autonomous Coding System은 3개의 전문화된 AI 에이전트가 
 | **Phase 4** | 고급 기능 | 🔄 진행 중 | - |
 | | - CI/CD 통합 | ✅ | |
 | | - GitHub Webhook 지원 | ✅ | |
+| | - 대화형 피드백 시스템 | ✅ | |
 | | - 병렬 기능 개발 | 📋 | |
-| | - 대화형 피드백 | 📋 | |
 | | - 자동 이슈 감지 | 📋 | |
 
 ### 현재 릴리스
@@ -198,6 +198,7 @@ multi-agent health
 | **[docs/CLI_USAGE.md](./docs/CLI_USAGE.md)** | CLI 명령어 사용법 및 예제 |
 | **[docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)** | PM2를 사용한 프로덕션 배포 가이드 |
 | **[docs/WEBHOOK_SETUP.md](./docs/WEBHOOK_SETUP.md)** | GitHub Webhook 설정 가이드 (실시간 이벤트 처리) |
+| **[docs/INTERACTIVE_MODE.md](./docs/INTERACTIVE_MODE.md)** | 대화형 모드 가이드 (실시간 모니터링 및 피드백) |
 
 ### Phase별 구현 계획
 

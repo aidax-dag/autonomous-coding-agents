@@ -206,6 +206,90 @@ multi-agent job-status task-1234567890-abc123
 
 ---
 
+### `interactive`
+
+Start interactive monitoring mode for a task with real-time updates and feedback.
+
+**Usage:**
+```bash
+multi-agent interactive <task-id>
+```
+
+**Arguments:**
+- `<task-id>` - The task ID to monitor (required)
+
+**Example:**
+```bash
+# Start a project first
+multi-agent start-project \
+  --repo https://github.com/owner/repo \
+  --requirements "Build authentication"
+
+# Copy the task ID from output, then:
+multi-agent interactive task-1234567890-abc123
+```
+
+**Features:**
+- 📊 Real-time agent updates
+- 💬 Submit feedback during development
+- 🎯 Approve plans before implementation
+- ⏸️ Pause/resume task execution
+- 📝 Full update history
+
+**Interactive Commands:**
+```
+> /help              Show available commands
+> /status            Show task status
+> /pending           List pending feedback requests
+> /respond <id> <choice> [message]
+                    Respond to feedback request
+> /pause             Pause task execution
+> /resume            Resume task execution
+> /quit              Exit interactive mode
+```
+
+**Example Session:**
+```
+🤖 Interactive Mode Started
+
+Task ID: task-1234567890-abc123
+Type /help for available commands
+
+>
+
+📊 Planning Phase Started
+   Creating implementation plan
+
+💬 Feedback Requested
+   ID: req-001
+   Plan Approval Needed
+
+   Implementation plan:
+   1. Create User model
+   2. Implement JWT authentication
+   3. Add password reset
+
+   Options:
+   1. Approve - Proceed with this plan
+   2. Modify - Suggest changes
+   3. Reject - Start over
+
+> /respond req-001 approve
+
+✓ Response sent for req-001
+
+⏳ Implementation Started [████████░░░░░░░░░░░░] 40%
+   Creating database schema
+
+✅ Feature implemented successfully!
+
+> /quit
+```
+
+For detailed interactive mode documentation, see [INTERACTIVE_MODE.md](./INTERACTIVE_MODE.md).
+
+---
+
 ### `list-jobs`
 
 List all active jobs in the system.

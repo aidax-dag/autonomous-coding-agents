@@ -18,6 +18,7 @@ import {
   TaskStatus,
   FeatureRequest,
 } from '@/agents/base/types';
+import { InteractiveCLI } from '@/cli/interactive';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -554,6 +555,49 @@ program
       } else {
         console.error(chalk.red('Error:'), error instanceof Error ? error.message : String(error));
       }
+      process.exit(1);
+    }
+  });
+
+// Interactive Mode Command
+program
+  .command('interactive <task-id>')
+  .description('Start interactive monitoring mode for a task')
+  .action(async (taskId: string) => {
+    console.log(chalk.bold.cyan('\n🚀 Starting Interactive Mode...\n'));
+
+    try {
+      // Validate NATS configuration
+      if (!process.env.NATS_URL) {
+        throw new Error('NATS_URL environment variable is required');
+      }
+
+      // Connect to NATS
+      const natsClient = await initializeNatsClient({
+        url: process.env.NATS_URL,
+        reconnect: true,
+        maxReconnectAttempts: 10,
+      });
+
+      // Create and start interactive CLI
+      const interactive = new InteractiveCLI(natsClient, taskId);
+      await interactive.start();
+
+      // Handle process termination
+      process.on('SIGINT', async () => {
+        await interactive.stop();
+        await natsClient.close();
+        process.exit(0);
+      });
+
+      process.on('SIGTERM', async () => {
+        await interactive.stop();
+        await natsClient.close();
+        process.exit(0);
+      });
+    } catch (error) {
+      console.error(chalk.red('\n❌ Failed to start interactive mode'));
+      console.error(chalk.red('Error:'), error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
   });
