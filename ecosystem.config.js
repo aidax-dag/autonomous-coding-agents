@@ -16,6 +16,26 @@
 module.exports = {
   apps: [
     {
+      name: 'health-server',
+      script: 'dist/bin/start-health-server.js',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '512M',
+      env: {
+        NODE_ENV: 'production',
+        HEALTH_PORT: 3000,
+        HEALTH_HOST: '0.0.0.0',
+      },
+      error_file: 'logs/health-server-error.log',
+      out_file: 'logs/health-server-out.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+      max_restarts: 10,
+      min_uptime: '10s',
+      restart_delay: 4000,
+    },
+    {
       name: 'coder-agent',
       script: 'dist/bin/start-coder.js',
       instances: 1,

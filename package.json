@@ -20,6 +20,7 @@
     "dev:coder": "tsx src/bin/start-coder.ts",
     "dev:reviewer": "tsx src/bin/start-reviewer.ts",
     "dev:repo-manager": "tsx src/bin/start-repo-manager.ts",
+    "dev:health": "tsx src/bin/start-health-server.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
