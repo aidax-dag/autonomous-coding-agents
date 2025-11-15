@@ -12,6 +12,7 @@ import { NatsClient } from '@/shared/messaging/nats-client';
 import { ILLMClient } from '@/shared/llm/base-client';
 import { GitHubClient, PullRequest, DiffFile, PullRequestDiff } from '@/shared/github/client';
 import { AgentError, ErrorCode } from '@/shared/errors/custom-errors';
+import { CIChecker } from '@/shared/ci/index.js';
 import { z } from 'zod';
 
 /**
@@ -85,16 +86,21 @@ type CodeReviewResponse = z.infer<typeof CodeReviewResponseSchema>;
 export class ReviewerAgent extends BaseAgent {
   private customLLMClient?: ILLMClient;
   private githubClient: GitHubClient;
+  private ciChecker: CIChecker;
 
   constructor(
     config: AgentConfig,
     natsClient: NatsClient,
     llmClient?: ILLMClient,
-    githubClient?: GitHubClient
+    githubClient?: GitHubClient,
+    ciChecker?: CIChecker
   ) {
     super(config, natsClient);
     this.customLLMClient = llmClient;
     this.githubClient = githubClient || new GitHubClient(process.env.GITHUB_TOKEN || '');
+    this.ciChecker = ciChecker || new CIChecker(process.env.GITHUB_TOKEN || '', {
+      minCoverage: parseInt(process.env.MIN_COVERAGE || '80', 10),
+    });
   }
 
   getAgentType(): AgentType {
@@ -133,6 +139,68 @@ export class ReviewerAgent extends BaseAgent {
 
       // Fetch PR diff
       const prDiff = await this.fetchPullRequestDiff(repository, pullRequest.number);
+
+      // Check CI status before review
+      this.logger.info('Checking CI status', { pr: pullRequest.number, sha: pr.head.sha });
+      const ciStatus = await this.ciChecker.waitForCompletion(
+        repository.owner,
+        repository.repo,
+        pr.head.sha
+      );
+
+      // If CI failed, request changes
+      if (this.ciChecker.isFailed(ciStatus)) {
+        const failedChecks = this.ciChecker.getFailedChecks(ciStatus);
+        const failureMessage = this.formatCIFailure(ciStatus, failedChecks);
+
+        this.logger.warn('CI checks failed', {
+          pr: pullRequest.number,
+          failedCount: failedChecks.length,
+        });
+
+        // Post review about failed CI
+        await this.githubClient.createReview(
+          repository,
+          pullRequest.number,
+          {
+            event: 'REQUEST_CHANGES',
+            body: failureMessage,
+          }
+        );
+
+        // Build early result - don't proceed with code review if CI failed
+        const result: ReviewResult = {
+          taskId: task.id,
+          status: TaskStatus.COMPLETED,
+          success: true,
+          data: {
+            repository: {
+              owner: repository.owner,
+              repo: repository.repo,
+            },
+            pullRequest: {
+              number: pullRequest.number,
+            },
+            review: {
+              id: 0,
+              decision: 'REQUEST_CHANGES',
+              summary: 'CI checks failed. Please fix the failing tests.',
+              comments: [],
+              stats: {
+                filesReviewed: 0,
+                issuesFound: failedChecks.length,
+                criticalIssues: failedChecks.length,
+                warnings: 0,
+                suggestions: 0,
+              },
+            },
+          },
+        };
+
+        return result;
+      }
+
+      this.logger.info('CI checks passed', { pr: pullRequest.number });
 
       // Analyze changes using LLM
       const analysisResult = await this.analyzeChanges(
@@ -462,5 +530,35 @@ Return response in JSON format:
     }
 
     throw lastError;
+  }
+
+  /**
+   * Format CI failure message for GitHub comment
+   */
+  private formatCIFailure(_ciStatus: any, failedChecks: any[]): string {
+    const lines: string[] = [];
+
+    lines.push('## ❌ CI Checks Failed\n');
+    lines.push('The following CI checks have failed. Please fix these issues before the code can be reviewed:\n');
+
+    for (const check of failedChecks) {
+      lines.push(`### ${check.name}`);
+      lines.push(`- **Status**: ${check.conclusion}`);
+
+      if (check.detailsUrl) {
+        lines.push(`- **Details**: ${check.detailsUrl}`);
+      }
+
+      if (check.output?.summary) {
+        lines.push(`\n${check.output.summary}\n`);
+      }
+
+      lines.push('');
+    }
+
+    lines.push('---');
+    lines.push('Once all CI checks pass, the code review will proceed automatically.');
+
+    return lines.join('\n');
   }
 }
