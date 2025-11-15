@@ -47,7 +47,7 @@ describe('E2E Agent Workflow', () => {
     await messageCollector.subscribe('result.>');
 
     // Create agent manager
-    agentManager = new AgentManager(natsClient);
+    agentManager = new AgentManager();
     await agentManager.start();
   });
 

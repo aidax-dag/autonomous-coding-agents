@@ -62,7 +62,7 @@ export class AgentManager {
   private startTime: number;
   private isRunning: boolean;
 
-  constructor(private _natsClient?: any) {
+  constructor() {
     this.agents = new Map();
     this.agentsByType = new Map();
     this.roundRobinIndex = new Map();

@@ -12,6 +12,7 @@ import { RepoManagerAgent } from '@/agents/repo-manager/repo-manager-agent';
 import { initializeNatsClient } from '@/shared/messaging/nats-client';
 import { AgentType, AgentConfig } from '@/agents/base/types';
 import { createAgentLogger } from '@/shared/logging/logger';
+import { Notifier, getNotificationConfig, validateNotificationConfig } from '@/shared/notifications/index.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -85,8 +86,28 @@ async function main(): Promise<void> {
       url: process.env.NATS_URL,
     });
 
+    // Initialize notification system
+    const notificationConfig = getNotificationConfig();
+    let notifier: Notifier | undefined;
+
+    if (notificationConfig.enabled) {
+      if (validateNotificationConfig(notificationConfig)) {
+        notifier = new Notifier(notificationConfig);
+        logger.info('Notification system initialized', {
+          level: notificationConfig.level,
+          hasSlack: !!notificationConfig.slack,
+          hasDiscord: !!notificationConfig.discord,
+          hasEmail: !!notificationConfig.email,
+        });
+      } else {
+        logger.warn('Notification configuration invalid, notifications disabled');
+      }
+    } else {
+      logger.info('Notifications disabled');
+    }
+
     // Create and start agent
-    const agent = new RepoManagerAgent(config, natsClient);
+    const agent = new RepoManagerAgent(config, natsClient, undefined, undefined, notifier);
     await agent.start();
 
     logger.info('Repo Manager Agent started successfully', {

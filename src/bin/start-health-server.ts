@@ -63,7 +63,7 @@ async function main(): Promise<void> {
     logger.info('NATS client connected');
 
     // Create Agent Manager
-    const agentManager = new AgentManager(natsClient);
+    const agentManager = new AgentManager();
     await agentManager.start();
 
     logger.info('Agent Manager started');
