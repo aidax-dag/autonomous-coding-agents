@@ -24,6 +24,56 @@ import { ErrorCode } from '@/shared/errors/custom-errors';
 // Mock dependencies
 jest.mock('@/shared/messaging/nats-client');
 jest.mock('@/shared/github/client');
+jest.mock('@/shared/ci/index.js', () => ({
+  CIChecker: jest.fn().mockImplementation(() => ({
+    getCIStatus: jest.fn().mockResolvedValue({
+      status: 'success',
+      conclusion: 'success',
+      checks: [],
+      workflows: [],
+      overallStatus: 'success',
+      hasFailures: false,
+      hasPending: false,
+      summary: 'All checks passed',
+    }),
+    getCheckRuns: jest.fn().mockResolvedValue([]),
+    getWorkflowRuns: jest.fn().mockResolvedValue([]),
+    isReviewBlocked: jest.fn().mockResolvedValue(false),
+    waitForCompletion: jest.fn().mockResolvedValue({
+      status: 'success',
+      conclusion: 'success',
+      checks: [],
+      workflows: [],
+      overallStatus: 'success',
+      hasFailures: false,
+      hasPending: false,
+      summary: 'All checks passed',
+    }),
+    getStatus: jest.fn().mockResolvedValue({
+      status: 'success',
+      conclusion: 'success',
+      checks: [],
+      workflows: [],
+      overallStatus: 'success',
+      hasFailures: false,
+      hasPending: false,
+      summary: 'All checks passed',
+    }),
+    isFailed: jest.fn().mockReturnValue(false),
+    isPassed: jest.fn().mockReturnValue(true),
+    getFailedChecks: jest.fn().mockReturnValue([]),
+    formatStatus: jest.fn().mockReturnValue('All checks passed'),
+    getStatusIcon: jest.fn().mockReturnValue('✅'),
+    getConfig: jest.fn().mockReturnValue({}),
+    updateConfig: jest.fn(),
+  })),
+  CIStatus: {
+    SUCCESS: 'success',
+    FAILURE: 'failure',
+    PENDING: 'pending',
+    NEUTRAL: 'neutral',
+  },
+}));
 
 describe('ReviewerAgent', () => {
   let agent: ReviewerAgent;
@@ -170,6 +220,11 @@ describe('ReviewerAgent', () => {
       });
 
       const result = (await agent.processTask(task)) as ReviewResult;
+
+      // Debug: log result if failed
+      if (!result.success) {
+        console.log('Review result:', JSON.stringify(result, null, 2));
+      }
 
       expect(result.success).toBe(true);
       expect(result.status).toBe(TaskStatus.COMPLETED);

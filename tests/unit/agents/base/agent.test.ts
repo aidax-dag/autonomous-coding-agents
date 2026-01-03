@@ -38,6 +38,8 @@ class TestAgent extends BaseAgent {
   }
 
   async processTask(task: Task): Promise<TaskResult> {
+    // Add small delay to ensure measurable task duration
+    await new Promise((resolve) => setTimeout(resolve, 5));
     // Simple test implementation
     return {
       taskId: task.id,

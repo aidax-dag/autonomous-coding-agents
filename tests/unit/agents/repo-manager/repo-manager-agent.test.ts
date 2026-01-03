@@ -127,7 +127,7 @@ describe('RepoManagerAgent', () => {
 
       // Mock NATS request for implementation
       mockNatsClient.request.mockResolvedValueOnce({
-        data: JSON.stringify({
+        data: Buffer.from(JSON.stringify({
           taskId: 'impl-1',
           status: TaskStatus.COMPLETED,
           success: true,
@@ -149,7 +149,8 @@ describe('RepoManagerAgent', () => {
               },
             ],
           },
-        }),
+        })),
+        subject: 'task.coder',
       });
 
       // Mock PR creation
@@ -168,7 +169,7 @@ describe('RepoManagerAgent', () => {
 
       // Mock NATS request for review
       mockNatsClient.request.mockResolvedValueOnce({
-        data: JSON.stringify({
+        data: Buffer.from(JSON.stringify({
           taskId: 'review-1',
           status: TaskStatus.COMPLETED,
           success: true,
@@ -187,7 +188,8 @@ describe('RepoManagerAgent', () => {
               },
             },
           },
-        }),
+        })),
+        subject: 'task.reviewer',
       });
 
       // Mock PR merge
@@ -252,7 +254,7 @@ describe('RepoManagerAgent', () => {
 
       // Mock failed implementation
       mockNatsClient.request.mockResolvedValueOnce({
-        data: JSON.stringify({
+        data: Buffer.from(JSON.stringify({
           taskId: 'impl-1',
           status: TaskStatus.FAILED,
           success: false,
@@ -260,7 +262,8 @@ describe('RepoManagerAgent', () => {
             code: ErrorCode.IMPLEMENTATION_FAILED,
             message: 'Implementation failed',
           },
-        }),
+        })),
+        subject: 'task.coder',
       });
 
       const result = await agent.processTask(task);
@@ -298,7 +301,7 @@ describe('RepoManagerAgent', () => {
 
       // Mock implementation success
       mockNatsClient.request.mockResolvedValueOnce({
-        data: JSON.stringify({
+        data: Buffer.from(JSON.stringify({
           taskId: 'impl-1',
           status: TaskStatus.COMPLETED,
           success: true,
@@ -307,7 +310,8 @@ describe('RepoManagerAgent', () => {
             commits: [{ sha: 'abc', message: 'test', files: [] }],
             filesChanged: [],
           },
-        }),
+        })),
+        subject: 'task.coder',
       });
 
       // Mock PR creation
@@ -326,7 +330,7 @@ describe('RepoManagerAgent', () => {
 
       // Mock review requesting changes
       mockNatsClient.request.mockResolvedValueOnce({
-        data: JSON.stringify({
+        data: Buffer.from(JSON.stringify({
           taskId: 'review-1',
           status: TaskStatus.COMPLETED,
           success: true,
@@ -345,7 +349,8 @@ describe('RepoManagerAgent', () => {
               },
             },
           },
-        }),
+        })),
+        subject: 'task.reviewer',
       });
 
       const result = (await agent.processTask(task)) as FeatureResult;
@@ -373,7 +378,7 @@ describe('RepoManagerAgent', () => {
       };
 
       mockNatsClient.request.mockResolvedValue({
-        data: JSON.stringify({
+        data: Buffer.from(JSON.stringify({
           taskId: 'impl-1',
           status: TaskStatus.COMPLETED,
           success: true,
@@ -382,7 +387,8 @@ describe('RepoManagerAgent', () => {
             commits: [],
             filesChanged: [],
           },
-        }),
+        })),
+        subject: 'task.coder',
       });
 
       const result = await (agent as any).requestImplementation(repository, feature);
@@ -391,7 +397,7 @@ describe('RepoManagerAgent', () => {
       expect(result.data.branch).toBe('feature/test-feature');
       expect(mockNatsClient.request).toHaveBeenCalledWith(
         'task.coder',
-        expect.any(Object),
+        expect.any(String),
         expect.any(Object)
       );
     });
@@ -401,7 +407,7 @@ describe('RepoManagerAgent', () => {
       const prNumber = 123;
 
       mockNatsClient.request.mockResolvedValue({
-        data: JSON.stringify({
+        data: Buffer.from(JSON.stringify({
           taskId: 'review-1',
           status: TaskStatus.COMPLETED,
           success: true,
@@ -420,7 +426,8 @@ describe('RepoManagerAgent', () => {
               },
             },
           },
-        }),
+        })),
+        subject: 'task.reviewer',
       });
 
       const result = await (agent as any).requestReview(repository, prNumber, 'Test PR');
@@ -429,7 +436,7 @@ describe('RepoManagerAgent', () => {
       expect(result.data.review.decision).toBe('APPROVE');
       expect(mockNatsClient.request).toHaveBeenCalledWith(
         'task.reviewer',
-        expect.any(Object),
+        expect.any(String),
         expect.any(Object)
       );
     });

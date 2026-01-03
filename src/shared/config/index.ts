@@ -330,7 +330,6 @@ export function resetConfig(): void {
   configInstance = null;
 }
 
-// Export config instance
-export const config = getConfig();
-
-export default config;
+// Export getConfig for lazy access - do not eagerly load at import time
+// This allows tests to set up environment variables before loading config
+export { getConfig as default };
