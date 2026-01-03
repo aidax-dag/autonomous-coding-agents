@@ -88,3 +88,21 @@ export {
   type Subscription,
   type AgentCommunicationOptions,
 } from './communication';
+
+// Background Execution
+export {
+  BackgroundExecutor,
+  createBackgroundExecutor,
+  submitBackgroundJob,
+  BackgroundJobStatus,
+  BackgroundJobOptionsSchema,
+  BackgroundExecutorConfigSchema,
+  BackgroundExecutorEvents,
+  type BackgroundJob,
+  type BackgroundJobOptions,
+  type BackgroundExecutorConfig,
+  type IBackgroundExecutor,
+  type BackgroundExecutorStats,
+  type BackgroundJobEventPayload,
+  type BackgroundExecutorEventType,
+} from './execution';
