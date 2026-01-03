@@ -112,3 +112,24 @@ export {
   or,
   not,
 } from './workflow-definition';
+
+// Workflow Engine
+export {
+  WorkflowEngine,
+  createWorkflowEngine,
+  WorkflowEngineEvents,
+  WorkflowExecutionOptionsSchema,
+  WorkflowEngineConfigSchema,
+  type WorkflowInstance,
+  type StepState,
+  type LoopContext,
+  type WorkflowError,
+  type StepError,
+  type WorkflowExecutionOptions,
+  type WorkflowEngineConfig,
+  type WorkflowEngineEventType,
+  type WorkflowEventPayload,
+  type StepEventPayload,
+  type IWorkflowEngine,
+  type WorkflowEngineStats,
+} from './workflow-engine';

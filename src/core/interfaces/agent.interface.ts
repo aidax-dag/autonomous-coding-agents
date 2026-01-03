@@ -119,6 +119,8 @@ export interface TaskMetadata {
   retryCount?: number;
   maxRetries?: number;
   tags?: string[];
+  workflowInstanceId?: string;
+  stepId?: string;
 }
 
 /**
