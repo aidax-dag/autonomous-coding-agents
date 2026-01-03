@@ -11,6 +11,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
+import { writeFile } from 'fs/promises';
 import { initializeNatsClient } from '@/shared/messaging/nats-client';
 import {
   AgentType,
@@ -633,7 +634,7 @@ program
 
       // Output to file or console
       if (options.output) {
-        await require('fs/promises').writeFile(options.output, output);
+        await writeFile(options.output, output);
         console.log(chalk.green(`\n✓ Report saved to ${options.output}\n`));
       } else {
         console.log('\n' + output + '\n');

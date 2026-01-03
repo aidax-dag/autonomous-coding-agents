@@ -303,8 +303,14 @@ export interface IAgentFactory {
 
 /**
  * Agent constructor type
+ * Supports DI-style construction with dependencies
+ * Generic parameter D allows type-safe dependency injection
  */
-export type AgentConstructor = new (config: IAgentConfig) => IAgent;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AgentConstructor<D = any> = new (
+  config: IAgentConfig,
+  dependencies: D
+) => IAgent;
 
 /**
  * Agent Registry Interface

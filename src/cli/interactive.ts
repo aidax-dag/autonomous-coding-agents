@@ -146,13 +146,14 @@ export class InteractiveCLI {
         console.log(chalk.gray(`   ${update.message}`));
         break;
 
-      case AgentUpdateType.PROGRESS:
+      case AgentUpdateType.PROGRESS: {
         const progressBar = this.formatProgressBar(update.progress || 0);
         console.log(chalk.cyan(`\n⏳ ${update.title} ${progressBar}`));
         if (update.message) {
           console.log(chalk.gray(`   ${update.message}`));
         }
         break;
+      }
 
       case AgentUpdateType.INFO:
         console.log(chalk.white(`\nℹ️  ${update.message}`));
