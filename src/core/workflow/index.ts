@@ -151,3 +151,31 @@ export {
   type StepEventPayload as StepExecutorEventPayload,
   type IStepExecutor,
 } from './step-executor';
+
+// State Machine
+export {
+  StateMachine,
+  StateMachineEvents,
+  StateMachineConfigSchema,
+  TransitionDefinitionSchema,
+  StateDefinitionSchema,
+  createWorkflowStateMachine,
+  createStepStateMachine,
+  isWorkflowStatusFinal,
+  isStepStatusFinal,
+  getValidWorkflowTransitions,
+  getValidStepTransitions,
+  type TransitionGuard,
+  type TransitionAction,
+  type StateAction,
+  type TransitionDefinition,
+  type StateDefinition,
+  type StateMachineConfig,
+  type TransitionHistoryEntry,
+  type StateMachineEventType,
+  type StateMachineEventPayload,
+  type IStateMachine,
+  type StateMachineSnapshot,
+  type WorkflowStateMachineContext,
+  type StepStateMachineContext,
+} from './state-machine';
