@@ -133,3 +133,21 @@ export {
   type IWorkflowEngine,
   type WorkflowEngineStats,
 } from './workflow-engine';
+
+// Step Executor
+export {
+  StepExecutor,
+  createStepExecutor,
+  StepExecutorEvents,
+  StepExecutorConfigSchema,
+  RetryStrategy,
+  type StepExecutionContext,
+  type LoopExecutionContext,
+  type StepExecutionResult,
+  type StepExecutionError,
+  type StepHookFn,
+  type StepExecutorConfig,
+  type StepExecutorEventType,
+  type StepEventPayload as StepExecutorEventPayload,
+  type IStepExecutor,
+} from './step-executor';
