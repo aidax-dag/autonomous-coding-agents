@@ -8,6 +8,29 @@
 
 export { CoderAgent, createCoderAgent, type CoderAgentConfig } from './coder-agent';
 export {
+  ArchitectAgent,
+  createArchitectAgent,
+  DocumentAnalysisPayloadSchema,
+  ArchitectureDesignPayloadSchema,
+  TechStackPayloadSchema,
+  APIDesignPayloadSchema,
+  ModuleBreakdownResponseSchema,
+  ArchitectureResponseSchema,
+  TechStackResponseSchema,
+  APISpecResponseSchema,
+  AnalysisDepth,
+  ArchitectureStyle,
+  type ArchitectAgentConfig,
+  type DocumentAnalysisPayload,
+  type ArchitectureDesignPayload,
+  type TechStackPayload,
+  type APIDesignPayload,
+  type ModuleBreakdownResponse,
+  type ArchitectureResponse,
+  type TechStackResponse,
+  type APISpecResponse,
+} from './architect-agent';
+export {
   ReviewerAgent,
   createReviewerAgent,
   ReviewPayloadSchema,
