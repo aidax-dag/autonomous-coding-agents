@@ -117,6 +117,7 @@ multi-agent auto-fix --repo . --owner user --name repo
 - **[배포 가이드](./docs/DEPLOYMENT.md)** - PM2 프로덕션 배포
 - **[Webhook 설정](./docs/WEBHOOK_SETUP.md)** - GitHub Webhook 연동
 - **[Interactive 모드](./docs/INTERACTIVE_MODE.md)** - 실시간 모니터링
+- **[테스트 가이드](./docs/TESTING.md)** - 테스트 인프라 및 모킹
 
 ---
 
