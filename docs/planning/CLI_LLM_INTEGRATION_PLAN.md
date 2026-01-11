@@ -3,7 +3,7 @@
 ## 1. 개요
 
 ### 1.1 목적
-기존 API Key 방식 외에 CLI 프로그램(claude, gemini, ollama)을 통한 LLM 연동 지원
+기존 API Key 방식 외에 CLI 프로그램(claude, codex, gemini, ollama)을 통한 LLM 연동 지원
 
 ### 1.2 배경
 - API Key: 별도 발급, 사용량 과금, Rate Limit 엄격
@@ -14,6 +14,7 @@
 | CLI | 버전 | Non-Interactive | Output Format | 상태 |
 |-----|------|-----------------|---------------|------|
 | claude | 2.1.4 | `-p/--print` | json, stream-json, text | ✅ 검증완료 |
+| codex | 0.76.0 | `exec --json` | jsonl (event stream) | ✅ 검증완료 |
 | gemini | 0.22.5 | positional query | json, stream-json, text | ✅ 검증완료 |
 | ollama | 0.13.5 | REST API (localhost:11434) | json | ✅ 검증완료 |
 | openai | 2.14.0 | API wrapper만 제공 | - | ❌ CLI 인증 미지원 |
@@ -40,7 +41,20 @@
 }
 ```
 
-### 2.2 Gemini CLI (`gemini -o json "query"`)
+### 2.2 Codex CLI (`codex exec --json "query"`)
+```jsonl
+{"type":"thread.started","thread_id":"uuid"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"reasoning","text":"reasoning content"}}
+{"type":"item.completed","item":{"id":"item_1","type":"agent_message","text":"응답 내용"}}
+{"type":"turn.completed","usage":{"input_tokens":6727,"cached_input_tokens":3200,"output_tokens":7}}
+```
+
+**특이사항**: JSONL (JSON Lines) 형식으로 이벤트 스트림 출력
+- `type: "agent_message"` 항목에서 최종 응답 추출
+- `type: "turn.completed"` 에서 토큰 사용량 추출
+
+### 2.3 Gemini CLI (`gemini -o json "query"`)
 ```json
 {
   "session_id": "uuid",
@@ -86,7 +100,7 @@ type LLMProvider =
   // API Key 방식
   | 'claude' | 'openai' | 'gemini'
   // CLI 방식
-  | 'claude-cli' | 'gemini-cli' | 'ollama'
+  | 'claude-cli' | 'codex-cli' | 'gemini-cli' | 'ollama'
   // 테스트
   | 'mock';
 ```
