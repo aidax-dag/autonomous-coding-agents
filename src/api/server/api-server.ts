@@ -12,6 +12,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { randomUUID } from 'crypto';
 
+import { registerSwaggerPlugin, type OpenApiConfig } from '../plugins/swagger.plugin.js';
 import type {
   IApiServer,
   ApiServerConfig,
@@ -204,6 +205,15 @@ export class ApiServer implements IApiServer {
       });
       this.logger.debug('Rate limit plugin registered');
     }
+
+    // Swagger/OpenAPI documentation
+    if (this.config.swagger?.enabled) {
+      await registerSwaggerPlugin(this.instance, {
+        ...this.config.swagger,
+        basePath: this.config.prefix,
+      } as OpenApiConfig);
+      this.logger.debug('Swagger plugin registered');
+    }
   }
 
   /**
@@ -234,19 +244,67 @@ export class ApiServer implements IApiServer {
    * Register health check endpoint
    */
   private registerHealthEndpoint(): void {
-    this.instance.get(`${this.config.prefix}/health`, async (request, reply) => {
-      const health = this.getHealth();
-      const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+    const healthSchema = {
+      type: 'object' as const,
+      properties: {
+        status: { type: 'string' as const, enum: ['healthy', 'degraded', 'unhealthy'] },
+        uptime: { type: 'number' as const },
+        startedAt: { type: 'string' as const, format: 'date-time' },
+        requestsServed: { type: 'integer' as const },
+        activeConnections: { type: 'integer' as const },
+        details: { type: 'object' as const },
+      },
+    };
 
-      return reply.status(statusCode).send({
-        success: true,
-        data: health,
-        meta: {
-          requestId: request.id,
-          timestamp: new Date().toISOString(),
+    const metaSchema = {
+      type: 'object' as const,
+      properties: {
+        requestId: { type: 'string' as const },
+        timestamp: { type: 'string' as const, format: 'date-time' },
+      },
+    };
+
+    this.instance.get(
+      `${this.config.prefix}/health`,
+      {
+        schema: {
+          tags: ['Health'],
+          summary: 'Health check endpoint',
+          description: 'Returns the current health status of the API server',
+          response: {
+            200: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: healthSchema,
+                meta: metaSchema,
+              },
+            },
+            503: {
+              type: 'object' as const,
+              properties: {
+                success: { type: 'boolean' as const },
+                data: healthSchema,
+                meta: metaSchema,
+              },
+            },
+          },
         },
-      });
-    });
+      },
+      async (request, reply) => {
+        const health = this.getHealth();
+        const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+
+        return reply.status(statusCode).send({
+          success: true,
+          data: health,
+          meta: {
+            requestId: request.id,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    );
   }
 
   /**
