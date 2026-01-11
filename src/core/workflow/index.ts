@@ -179,3 +179,94 @@ export {
   type WorkflowStateMachineContext,
   type StepStateMachineContext,
 } from './state-machine';
+
+// Progress Tracker
+export {
+  ProgressTracker,
+  createProgressTracker,
+  ProgressTrackerEvents,
+  ProgressTrackerConfigSchema,
+  ProgressReportOptionsSchema,
+  type StepProgress,
+  type WorkflowProgress,
+  type ProgressError,
+  type ProgressUpdate,
+  type ProgressUpdateType,
+  type TimeEstimation,
+  type ProgressReport,
+  type ProgressReportOptions,
+  type ProgressReportFormat,
+  type ProgressTrackerConfig,
+  type ProgressTrackerEventType,
+  type ProgressEventPayload,
+  type EstimationConfig,
+  type IProgressTracker,
+  type ProgressSnapshot,
+  type SerializedProgress,
+} from './progress-tracker';
+
+// Rollback Manager
+export {
+  RollbackManager,
+  createRollbackManager,
+  RollbackManagerEvents,
+  RollbackManagerConfigSchema,
+  RollbackRequestSchema,
+  InMemoryCheckpointStorage,
+  RollbackStrategy,
+  CheckpointType,
+  RollbackStatus,
+  CompensationStatus,
+  type StepStateSnapshot,
+  type WorkflowStateSnapshot,
+  type Checkpoint,
+  type CompensationAction,
+  type CompensationHandler,
+  type CompensationContext,
+  type CompensationResult,
+  type RollbackRequest,
+  type RollbackResult,
+  type RollbackError,
+  type RollbackManagerConfig,
+  type RollbackManagerEventType,
+  type CheckpointEventPayload,
+  type RollbackEventPayload,
+  type CompensationEventPayload,
+  type ICheckpointStorage,
+  type IRollbackManager,
+  type CreateCheckpointOptions,
+  type RollbackManagerSnapshot,
+} from './rollback-manager';
+
+// Workflow Templates
+export {
+  // Enums
+  TemplateParameterType,
+  TemplateCategory,
+  // Schemas
+  TemplateParameterSchema,
+  WorkflowTemplateSchema,
+  // Classes
+  WorkflowTemplate,
+  WorkflowTemplateBuilder,
+  WorkflowTemplateRegistry,
+  // Events
+  TemplateRegistryEvents,
+  // Built-in Templates
+  sequentialTemplate,
+  parallelTemplate,
+  codeReviewTemplate,
+  cicdPipelineTemplate,
+  approvalTemplate,
+  builtInTemplates,
+  // Factory Functions
+  createTemplateRegistry,
+  createTemplateBuilder,
+  // Types
+  type TemplateParameter,
+  type WorkflowTemplateData,
+  type TemplateSearchCriteria,
+  type TemplateSearchResult,
+  type TemplateRegistryEventType,
+  type IWorkflowTemplateRegistry,
+} from './workflow-templates';
