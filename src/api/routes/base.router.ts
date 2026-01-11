@@ -54,6 +54,11 @@ export abstract class BaseRouter implements IRouter {
           try {
             const result = await route.handler(request as never, reply);
 
+            // If handler already sent response (returns FastifyReply), don't send again
+            if (reply.sent) {
+              return;
+            }
+
             // Add metadata if not present
             if (result && typeof result === 'object') {
               const response = result as ApiResponse;

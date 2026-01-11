@@ -21,19 +21,22 @@ import type {
   HookTestResult,
   HookExecutionRecord,
   AvailableEventsResponse,
-  HookStatus,
 } from '../interfaces/hook-api.interface.js';
+import { HookStatus, HookExecutionStatus } from '../interfaces/hook-api.interface.js';
 import { NotFoundException } from '../middleware/error.middleware.js';
 import { HookEvent } from '../../core/interfaces/hook.interface.js';
+import { HooksService, createHooksService } from '../services/hooks.service.js';
 
 /**
  * Hooks API Router
  */
 export class HooksRouter extends BaseRouter {
   readonly prefix = '/hooks';
+  private readonly service: HooksService;
 
-  constructor() {
+  constructor(service?: HooksService) {
     super('HooksRouter');
+    this.service = service || createHooksService();
     this.initializeRoutes();
   }
 
@@ -217,10 +220,34 @@ export class HooksRouter extends BaseRouter {
     _reply: FastifyReply
   ): Promise<ApiResponse<HookSummary[]>> {
     const { page, limit } = this.parsePagination(request.query as Record<string, unknown>);
+    const query = request.query || {};
 
     this.logger.info('Listing hooks', { page, limit });
 
-    return this.listResponse([], 0, { page, limit }, request.id as string);
+    const eventFilter = Array.isArray(query.event) ? query.event[0] : query.event;
+    const statusFilter = Array.isArray(query.status) ? query.status[0] : query.status;
+
+    const result = await this.service.listHooks({
+      type: undefined,
+      event: eventFilter as string | undefined,
+      enabled: statusFilter === HookStatus.ACTIVE ? true : (statusFilter === HookStatus.DISABLED ? false : undefined),
+      search: query.name,
+      page,
+      limit,
+    });
+
+    const summaries: HookSummary[] = result.hooks.map((hook) => ({
+      id: hook.id,
+      name: hook.name,
+      type: hook.type,
+      event: hook.event as HookEvent,
+      priority: hook.priority,
+      status: hook.enabled ? HookStatus.ACTIVE : HookStatus.DISABLED,
+      executionCount: 0,
+      createdAt: hook.createdAt.toISOString(),
+    }));
+
+    return this.listResponse(summaries, result.total, { page, limit }, request.id as string);
   }
 
   private async registerHook(
@@ -231,21 +258,40 @@ export class HooksRouter extends BaseRouter {
 
     this.logger.info('Registering hook', { name: body.name, event: body.event });
 
-    const hook: HookDetail = {
-      id: crypto.randomUUID(),
+    const hookInfo = await this.service.registerHook({
       name: body.name,
-      description: body.description,
+      type: body.type || 'custom',
       event: body.event,
-      priority: body.priority || 50,
-      status: 'active' as HookStatus,
-      executionCount: 0,
-      createdAt: new Date().toISOString(),
+      priority: body.priority,
+      enabled: true,
+      description: body.description,
+      config: {
+        timeout: body.timeout,
+        retryOnError: body.retryOnError,
+        maxRetries: body.maxRetries,
+        conditions: body.conditions,
+        metadata: body.metadata,
+      },
+    });
+
+    const stats = await this.service.getHookStats(hookInfo.id);
+
+    const hook: HookDetail = {
+      id: hookInfo.id,
+      name: hookInfo.name,
+      type: hookInfo.type,
+      description: hookInfo.description,
+      event: hookInfo.event as HookEvent,
+      priority: hookInfo.priority,
+      status: hookInfo.enabled ? HookStatus.ACTIVE : HookStatus.DISABLED,
+      executionCount: stats?.totalExecutions || 0,
+      createdAt: hookInfo.createdAt.toISOString(),
       conditions: body.conditions || [],
       config: {
-        name: body.name,
-        event: body.event,
-        priority: body.priority ?? 0,
-        enabled: true,
+        name: hookInfo.name,
+        event: hookInfo.event as HookEvent,
+        priority: hookInfo.priority,
+        enabled: hookInfo.enabled,
         timeout: body.timeout,
         retryOnError: body.retryOnError,
       },
@@ -253,14 +299,14 @@ export class HooksRouter extends BaseRouter {
       retryOnError: body.retryOnError || false,
       maxRetries: body.maxRetries || 3,
       stats: {
-        totalExecutions: 0,
-        successfulExecutions: 0,
-        failedExecutions: 0,
+        totalExecutions: stats?.totalExecutions || 0,
+        successfulExecutions: stats?.successCount || 0,
+        failedExecutions: stats?.failureCount || 0,
         skippedExecutions: 0,
-        averageDuration: 0,
-        successRate: 0,
+        averageDuration: stats?.averageDuration || 0,
+        successRate: stats && stats.totalExecutions > 0 ? stats.successCount / stats.totalExecutions : 0,
         executionsLast24h: 0,
-        errorRate: 0,
+        errorRate: stats && stats.totalExecutions > 0 ? stats.failureCount / stats.totalExecutions : 0,
       },
       metadata: body.metadata,
     };
@@ -276,7 +322,46 @@ export class HooksRouter extends BaseRouter {
 
     this.logger.info('Getting hook', { hookId });
 
-    throw new NotFoundException('Hook', hookId);
+    const hookInfo = await this.service.getHook(hookId);
+    if (!hookInfo) {
+      throw new NotFoundException('Hook', hookId);
+    }
+
+    const stats = await this.service.getHookStats(hookId);
+
+    const hook: HookDetail = {
+      id: hookInfo.id,
+      name: hookInfo.name,
+      type: hookInfo.type,
+      description: hookInfo.description,
+      event: hookInfo.event as HookEvent,
+      priority: hookInfo.priority,
+      status: hookInfo.enabled ? HookStatus.ACTIVE : HookStatus.DISABLED,
+      executionCount: stats?.totalExecutions || 0,
+      createdAt: hookInfo.createdAt.toISOString(),
+      conditions: [],
+      config: {
+        name: hookInfo.name,
+        event: hookInfo.event as HookEvent,
+        priority: hookInfo.priority,
+        enabled: hookInfo.enabled,
+      },
+      timeout: 30000,
+      retryOnError: false,
+      maxRetries: 3,
+      stats: {
+        totalExecutions: stats?.totalExecutions || 0,
+        successfulExecutions: stats?.successCount || 0,
+        failedExecutions: stats?.failureCount || 0,
+        skippedExecutions: 0,
+        averageDuration: stats?.averageDuration || 0,
+        successRate: stats && stats.totalExecutions > 0 ? stats.successCount / stats.totalExecutions : 0,
+        executionsLast24h: 0,
+        errorRate: stats && stats.totalExecutions > 0 ? stats.failureCount / stats.totalExecutions : 0,
+      },
+    };
+
+    return this.success(hook, request.id as string);
   }
 
   private async updateHook(
@@ -284,10 +369,60 @@ export class HooksRouter extends BaseRouter {
     _reply: FastifyReply
   ): Promise<ApiResponse<HookDetail>> {
     const { hookId } = request.params;
+    const body = request.body;
 
-    this.logger.info('Updating hook', { hookId });
+    this.logger.info('Updating hook', { hookId, updates: body });
 
-    throw new NotFoundException('Hook', hookId);
+    const hookInfo = await this.service.updateHook(hookId, {
+      name: body.name,
+      priority: body.priority,
+      enabled: body.enabled,
+      description: body.description,
+      config: body.metadata as Record<string, unknown>,
+    });
+
+    if (!hookInfo) {
+      throw new NotFoundException('Hook', hookId);
+    }
+
+    const stats = await this.service.getHookStats(hookId);
+
+    const hook: HookDetail = {
+      id: hookInfo.id,
+      name: hookInfo.name,
+      type: hookInfo.type,
+      description: hookInfo.description,
+      event: hookInfo.event as HookEvent,
+      priority: hookInfo.priority,
+      status: hookInfo.enabled ? HookStatus.ACTIVE : HookStatus.DISABLED,
+      executionCount: stats?.totalExecutions || 0,
+      createdAt: hookInfo.createdAt.toISOString(),
+      conditions: body.conditions || [],
+      config: {
+        name: hookInfo.name,
+        event: hookInfo.event as HookEvent,
+        priority: hookInfo.priority,
+        enabled: hookInfo.enabled,
+        timeout: body.timeout,
+        retryOnError: body.retryOnError,
+      },
+      timeout: body.timeout || 30000,
+      retryOnError: body.retryOnError || false,
+      maxRetries: body.maxRetries || 3,
+      stats: {
+        totalExecutions: stats?.totalExecutions || 0,
+        successfulExecutions: stats?.successCount || 0,
+        failedExecutions: stats?.failureCount || 0,
+        skippedExecutions: 0,
+        averageDuration: stats?.averageDuration || 0,
+        successRate: stats && stats.totalExecutions > 0 ? stats.successCount / stats.totalExecutions : 0,
+        executionsLast24h: 0,
+        errorRate: stats && stats.totalExecutions > 0 ? stats.failureCount / stats.totalExecutions : 0,
+      },
+      metadata: body.metadata,
+    };
+
+    return this.success(hook, request.id as string);
   }
 
   private async unregisterHook(
@@ -298,7 +433,12 @@ export class HooksRouter extends BaseRouter {
 
     this.logger.info('Unregistering hook', { hookId });
 
-    throw new NotFoundException('Hook', hookId);
+    const deleted = await this.service.unregisterHook(hookId);
+    if (!deleted) {
+      throw new NotFoundException('Hook', hookId);
+    }
+
+    return this.success({ unregistered: true, hookId }, request.id as string);
   }
 
   private async enableHook(
@@ -309,7 +449,17 @@ export class HooksRouter extends BaseRouter {
 
     this.logger.info('Enabling hook', { hookId });
 
-    throw new NotFoundException('Hook', hookId);
+    const hookInfo = await this.service.enableHook(hookId);
+    if (!hookInfo) {
+      throw new NotFoundException('Hook', hookId);
+    }
+
+    return this.success({
+      hookId: hookInfo.id,
+      enabled: hookInfo.enabled,
+      previousStatus: HookStatus.DISABLED,
+      currentStatus: HookStatus.ACTIVE,
+    }, request.id as string);
   }
 
   private async disableHook(
@@ -320,7 +470,17 @@ export class HooksRouter extends BaseRouter {
 
     this.logger.info('Disabling hook', { hookId });
 
-    throw new NotFoundException('Hook', hookId);
+    const hookInfo = await this.service.disableHook(hookId);
+    if (!hookInfo) {
+      throw new NotFoundException('Hook', hookId);
+    }
+
+    return this.success({
+      hookId: hookInfo.id,
+      disabled: !hookInfo.enabled,
+      previousStatus: HookStatus.ACTIVE,
+      currentStatus: HookStatus.DISABLED,
+    }, request.id as string);
   }
 
   private async testHook(
@@ -332,7 +492,32 @@ export class HooksRouter extends BaseRouter {
 
     this.logger.info('Testing hook', { hookId, dryRun: body.dryRun });
 
-    throw new NotFoundException('Hook', hookId);
+    const hookInfo = await this.service.getHook(hookId);
+    if (!hookInfo) {
+      throw new NotFoundException('Hook', hookId);
+    }
+
+    const testResult = await this.service.testHook(hookId, body.context?.data);
+
+    const result: HookTestResult = {
+      hookId,
+      hookName: hookInfo.name,
+      wouldExecute: testResult.success,
+      conditionsMatched: testResult.success,
+      conditionResults: [],
+      dryRun: body.dryRun ?? true,
+      result: testResult.success ? {
+        action: 'continue' as import('../../core/interfaces/hook.interface.js').HookAction,
+        data: testResult.result?.data as Record<string, unknown> | undefined,
+        duration: testResult.duration,
+      } : undefined,
+      error: testResult.error ? {
+        code: 'TEST_ERROR',
+        message: testResult.error,
+      } : undefined,
+    };
+
+    return this.success(result, request.id as string);
   }
 
   private async getExecutionHistory(
@@ -344,7 +529,34 @@ export class HooksRouter extends BaseRouter {
 
     this.logger.info('Getting hook execution history', { hookId, page, limit });
 
-    return this.listResponse([], 0, { page, limit }, request.id as string);
+    const hookInfo = await this.service.getHook(hookId);
+    if (!hookInfo) {
+      throw new NotFoundException('Hook', hookId);
+    }
+
+    const history = await this.service.getExecutionHistory(hookId, { page, limit });
+
+    const records: HookExecutionRecord[] = history.records.map((record) => ({
+      id: record.id,
+      hookId,
+      hookName: record.hookName,
+      event: record.event as HookEvent,
+      status: record.result.success ? HookExecutionStatus.COMPLETED : HookExecutionStatus.FAILED,
+      startedAt: record.executedAt.toISOString(),
+      completedAt: record.executedAt.toISOString(),
+      duration: record.duration,
+      output: record.result.success ? {
+        action: 'continue' as import('../../core/interfaces/hook.interface.js').HookAction,
+        data: record.result.data as Record<string, unknown> | undefined,
+      } : undefined,
+      error: record.result.error ? {
+        code: 'EXECUTION_ERROR',
+        message: record.result.error,
+      } : undefined,
+      retryCount: 0,
+    }));
+
+    return this.listResponse(records, history.total, { page, limit }, request.id as string);
   }
 
   private async getHookStats(
@@ -355,7 +567,24 @@ export class HooksRouter extends BaseRouter {
 
     this.logger.info('Getting hook stats', { hookId });
 
-    throw new NotFoundException('Hook', hookId);
+    const hookInfo = await this.service.getHook(hookId);
+    if (!hookInfo) {
+      throw new NotFoundException('Hook', hookId);
+    }
+
+    const stats = await this.service.getHookStats(hookId);
+
+    return this.success({
+      totalExecutions: stats?.totalExecutions || 0,
+      successfulExecutions: stats?.successCount || 0,
+      failedExecutions: stats?.failureCount || 0,
+      skippedExecutions: 0,
+      averageDuration: stats?.averageDuration || 0,
+      successRate: stats && stats.totalExecutions > 0 ? stats.successCount / stats.totalExecutions : 0,
+      executionsLast24h: 0,
+      errorRate: stats && stats.totalExecutions > 0 ? stats.failureCount / stats.totalExecutions : 0,
+      lastExecutedAt: stats?.lastExecutedAt?.toISOString() || null,
+    }, request.id as string);
   }
 
   private async getAvailableEvents(

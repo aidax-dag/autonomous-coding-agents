@@ -20,10 +20,10 @@ import type {
   RouteDefinition,
   FastifyPluginAsync,
   ApiResponse,
-  ApiError,
   RequestContext,
 } from '../interfaces/api.interface.js';
 import { DEFAULT_API_CONFIG, API_ERROR_CODES, ApiStatusCode } from '../interfaces/api.interface.js';
+import { mapErrorToResponse } from '../middleware/error.middleware.js';
 import { ILogger } from '../../core/services/logger.interface.js';
 import { createLogger } from '../../core/services/logger.js';
 
@@ -102,41 +102,12 @@ export class ApiServer implements IApiServer {
       this.requestsServed++;
     });
 
-    // Error handler
+    // Error handler - use centralized error mapping
     this.instance.setErrorHandler(async (error, request, reply) => {
-      const err = error as Error & {
-        statusCode?: number;
-        code?: string;
-        validation?: Array<{
-          instancePath?: string;
-          message?: string;
-          keyword?: string;
-          params?: { missingProperty?: string };
-        }>;
-      };
-      const statusCode = err.statusCode || ApiStatusCode.INTERNAL_ERROR;
-      const apiError: ApiError = {
-        code: err.code || API_ERROR_CODES.INTERNAL_ERROR,
-        message: err.message,
-        details:
-          statusCode === ApiStatusCode.VALIDATION_ERROR && err.validation
-            ? err.validation.map((v) => ({
-                field: v.params?.missingProperty || v.instancePath || '',
-                message: v.message || 'Validation failed',
-                code: v.keyword || 'validation',
-              }))
-            : undefined,
-        stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
-      };
-
-      const response: ApiResponse = {
-        success: false,
-        error: apiError,
-        meta: {
-          requestId: request.id as string,
-          timestamp: new Date().toISOString(),
-        },
-      };
+      const includeStack = process.env.NODE_ENV !== 'production';
+      // Cast error to preserve Fastify error properties (statusCode, code, validation, etc.)
+      const err = error as Error & { statusCode?: number; code?: string; validation?: unknown[] };
+      const { statusCode, response } = mapErrorToResponse(err, request.id as string, includeStack);
 
       this.logger.error('Request error', { error: err, requestId: request.id });
       return reply.status(statusCode).send(response);
@@ -252,7 +223,14 @@ export class ApiServer implements IApiServer {
         startedAt: { type: 'string' as const, format: 'date-time' },
         requestsServed: { type: 'integer' as const },
         activeConnections: { type: 'integer' as const },
-        details: { type: 'object' as const },
+        details: {
+          type: 'object' as const,
+          additionalProperties: true,
+          properties: {
+            version: { type: 'string' as const },
+            nodeVersion: { type: 'string' as const },
+          },
+        },
       },
     };
 

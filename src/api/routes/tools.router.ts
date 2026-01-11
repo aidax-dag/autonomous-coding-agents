@@ -22,20 +22,22 @@ import type {
   ToolExecutionResult,
   BatchExecutionResult,
   ToolValidationResult,
-  ToolStatus,
-  ExecutionStatus,
 } from '../interfaces/tool-api.interface.js';
+import { ToolStatus, ExecutionStatus } from '../interfaces/tool-api.interface.js';
 import { NotFoundException } from '../middleware/error.middleware.js';
 import { ToolCategory } from '../../core/interfaces/tool.interface.js';
+import { ToolsService, createToolsService } from '../services/tools.service.js';
 
 /**
  * Tools API Router
  */
 export class ToolsRouter extends BaseRouter {
   readonly prefix = '/tools';
+  private readonly service: ToolsService;
 
-  constructor() {
+  constructor(service?: ToolsService) {
     super('ToolsRouter');
+    this.service = service || createToolsService();
     this.initializeRoutes();
   }
 
@@ -233,10 +235,29 @@ export class ToolsRouter extends BaseRouter {
     _reply: FastifyReply
   ): Promise<ApiResponse<ToolSummary[]>> {
     const { page, limit } = this.parsePagination(request.query as Record<string, unknown>);
+    const query = request.query || {};
 
     this.logger.info('Listing tools', { page, limit });
 
-    return this.listResponse([], 0, { page, limit }, request.id as string);
+    const categoryFilter = Array.isArray(query.category) ? query.category[0] : query.category;
+
+    const result = await this.service.listTools({
+      category: categoryFilter as string | undefined,
+      search: query.name,
+      page,
+      limit,
+    });
+
+    const summaries: ToolSummary[] = result.tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      category: tool.category as ToolCategory,
+      version: tool.version,
+      status: tool.enabled ? ToolStatus.AVAILABLE : ToolStatus.DISABLED,
+      executionCount: 0,
+    }));
+
+    return this.listResponse(summaries, result.total, { page, limit }, request.id as string);
   }
 
   private async registerTool(
@@ -247,12 +268,23 @@ export class ToolsRouter extends BaseRouter {
 
     this.logger.info('Registering tool', { name: body.name, category: body.category });
 
-    const tool: ToolDetail = {
+    const toolInfo = await this.service.registerTool({
       name: body.name,
       description: body.description,
-      category: body.category,
-      version: body.version || '1.0.0',
-      status: 'available' as ToolStatus,
+      category: body.category as string,
+      version: body.version,
+      metadata: body.metadata,
+      schema: body.schema as unknown as Record<string, unknown>,
+    });
+
+    const stats = await this.service.getToolStats(body.name);
+
+    const tool: ToolDetail = {
+      name: toolInfo.name,
+      description: toolInfo.description,
+      category: toolInfo.category as ToolCategory,
+      version: toolInfo.version,
+      status: toolInfo.enabled ? ToolStatus.AVAILABLE : ToolStatus.DISABLED,
       executionCount: 0,
       schema: body.schema,
       parameters: [],
@@ -260,13 +292,13 @@ export class ToolsRouter extends BaseRouter {
       timeout: body.timeout || 30000,
       rateLimit: body.rateLimit ? { ...body.rateLimit, remaining: body.rateLimit.max, resetsAt: new Date().toISOString() } : undefined,
       stats: {
-        totalExecutions: 0,
-        successfulExecutions: 0,
-        failedExecutions: 0,
-        averageDuration: 0,
+        totalExecutions: stats?.totalExecutions || 0,
+        successfulExecutions: stats?.successCount || 0,
+        failedExecutions: stats?.failureCount || 0,
+        averageDuration: stats?.averageDuration || 0,
         minDuration: 0,
         maxDuration: 0,
-        successRate: 0,
+        successRate: stats && stats.totalExecutions > 0 ? stats.successCount / stats.totalExecutions : 0,
         executionsLast24h: 0,
         executionsLast7d: 0,
       },
@@ -284,7 +316,45 @@ export class ToolsRouter extends BaseRouter {
 
     this.logger.info('Getting tool', { toolName });
 
-    throw new NotFoundException('Tool', toolName);
+    const toolInfo = await this.service.getTool(toolName);
+    if (!toolInfo) {
+      throw new NotFoundException('Tool', toolName);
+    }
+
+    const stats = await this.service.getToolStats(toolName);
+
+    const tool: ToolDetail = {
+      name: toolInfo.name,
+      description: toolInfo.description,
+      category: toolInfo.category as ToolCategory,
+      version: toolInfo.version,
+      status: toolInfo.enabled ? ToolStatus.AVAILABLE : ToolStatus.DISABLED,
+      executionCount: 0,
+      schema: {
+        name: toolInfo.name,
+        description: toolInfo.description,
+        category: toolInfo.category as ToolCategory,
+        version: toolInfo.version,
+        parameters: [],
+        returns: { type: 'object', description: 'Result' },
+      },
+      parameters: [],
+      examples: [],
+      timeout: 30000,
+      stats: {
+        totalExecutions: stats?.totalExecutions || 0,
+        successfulExecutions: stats?.successCount || 0,
+        failedExecutions: stats?.failureCount || 0,
+        averageDuration: stats?.averageDuration || 0,
+        minDuration: 0,
+        maxDuration: 0,
+        successRate: stats && stats.totalExecutions > 0 ? stats.successCount / stats.totalExecutions : 0,
+        executionsLast24h: 0,
+        executionsLast7d: 0,
+      },
+    };
+
+    return this.success(tool, request.id as string);
   }
 
   private async updateTool(
@@ -292,10 +362,54 @@ export class ToolsRouter extends BaseRouter {
     _reply: FastifyReply
   ): Promise<ApiResponse<ToolDetail>> {
     const { toolName } = request.params;
+    const body = request.body;
 
     this.logger.info('Updating tool', { toolName });
 
-    throw new NotFoundException('Tool', toolName);
+    const toolInfo = await this.service.updateTool(toolName, {
+      description: body.description,
+      metadata: body.metadata,
+    });
+
+    if (!toolInfo) {
+      throw new NotFoundException('Tool', toolName);
+    }
+
+    const stats = await this.service.getToolStats(toolName);
+
+    const tool: ToolDetail = {
+      name: toolInfo.name,
+      description: toolInfo.description,
+      category: toolInfo.category as ToolCategory,
+      version: toolInfo.version,
+      status: toolInfo.enabled ? ToolStatus.AVAILABLE : ToolStatus.DISABLED,
+      executionCount: 0,
+      schema: {
+        name: toolInfo.name,
+        description: toolInfo.description,
+        category: toolInfo.category as ToolCategory,
+        version: toolInfo.version,
+        parameters: [],
+        returns: { type: 'object', description: 'Result' },
+      },
+      parameters: [],
+      examples: [],
+      timeout: body.timeout || 30000,
+      stats: {
+        totalExecutions: stats?.totalExecutions || 0,
+        successfulExecutions: stats?.successCount || 0,
+        failedExecutions: stats?.failureCount || 0,
+        averageDuration: stats?.averageDuration || 0,
+        minDuration: 0,
+        maxDuration: 0,
+        successRate: stats && stats.totalExecutions > 0 ? stats.successCount / stats.totalExecutions : 0,
+        executionsLast24h: 0,
+        executionsLast7d: 0,
+      },
+      metadata: body.metadata,
+    };
+
+    return this.success(tool, request.id as string);
   }
 
   private async unregisterTool(
@@ -306,7 +420,12 @@ export class ToolsRouter extends BaseRouter {
 
     this.logger.info('Unregistering tool', { toolName });
 
-    throw new NotFoundException('Tool', toolName);
+    const deleted = await this.service.unregisterTool(toolName);
+    if (!deleted) {
+      throw new NotFoundException('Tool', toolName);
+    }
+
+    return this.success({ unregistered: true, toolName }, request.id as string);
   }
 
   private async executeTool(
@@ -318,15 +437,56 @@ export class ToolsRouter extends BaseRouter {
 
     this.logger.info('Executing tool', { toolName, async: body.async });
 
-    const result: ToolExecutionResult = {
-      executionId: crypto.randomUUID(),
-      toolName,
-      status: 'pending' as ExecutionStatus,
-      startedAt: new Date().toISOString(),
-      context: body.context,
-    };
+    const toolInfo = await this.service.getTool(toolName);
+    if (!toolInfo) {
+      throw new NotFoundException('Tool', toolName);
+    }
 
-    return this.created(result, request.id as string, reply);
+    const startedAt = new Date().toISOString();
+    const executionId = crypto.randomUUID();
+
+    try {
+      const toolResult = await this.service.executeTool(toolName, body.parameters);
+
+      const result: ToolExecutionResult = {
+        executionId,
+        toolName,
+        status: toolResult.success ? ExecutionStatus.COMPLETED : ExecutionStatus.FAILED,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        duration: toolResult.duration,
+        result: {
+          success: toolResult.success,
+          data: toolResult.data,
+        },
+        context: body.context,
+      };
+
+      return this.created(result, request.id as string, reply);
+    } catch (error) {
+      // Re-throw validation errors to be handled by error middleware
+      if (error instanceof Error && error.name === 'ApiException') {
+        throw error;
+      }
+
+      const result: ToolExecutionResult = {
+        executionId,
+        toolName,
+        status: ExecutionStatus.FAILED,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          error: {
+            code: 'EXECUTION_ERROR',
+            message: error instanceof Error ? error.message : String(error),
+          },
+        },
+        context: body.context,
+      };
+
+      return this.created(result, request.id as string, reply);
+    }
   }
 
   private async batchExecute(
@@ -337,19 +497,49 @@ export class ToolsRouter extends BaseRouter {
 
     this.logger.info('Batch executing tools', { count: body.executions.length, parallel: body.parallel });
 
+    const startTime = Date.now();
+    const batchResults = await this.service.batchExecute(
+      body.executions.map((exec) => ({
+        tool: exec.toolName,
+        params: exec.parameters,
+      }))
+    );
+
+    let successCount = 0;
+    let failedCount = 0;
+    const results = batchResults.map((r, i) => {
+      const exec = body.executions[i];
+      if (r.result.success) {
+        successCount++;
+        return {
+          id: exec.id,
+          toolName: exec.toolName,
+          status: ExecutionStatus.COMPLETED,
+          result: r.result.data,
+          duration: 0,
+        };
+      } else {
+        failedCount++;
+        return {
+          id: exec.id,
+          toolName: exec.toolName,
+          status: ExecutionStatus.FAILED,
+          error: {
+            code: 'EXECUTION_ERROR',
+            message: r.result.error || 'Tool execution failed',
+          },
+        };
+      }
+    });
+
     const result: BatchExecutionResult = {
       batchId: crypto.randomUUID(),
-      status: 'completed',
+      status: failedCount === 0 ? 'completed' : (successCount === 0 ? 'failed' : 'partial'),
       totalCount: body.executions.length,
-      successCount: 0,
-      failedCount: body.executions.length,
-      results: body.executions.map((exec) => ({
-        id: exec.id,
-        toolName: exec.toolName,
-        status: 'failed' as ExecutionStatus,
-        error: { code: 'TOOL_NOT_FOUND', message: `Tool '${exec.toolName}' not found` },
-      })),
-      totalDuration: 0,
+      successCount,
+      failedCount,
+      results,
+      totalDuration: Date.now() - startTime,
     };
 
     return this.created(result, request.id as string, reply);
@@ -360,10 +550,27 @@ export class ToolsRouter extends BaseRouter {
     _reply: FastifyReply
   ): Promise<ApiResponse<ToolValidationResult>> {
     const { toolName } = request.params;
+    const body = request.body;
 
     this.logger.info('Validating tool parameters', { toolName });
 
-    throw new NotFoundException('Tool', toolName);
+    const toolInfo = await this.service.getTool(toolName);
+    if (!toolInfo) {
+      throw new NotFoundException('Tool', toolName);
+    }
+
+    const validation = await this.service.validateParams(toolName, body.parameters);
+
+    const result: ToolValidationResult = {
+      valid: validation.valid,
+      errors: validation.errors?.map((err: { field: string; message: string }) => ({
+        parameter: err.field,
+        message: err.message,
+        code: 'VALIDATION_ERROR',
+      })),
+    };
+
+    return this.success(result, request.id as string);
   }
 
   private async getExecutionHistory(
@@ -375,7 +582,30 @@ export class ToolsRouter extends BaseRouter {
 
     this.logger.info('Getting tool execution history', { toolName, page, limit });
 
-    return this.listResponse([], 0, { page, limit }, request.id as string);
+    const toolInfo = await this.service.getTool(toolName);
+    if (!toolInfo) {
+      throw new NotFoundException('Tool', toolName);
+    }
+
+    const history = await this.service.getExecutionHistory(toolName, { page, limit });
+
+    const results: ToolExecutionResult[] = history.records.map((record) => ({
+      executionId: record.id,
+      toolName: record.toolName,
+      status: record.result.success ? ExecutionStatus.COMPLETED : ExecutionStatus.FAILED,
+      startedAt: record.executedAt.toISOString(),
+      duration: record.duration,
+      result: {
+        success: record.result.success,
+        data: record.result.data,
+        error: record.result.error ? {
+          code: 'EXECUTION_ERROR',
+          message: record.result.error,
+        } : undefined,
+      },
+    }));
+
+    return this.listResponse(results, history.total, { page, limit }, request.id as string);
   }
 
   private async getToolStats(
@@ -386,7 +616,25 @@ export class ToolsRouter extends BaseRouter {
 
     this.logger.info('Getting tool stats', { toolName });
 
-    throw new NotFoundException('Tool', toolName);
+    const toolInfo = await this.service.getTool(toolName);
+    if (!toolInfo) {
+      throw new NotFoundException('Tool', toolName);
+    }
+
+    const stats = await this.service.getToolStats(toolName);
+
+    return this.success({
+      totalExecutions: stats?.totalExecutions || 0,
+      successfulExecutions: stats?.successCount || 0,
+      failedExecutions: stats?.failureCount || 0,
+      averageDuration: stats?.averageDuration || 0,
+      minDuration: 0,
+      maxDuration: 0,
+      successRate: stats && stats.totalExecutions > 0 ? stats.successCount / stats.totalExecutions : 0,
+      executionsLast24h: 0,
+      executionsLast7d: 0,
+      lastExecutedAt: stats?.lastExecutedAt?.toISOString() || null,
+    }, request.id as string);
   }
 }
 

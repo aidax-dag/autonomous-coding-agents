@@ -24,15 +24,18 @@ import type {
   WorkflowStatus,
 } from '../interfaces/workflow-api.interface.js';
 import { NotFoundException } from '../middleware/error.middleware.js';
+import { WorkflowsService, createWorkflowsService } from '../services/workflows.service.js';
 
 /**
  * Workflows API Router
  */
 export class WorkflowsRouter extends BaseRouter {
   readonly prefix = '/workflows';
+  private readonly service: WorkflowsService;
 
-  constructor() {
+  constructor(service?: WorkflowsService) {
     super('WorkflowsRouter');
+    this.service = service || createWorkflowsService();
     this.initializeRoutes();
   }
 
@@ -203,6 +206,84 @@ export class WorkflowsRouter extends BaseRouter {
           summary: 'Cancel workflow instance',
         },
       },
+
+      // Start workflow
+      {
+        method: 'POST',
+        path: '/:workflowId/start',
+        handler: this.startWorkflowAction.bind(this),
+        schema: {
+          tags: ['Workflows'],
+          summary: 'Start workflow execution',
+          params: {
+            type: 'object',
+            required: ['workflowId'],
+            properties: {
+              workflowId: { type: 'string', format: 'uuid' },
+            },
+          },
+          body: {
+            type: 'object',
+            properties: {
+              variables: { type: 'object' },
+            },
+          },
+        },
+      },
+
+      // Pause workflow
+      {
+        method: 'POST',
+        path: '/:workflowId/pause',
+        handler: this.pauseWorkflowAction.bind(this),
+        schema: {
+          tags: ['Workflows'],
+          summary: 'Pause workflow execution',
+          params: {
+            type: 'object',
+            required: ['workflowId'],
+            properties: {
+              workflowId: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+      },
+
+      // Resume workflow
+      {
+        method: 'POST',
+        path: '/:workflowId/resume',
+        handler: this.resumeWorkflowAction.bind(this),
+        schema: {
+          tags: ['Workflows'],
+          summary: 'Resume workflow execution',
+          params: {
+            type: 'object',
+            required: ['workflowId'],
+            properties: {
+              workflowId: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+      },
+
+      // Stop workflow
+      {
+        method: 'POST',
+        path: '/:workflowId/stop',
+        handler: this.stopWorkflowAction.bind(this),
+        schema: {
+          tags: ['Workflows'],
+          summary: 'Stop workflow execution',
+          params: {
+            type: 'object',
+            required: ['workflowId'],
+            properties: {
+              workflowId: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+      },
     ];
   }
 
@@ -213,11 +294,29 @@ export class WorkflowsRouter extends BaseRouter {
     _reply: FastifyReply
   ): Promise<ApiResponse<WorkflowSummary[]>> {
     const { page, limit } = this.parsePagination(request.query as Record<string, unknown>);
+    const query = request.query || {};
 
     this.logger.info('Listing workflows', { page, limit });
 
-    // TODO: Replace with actual workflow registry implementation
-    return this.listResponse([], 0, { page, limit }, request.id as string);
+    const result = await this.service.listWorkflows({
+      status: Array.isArray(query.status) ? query.status[0] : query.status,
+      name: query.name,
+      page,
+      limit,
+    });
+
+    const summaries: WorkflowSummary[] = result.workflows.map((workflow) => ({
+      id: workflow.id,
+      name: workflow.name,
+      status: workflow.status as WorkflowStatus,
+      stepsCount: workflow.steps.length,
+      triggersCount: 0,
+      executionsCount: 0,
+      createdAt: workflow.createdAt.toISOString(),
+      updatedAt: workflow.updatedAt.toISOString(),
+    }));
+
+    return this.listResponse(summaries, result.total, { page, limit }, request.id as string);
   }
 
   private async createWorkflow(
@@ -228,16 +327,35 @@ export class WorkflowsRouter extends BaseRouter {
 
     this.logger.info('Creating workflow', { name: body.name });
 
-    const workflow: WorkflowDetail = {
-      id: crypto.randomUUID(),
+    const workflowInfo = await this.service.createWorkflow({
       name: body.name,
       description: body.description,
-      status: 'draft' as WorkflowStatus,
-      stepsCount: body.steps.length,
+      steps: body.steps.map((step, idx) => ({
+        id: step.id || `step_${idx}`,
+        name: step.name || `Step ${idx + 1}`,
+        type: step.type || 'agent',
+        config: step.config as Record<string, unknown>,
+        dependsOn: step.dependsOn,
+      })),
+      config: {
+        triggers: body.triggers,
+        variables: body.variables,
+        timeout: body.timeout,
+        maxRetries: body.maxRetries,
+        metadata: body.metadata,
+      },
+    });
+
+    const workflow: WorkflowDetail = {
+      id: workflowInfo.id,
+      name: workflowInfo.name,
+      description: workflowInfo.description,
+      status: workflowInfo.status as WorkflowStatus,
+      stepsCount: workflowInfo.steps.length,
       triggersCount: body.triggers?.length || 0,
       executionsCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: workflowInfo.createdAt.toISOString(),
+      updatedAt: workflowInfo.updatedAt.toISOString(),
       steps: body.steps,
       triggers: body.triggers || [],
       variables: body.variables || {},
@@ -264,7 +382,42 @@ export class WorkflowsRouter extends BaseRouter {
 
     this.logger.info('Getting workflow', { workflowId });
 
-    throw new NotFoundException('Workflow', workflowId);
+    const workflowInfo = await this.service.getWorkflow(workflowId);
+    if (!workflowInfo) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const workflow: WorkflowDetail = {
+      id: workflowInfo.id,
+      name: workflowInfo.name,
+      description: workflowInfo.description,
+      status: workflowInfo.status as WorkflowStatus,
+      stepsCount: workflowInfo.steps.length,
+      triggersCount: 0,
+      executionsCount: 0,
+      createdAt: workflowInfo.createdAt.toISOString(),
+      updatedAt: workflowInfo.updatedAt.toISOString(),
+      steps: workflowInfo.steps.map((s) => ({
+        id: s.id,
+        name: s.name,
+        type: s.type as 'agent' | 'tool' | 'condition' | 'parallel' | 'wait',
+        config: s.config as import('../interfaces/workflow-api.interface.js').StepConfig,
+        dependsOn: s.dependsOn,
+      })),
+      triggers: [],
+      variables: {},
+      timeout: 300000,
+      maxRetries: 3,
+      stats: {
+        totalExecutions: 0,
+        successfulExecutions: 0,
+        failedExecutions: 0,
+        averageDuration: 0,
+        successRate: 0,
+      },
+    };
+
+    return this.success(workflow, request.id as string);
   }
 
   private async updateWorkflow(
@@ -272,10 +425,66 @@ export class WorkflowsRouter extends BaseRouter {
     _reply: FastifyReply
   ): Promise<ApiResponse<WorkflowDetail>> {
     const { workflowId } = request.params;
+    const body = request.body;
 
     this.logger.info('Updating workflow', { workflowId });
 
-    throw new NotFoundException('Workflow', workflowId);
+    const workflowInfo = await this.service.updateWorkflow(workflowId, {
+      name: body.name,
+      description: body.description,
+      status: body.status as 'draft' | 'active' | 'paused' | 'archived' | undefined,
+      steps: body.steps?.map((step, idx) => ({
+        id: step.id || `step_${idx}`,
+        name: step.name || `Step ${idx + 1}`,
+        type: step.type || 'agent',
+        config: step.config as Record<string, unknown>,
+        dependsOn: step.dependsOn,
+      })),
+      config: {
+        triggers: body.triggers,
+        variables: body.variables,
+        timeout: body.timeout,
+        maxRetries: body.maxRetries,
+        metadata: body.metadata,
+      },
+    });
+
+    if (!workflowInfo) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const workflow: WorkflowDetail = {
+      id: workflowInfo.id,
+      name: workflowInfo.name,
+      description: workflowInfo.description,
+      status: workflowInfo.status as WorkflowStatus,
+      stepsCount: workflowInfo.steps.length,
+      triggersCount: body.triggers?.length || 0,
+      executionsCount: 0,
+      createdAt: workflowInfo.createdAt.toISOString(),
+      updatedAt: workflowInfo.updatedAt.toISOString(),
+      steps: body.steps || workflowInfo.steps.map((s) => ({
+        id: s.id,
+        name: s.name,
+        type: s.type as 'agent' | 'tool' | 'condition' | 'parallel' | 'wait',
+        config: s.config as import('../interfaces/workflow-api.interface.js').StepConfig,
+        dependsOn: s.dependsOn,
+      })),
+      triggers: body.triggers || [],
+      variables: body.variables || {},
+      timeout: body.timeout || 300000,
+      maxRetries: body.maxRetries || 3,
+      metadata: body.metadata,
+      stats: {
+        totalExecutions: 0,
+        successfulExecutions: 0,
+        failedExecutions: 0,
+        averageDuration: 0,
+        successRate: 0,
+      },
+    };
+
+    return this.success(workflow, request.id as string);
   }
 
   private async deleteWorkflow(
@@ -286,19 +495,53 @@ export class WorkflowsRouter extends BaseRouter {
 
     this.logger.info('Deleting workflow', { workflowId });
 
-    throw new NotFoundException('Workflow', workflowId);
+    const deleted = await this.service.deleteWorkflow(workflowId);
+    if (!deleted) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    return this.success({ deleted: true, workflowId }, request.id as string);
   }
 
   private async executeWorkflow(
     request: TypedRequest<ExecuteWorkflowRequest, WorkflowIdParam, unknown>,
-    _reply: FastifyReply
+    reply: FastifyReply
   ): Promise<FastifyReply> {
     const { workflowId } = request.params;
     const body = request.body;
 
     this.logger.info('Executing workflow', { workflowId, async: body.async });
 
-    throw new NotFoundException('Workflow', workflowId);
+    const workflowInfo = await this.service.getWorkflow(workflowId);
+    if (!workflowInfo) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const instance = await this.service.startWorkflow(workflowId, body.variables);
+    if (!instance) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const instanceDetail: WorkflowInstanceDetail = {
+      id: instance.instanceId,
+      workflowId: instance.workflowId,
+      workflowName: workflowInfo.name,
+      status: instance.status as import('../interfaces/workflow-api.interface.js').WorkflowInstanceStatus,
+      currentStep: instance.currentStep,
+      progress: 0,
+      startedAt: instance.startedAt.toISOString(),
+      completedAt: instance.completedAt?.toISOString(),
+      variables: body.variables || {},
+      context: body.context || {},
+      steps: [],
+      error: instance.error ? {
+        stepId: instance.currentStep || 'unknown',
+        code: 'EXECUTION_ERROR',
+        message: instance.error,
+      } : undefined,
+    };
+
+    return this.created(instanceDetail, request.id as string, reply);
   }
 
   private async listInstances(
@@ -307,10 +550,35 @@ export class WorkflowsRouter extends BaseRouter {
   ): Promise<ApiResponse<WorkflowInstanceSummary[]>> {
     const { workflowId } = request.params;
     const { page, limit } = this.parsePagination(request.query as Record<string, unknown>);
+    const query = request.query || {};
 
     this.logger.info('Listing workflow instances', { workflowId, page, limit });
 
-    return this.listResponse([], 0, { page, limit }, request.id as string);
+    const workflowInfo = await this.service.getWorkflow(workflowId);
+    if (!workflowInfo) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const statusFilter = Array.isArray(query.status) ? query.status[0] : query.status;
+
+    const result = await this.service.getInstances(workflowId, {
+      status: statusFilter as string | undefined,
+      page,
+      limit,
+    });
+
+    const summaries: WorkflowInstanceSummary[] = result.instances.map((instance) => ({
+      id: instance.instanceId,
+      workflowId: instance.workflowId,
+      workflowName: workflowInfo.name,
+      status: instance.status as import('../interfaces/workflow-api.interface.js').WorkflowInstanceStatus,
+      currentStep: instance.currentStep,
+      progress: 0,
+      startedAt: instance.startedAt.toISOString(),
+      completedAt: instance.completedAt?.toISOString(),
+    }));
+
+    return this.listResponse(summaries, result.total, { page, limit }, request.id as string);
   }
 
   private async getInstance(
@@ -321,7 +589,33 @@ export class WorkflowsRouter extends BaseRouter {
 
     this.logger.info('Getting workflow instance', { workflowId, instanceId });
 
-    throw new NotFoundException('Workflow instance', instanceId);
+    const instance = await this.service.getInstance(instanceId);
+    if (!instance || instance.workflowId !== workflowId) {
+      throw new NotFoundException('Workflow instance', instanceId);
+    }
+
+    const workflowInfo = await this.service.getWorkflow(workflowId);
+
+    const instanceDetail: WorkflowInstanceDetail = {
+      id: instance.instanceId,
+      workflowId: instance.workflowId,
+      workflowName: workflowInfo?.name || 'Unknown',
+      status: instance.status as import('../interfaces/workflow-api.interface.js').WorkflowInstanceStatus,
+      currentStep: instance.currentStep,
+      progress: 0,
+      startedAt: instance.startedAt.toISOString(),
+      completedAt: instance.completedAt?.toISOString(),
+      variables: {},
+      context: {},
+      steps: [],
+      error: instance.error ? {
+        stepId: instance.currentStep || 'unknown',
+        code: 'EXECUTION_ERROR',
+        message: instance.error,
+      } : undefined,
+    };
+
+    return this.success(instanceDetail, request.id as string);
   }
 
   private async cancelInstance(
@@ -332,7 +626,111 @@ export class WorkflowsRouter extends BaseRouter {
 
     this.logger.info('Canceling workflow instance', { workflowId, instanceId });
 
-    throw new NotFoundException('Workflow instance', instanceId);
+    const instance = await this.service.cancelInstance(instanceId);
+    if (!instance || instance.workflowId !== workflowId) {
+      throw new NotFoundException('Workflow instance', instanceId);
+    }
+
+    return this.success({
+      instanceId: instance.instanceId,
+      workflowId: instance.workflowId,
+      status: instance.status,
+      message: 'Workflow instance cancelled successfully',
+    }, request.id as string);
+  }
+
+  private async startWorkflowAction(
+    request: TypedRequest<{ variables?: Record<string, unknown> }, WorkflowIdParam, unknown>,
+    _reply: FastifyReply
+  ): Promise<ApiResponse<{ status: string; instanceId: string }>> {
+    const { workflowId } = request.params;
+    const body = request.body || {};
+
+    this.logger.info('Starting workflow', { workflowId });
+
+    const workflow = await this.service.getWorkflow(workflowId);
+    if (!workflow) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const instance = await this.service.startWorkflow(workflowId, body.variables);
+    if (!instance) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    return this.success({
+      status: 'running',
+      instanceId: instance.instanceId,
+    }, request.id as string);
+  }
+
+  private async pauseWorkflowAction(
+    request: TypedRequest<unknown, WorkflowIdParam, unknown>,
+    _reply: FastifyReply
+  ): Promise<ApiResponse<{ status: string }>> {
+    const { workflowId } = request.params;
+
+    this.logger.info('Pausing workflow', { workflowId });
+
+    const workflow = await this.service.getWorkflow(workflowId);
+    if (!workflow) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const instance = await this.service.pauseWorkflow(workflowId);
+    if (!instance) {
+      throw new NotFoundException('Running workflow instance', workflowId);
+    }
+
+    return this.success({
+      status: 'paused',
+    }, request.id as string);
+  }
+
+  private async resumeWorkflowAction(
+    request: TypedRequest<unknown, WorkflowIdParam, unknown>,
+    _reply: FastifyReply
+  ): Promise<ApiResponse<{ status: string }>> {
+    const { workflowId } = request.params;
+
+    this.logger.info('Resuming workflow', { workflowId });
+
+    const workflow = await this.service.getWorkflow(workflowId);
+    if (!workflow) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const instance = await this.service.resumeWorkflow(workflowId);
+    if (!instance) {
+      throw new NotFoundException('Paused workflow instance', workflowId);
+    }
+
+    return this.success({
+      status: 'running',
+    }, request.id as string);
+  }
+
+  private async stopWorkflowAction(
+    request: TypedRequest<unknown, WorkflowIdParam, unknown>,
+    _reply: FastifyReply
+  ): Promise<ApiResponse<{ status: string }>> {
+    const { workflowId } = request.params;
+
+    this.logger.info('Stopping workflow', { workflowId });
+
+    const workflow = await this.service.getWorkflow(workflowId);
+    if (!workflow) {
+      throw new NotFoundException('Workflow', workflowId);
+    }
+
+    const instance = await this.service.stopWorkflow(workflowId);
+    if (!instance) {
+      throw new NotFoundException('Running workflow instance', workflowId);
+    }
+
+    return this.success({
+      status: instance.status,
+    }, request.id as string);
   }
 }
 

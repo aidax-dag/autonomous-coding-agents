@@ -90,22 +90,22 @@ test.describe('Agents API', () => {
       }
     });
 
-    test.skip('should reject invalid agent type', async () => {
+    test('should reject invalid agent type', async () => {
       const response = await api.post('/agents', invalidData.invalidAgentType);
 
-      assertError(response, 'VALIDATION_ERROR');
+      assertError(response, 'VALIDATION_FAILED');
     });
 
-    test.skip('should reject empty required fields', async () => {
+    test('should reject empty required fields', async () => {
       const response = await api.post('/agents', invalidData.emptyAgent);
 
-      assertError(response, 'VALIDATION_ERROR');
+      assertError(response, 'VALIDATION_FAILED');
     });
 
-    test.skip('should reject missing required fields', async () => {
+    test('should reject missing required fields', async () => {
       const response = await api.post('/agents', invalidData.missingRequired);
 
-      assertError(response, 'VALIDATION_ERROR');
+      assertError(response, 'VALIDATION_FAILED');
     });
 
     for (const agentType of AGENT_TYPES) {
@@ -139,13 +139,13 @@ test.describe('Agents API', () => {
     });
 
     test('should return 404 for non-existent agent', async () => {
-      const response = await api.getRaw('/agents/non-existent-id-12345');
+      const response = await api.getRaw('/agents/00000000-0000-0000-0000-000000000000');
 
       expect(response.status()).toBe(404);
     });
   });
 
-  test.describe('PUT /agents/:id', () => {
+  test.describe('PATCH /agents/:id', () => {
     test('should update agent', async () => {
       // Create agent
       const agentData = createUniqueAgent('coder');
@@ -156,16 +156,16 @@ test.describe('Agents API', () => {
 
       // Update agent
       const updateData = { name: 'Updated Agent Name' };
-      const response = await api.put<{ id: string; name: string }>(`/agents/${agentId}`, updateData);
+      const response = await api.patch<{ id: string; name: string }>(`/agents/${agentId}`, updateData);
 
       assertSuccess(response);
       expect(response.data.name).toBe(updateData.name);
     });
 
     test('should return 404 for non-existent agent', async () => {
-      const response = await api.postRaw('/agents/non-existent-id-12345', { name: 'Test' });
+      const response = await api.patchRaw('/agents/00000000-0000-0000-0000-000000000000', { name: 'Test' });
 
-      expect([404, 405]).toContain(response.status());
+      expect(response.status()).toBe(404);
     });
   });
 
@@ -187,14 +187,14 @@ test.describe('Agents API', () => {
     });
 
     test('should return 404 for non-existent agent', async () => {
-      const response = await api.getRaw('/agents/non-existent-id-12345');
+      const response = await api.getRaw('/agents/00000000-0000-0000-0000-000000000000');
 
       expect(response.status()).toBe(404);
     });
   });
 
   test.describe('Agent Actions', () => {
-    test.skip('should start agent', async () => {
+    test('should start agent', async () => {
       // Create and start agent
       const agentData = createUniqueAgent('coder');
       const createResponse = await api.post<{ id: string }>('/agents', agentData);
@@ -204,10 +204,10 @@ test.describe('Agents API', () => {
 
       const response = await api.post<{ status: string }>(`/agents/${agentId}/start`);
       assertSuccess(response);
-      expect(response.data.status).toBe('running');
+      expect(response.data.status).toBe('processing');
     });
 
-    test.skip('should stop agent', async () => {
+    test('should stop agent', async () => {
       // Create, start, then stop agent
       const agentData = createUniqueAgent('coder');
       const createResponse = await api.post<{ id: string }>('/agents', agentData);
@@ -222,7 +222,7 @@ test.describe('Agents API', () => {
       expect(response.data.status).toBe('stopped');
     });
 
-    test.skip('should get agent health', async () => {
+    test('should get agent health', async () => {
       const agentData = createUniqueAgent('coder');
       const createResponse = await api.post<{ id: string }>('/agents', agentData);
       assertSuccess(createResponse);

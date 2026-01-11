@@ -25,6 +25,7 @@ import type {
 } from '../interfaces/agent-api.interface.js';
 import { NotFoundException } from '../middleware/error.middleware.js';
 import { AgentType, AgentStatus, TaskPriority } from '../../core/interfaces/agent.interface.js';
+import { AgentsService, createAgentsService } from '../services/agents.service.js';
 
 /**
  * Agents API Router
@@ -33,9 +34,11 @@ import { AgentType, AgentStatus, TaskPriority } from '../../core/interfaces/agen
  */
 export class AgentsRouter extends BaseRouter {
   readonly prefix = '/agents';
+  private readonly service: AgentsService;
 
-  constructor() {
+  constructor(service?: AgentsService) {
     super('AgentsRouter');
+    this.service = service || createAgentsService();
     this.initializeRoutes();
   }
 
@@ -364,14 +367,35 @@ export class AgentsRouter extends BaseRouter {
     _reply: FastifyReply
   ): Promise<ApiResponse<AgentSummary[]>> {
     const { page, limit } = this.parsePagination(request.query as Record<string, unknown>);
+    const query = request.query || {};
 
-    // TODO: Replace with actual agent registry implementation
-    const mockAgents: AgentSummary[] = [];
-    const total = 0;
+    this.logger.info('Listing agents', { page, limit });
 
-    this.logger.info('Listing agents', { page, limit, total });
+    const typeFilter = Array.isArray(query.type) ? query.type[0] : query.type;
+    const statusFilter = Array.isArray(query.status) ? query.status[0] : query.status;
 
-    return this.listResponse(mockAgents, total, { page, limit }, request.id as string);
+    const result = await this.service.listAgents({
+      type: typeFilter,
+      status: statusFilter,
+      name: query.name,
+      page,
+      limit,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
+
+    const summaries: AgentSummary[] = result.agents.map((agent) => ({
+      id: agent.id,
+      type: agent.type,
+      name: agent.name,
+      status: agent.status,
+      version: agent.version,
+      tasksProcessed: agent.metrics.tasksProcessed,
+      lastActiveAt: agent.lastActiveAt,
+      createdAt: agent.createdAt,
+    }));
+
+    return this.listResponse(summaries, result.total, { page, limit }, request.id as string);
   }
 
   /**
@@ -385,43 +409,41 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Creating agent', { type: body.type, name: body.name });
 
-    // TODO: Replace with actual agent creation
-    const agent: AgentDetail = {
-      id: crypto.randomUUID(),
+    const agentInfo = await this.service.createAgent({
       type: body.type,
       name: body.name,
-      status: AgentStatus.INITIALIZING,
-      version: '1.0.0',
       description: body.description,
-      tasksProcessed: 0,
-      lastActiveAt: null,
-      createdAt: new Date().toISOString(),
-      config: {
-        type: body.type,
-        name: body.name,
-        llm: body.llm,
-        maxConcurrentTasks: body.maxConcurrentTasks,
-        taskTimeout: body.taskTimeout,
-        retryAttempts: body.retryAttempts,
-      },
-      capabilities: body.capabilities || [],
-      metrics: {
-        tasksProcessed: 0,
-        tasksFailed: 0,
-        averageTaskDuration: 0,
-        totalTokensUsed: 0,
-        uptime: 0,
-        lastActiveAt: null,
-        errorRate: 0,
-      },
-      health: {
-        healthy: true,
-        status: AgentStatus.INITIALIZING,
-        uptime: 0,
-        lastCheck: new Date(),
-      },
-      currentTask: null,
-      queuedTasks: 0,
+      llm: body.llm,
+      maxConcurrentTasks: body.maxConcurrentTasks,
+      taskTimeout: body.taskTimeout,
+      retryAttempts: body.retryAttempts,
+      capabilities: body.capabilities,
+      metadata: body.metadata,
+    });
+
+    const agent: AgentDetail = {
+      id: agentInfo.id,
+      type: agentInfo.type,
+      name: agentInfo.name,
+      status: agentInfo.status,
+      version: agentInfo.version,
+      description: agentInfo.description,
+      tasksProcessed: agentInfo.metrics.tasksProcessed,
+      lastActiveAt: agentInfo.lastActiveAt,
+      createdAt: agentInfo.createdAt,
+      config: agentInfo.config as Omit<import('../../core/interfaces/agent.interface.js').IAgentConfig, 'id'>,
+      capabilities: agentInfo.capabilities as import('../../core/interfaces/agent.interface.js').AgentCapability[],
+      metrics: agentInfo.metrics,
+      health: agentInfo.health as import('../../core/interfaces/agent.interface.js').HealthStatus,
+      currentTask: agentInfo.currentTask
+        ? {
+            id: agentInfo.currentTask,
+            type: 'task',
+            priority: 'medium' as unknown as TaskPriority,
+            startedAt: new Date().toISOString(),
+          }
+        : null,
+      queuedTasks: agentInfo.queuedTasks,
     };
 
     return this.created(agent, request.id as string, reply);
@@ -438,8 +460,37 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Getting agent', { agentId });
 
-    // TODO: Replace with actual agent lookup
-    throw new NotFoundException('Agent', agentId);
+    const agentInfo = await this.service.getAgent(agentId);
+    if (!agentInfo) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    const agent: AgentDetail = {
+      id: agentInfo.id,
+      type: agentInfo.type,
+      name: agentInfo.name,
+      status: agentInfo.status,
+      version: agentInfo.version,
+      description: agentInfo.description,
+      tasksProcessed: agentInfo.metrics.tasksProcessed,
+      lastActiveAt: agentInfo.lastActiveAt,
+      createdAt: agentInfo.createdAt,
+      config: agentInfo.config as Omit<import('../../core/interfaces/agent.interface.js').IAgentConfig, 'id'>,
+      capabilities: agentInfo.capabilities as import('../../core/interfaces/agent.interface.js').AgentCapability[],
+      metrics: agentInfo.metrics,
+      health: agentInfo.health as import('../../core/interfaces/agent.interface.js').HealthStatus,
+      currentTask: agentInfo.currentTask
+        ? {
+            id: agentInfo.currentTask,
+            type: 'task',
+            priority: 'medium' as unknown as TaskPriority,
+            startedAt: new Date().toISOString(),
+          }
+        : null,
+      queuedTasks: agentInfo.queuedTasks,
+    };
+
+    return this.success(agent, request.id as string);
   }
 
   /**
@@ -454,8 +505,46 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Updating agent', { agentId, updates: Object.keys(updates) });
 
-    // TODO: Replace with actual agent update
-    throw new NotFoundException('Agent', agentId);
+    const agentInfo = await this.service.updateAgent(agentId, {
+      name: updates.name,
+      description: updates.description,
+      llm: updates.llm,
+      maxConcurrentTasks: updates.maxConcurrentTasks,
+      taskTimeout: updates.taskTimeout,
+      retryAttempts: updates.retryAttempts,
+      metadata: updates.metadata,
+    });
+
+    if (!agentInfo) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    const agent: AgentDetail = {
+      id: agentInfo.id,
+      type: agentInfo.type,
+      name: agentInfo.name,
+      status: agentInfo.status,
+      version: agentInfo.version,
+      description: agentInfo.description,
+      tasksProcessed: agentInfo.metrics.tasksProcessed,
+      lastActiveAt: agentInfo.lastActiveAt,
+      createdAt: agentInfo.createdAt,
+      config: agentInfo.config as Omit<import('../../core/interfaces/agent.interface.js').IAgentConfig, 'id'>,
+      capabilities: agentInfo.capabilities as import('../../core/interfaces/agent.interface.js').AgentCapability[],
+      metrics: agentInfo.metrics,
+      health: agentInfo.health as import('../../core/interfaces/agent.interface.js').HealthStatus,
+      currentTask: agentInfo.currentTask
+        ? {
+            id: agentInfo.currentTask,
+            type: 'task',
+            priority: 'medium' as unknown as TaskPriority,
+            startedAt: new Date().toISOString(),
+          }
+        : null,
+      queuedTasks: agentInfo.queuedTasks,
+    };
+
+    return this.success(agent, request.id as string);
   }
 
   /**
@@ -469,8 +558,12 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Deleting agent', { agentId });
 
-    // TODO: Replace with actual agent deletion
-    throw new NotFoundException('Agent', agentId);
+    const deleted = await this.service.deleteAgent(agentId);
+    if (!deleted) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    return this.success({ deleted: true, agentId }, request.id as string);
   }
 
   /**
@@ -484,8 +577,17 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Starting agent', { agentId });
 
-    // TODO: Replace with actual agent start
-    throw new NotFoundException('Agent', agentId);
+    const agentInfo = await this.service.startAgent(agentId);
+    if (!agentInfo) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    return this.success({
+      id: agentInfo.id,
+      name: agentInfo.name,
+      status: agentInfo.status,
+      message: 'Agent started successfully',
+    }, request.id as string);
   }
 
   /**
@@ -499,8 +601,17 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Stopping agent', { agentId });
 
-    // TODO: Replace with actual agent stop
-    throw new NotFoundException('Agent', agentId);
+    const agentInfo = await this.service.stopAgent(agentId);
+    if (!agentInfo) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    return this.success({
+      id: agentInfo.id,
+      name: agentInfo.name,
+      status: agentInfo.status,
+      message: 'Agent stopped successfully',
+    }, request.id as string);
   }
 
   /**
@@ -514,8 +625,17 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Pausing agent', { agentId });
 
-    // TODO: Replace with actual agent pause
-    throw new NotFoundException('Agent', agentId);
+    const agentInfo = await this.service.pauseAgent(agentId);
+    if (!agentInfo) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    return this.success({
+      id: agentInfo.id,
+      name: agentInfo.name,
+      status: agentInfo.status,
+      message: 'Agent paused successfully',
+    }, request.id as string);
   }
 
   /**
@@ -529,8 +649,17 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Resuming agent', { agentId });
 
-    // TODO: Replace with actual agent resume
-    throw new NotFoundException('Agent', agentId);
+    const agentInfo = await this.service.resumeAgent(agentId);
+    if (!agentInfo) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    return this.success({
+      id: agentInfo.id,
+      name: agentInfo.name,
+      status: agentInfo.status,
+      message: 'Agent resumed successfully',
+    }, request.id as string);
   }
 
   /**
@@ -545,13 +674,33 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Submitting task', { agentId, taskType: task.type });
 
-    // TODO: Replace with actual task submission
+    const taskInfo = await this.service.submitTask(agentId, {
+      type: task.type,
+      payload: task.payload,
+      priority: task.priority,
+      timeout: task.timeout,
+      metadata: task.metadata,
+    });
+
+    if (!taskInfo) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    // Map service status to API status
+    const statusMap: Record<string, 'queued' | 'processing' | 'completed' | 'failed'> = {
+      queued: 'queued',
+      running: 'processing',
+      completed: 'completed',
+      cancelled: 'failed',
+      failed: 'failed',
+    };
+
     const response: AgentTaskResponse = {
-      taskId: crypto.randomUUID(),
+      taskId: taskInfo.taskId,
       agentId,
-      status: 'queued',
-      position: 1,
-      estimatedWaitTime: 5000,
+      status: statusMap[taskInfo.status] || 'queued',
+      position: taskInfo.position,
+      estimatedWaitTime: taskInfo.estimatedWaitTime,
     };
 
     return this.created(response, request.id as string, reply);
@@ -568,8 +717,18 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Getting agent health', { agentId });
 
-    // TODO: Replace with actual agent health lookup
-    throw new NotFoundException('Agent', agentId);
+    const health = await this.service.getAgentHealth(agentId);
+    if (!health) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    return this.success({
+      healthy: health.healthy,
+      status: health.status,
+      uptime: health.uptime,
+      lastCheck: health.lastCheck.toISOString(),
+      issues: health.issues,
+    }, request.id as string);
   }
 
   /**
@@ -583,8 +742,12 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Getting agent capabilities', { agentId });
 
-    // TODO: Replace with actual agent capabilities lookup
-    throw new NotFoundException('Agent', agentId);
+    const capabilities = await this.service.getAgentCapabilities(agentId);
+    if (!capabilities) {
+      throw new NotFoundException('Agent', agentId);
+    }
+
+    return this.success({ capabilities }, request.id as string);
   }
 
   /**
@@ -598,8 +761,21 @@ export class AgentsRouter extends BaseRouter {
 
     this.logger.info('Getting task status', { agentId, taskId });
 
-    // TODO: Replace with actual task status lookup
-    throw new NotFoundException('Task', taskId);
+    const taskInfo = await this.service.getTaskStatus(agentId, taskId);
+    if (!taskInfo) {
+      throw new NotFoundException('Task', taskId);
+    }
+
+    return this.success({
+      taskId: taskInfo.taskId,
+      agentId: taskInfo.agentId,
+      status: taskInfo.status,
+      result: taskInfo.result,
+      error: taskInfo.error,
+      createdAt: taskInfo.createdAt.toISOString(),
+      startedAt: taskInfo.startedAt?.toISOString(),
+      completedAt: taskInfo.completedAt?.toISOString(),
+    }, request.id as string);
   }
 }
 

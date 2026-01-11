@@ -100,11 +100,20 @@ export function mapErrorToResponse(
   } else if ('statusCode' in error && typeof error.statusCode === 'number') {
     // Fastify error
     statusCode = error.statusCode;
+
+    // Determine error code - use VALIDATION_FAILED for validation errors
+    const fastifyErrorCode = (error as Error & { code?: string }).code;
+    const isValidationError = ('validation' in error && error.validation) ||
+      fastifyErrorCode === 'FST_ERR_VALIDATION';
+    const errorCode = isValidationError
+      ? API_ERROR_CODES.VALIDATION_FAILED
+      : fastifyErrorCode || API_ERROR_CODES.INTERNAL_ERROR;
+
     apiError = {
-      code: (error as Error & { code?: string }).code || API_ERROR_CODES.INTERNAL_ERROR,
+      code: errorCode,
       message: error.message,
       details:
-        'validation' in error && error.validation
+        ('validation' in error && error.validation)
           ? (error.validation as Array<{ params?: { missingProperty?: string }; instancePath?: string; message?: string; keyword?: string }>).map(
               (v) => ({
                 field: v.params?.missingProperty || v.instancePath || 'unknown',

@@ -12,7 +12,7 @@ export const AGENT_TYPES = [
   'coder',
   'reviewer',
   'tester',
-  'docwriter',
+  'doc_writer',
   'explorer',
   'librarian',
 ] as const;
@@ -59,9 +59,9 @@ export const sampleAgents = {
       temperature: 0.3,
     },
   },
-  docwriter: {
-    type: 'docwriter' as const,
-    name: 'Test Docwriter Agent',
+  doc_writer: {
+    type: 'doc_writer' as const,
+    name: 'Test DocWriter Agent',
     llm: {
       provider: 'openai' as const,
       model: 'gpt-4',
@@ -172,7 +172,7 @@ export const sampleTools = {
   echo: {
     name: 'echo',
     description: 'Echoes the input',
-    category: 'utility',
+    category: 'custom',
     schema: {
       type: 'object',
       properties: {
@@ -184,7 +184,7 @@ export const sampleTools = {
   fileRead: {
     name: 'file-read',
     description: 'Reads a file',
-    category: 'filesystem',
+    category: 'file_system',
     schema: {
       type: 'object',
       properties: {
@@ -209,7 +209,7 @@ export const sampleHooks = {
   preExecution: {
     name: 'pre-execution-hook',
     type: 'pre-execution',
-    event: 'agent.start',
+    event: 'agent:starting',
     handler: 'console.log("Pre-execution hook triggered")',
     enabled: true,
     priority: 100,
@@ -220,7 +220,7 @@ export const sampleHooks = {
   postExecution: {
     name: 'post-execution-hook',
     type: 'post-execution',
-    event: 'agent.complete',
+    event: 'task:after',
     handler: 'console.log("Post-execution hook triggered")',
     enabled: true,
     priority: 50,
@@ -231,10 +231,10 @@ export const sampleHooks = {
   onError: {
     name: 'on-error-hook',
     type: 'on-error',
-    event: 'agent.error',
+    event: 'agent:error',
     handler: 'console.error("Error hook triggered")',
     enabled: true,
-    priority: 200,
+    priority: 100,
     config: {
       retryEnabled: true,
     },
@@ -242,7 +242,7 @@ export const sampleHooks = {
   onSuccess: {
     name: 'on-success-hook',
     type: 'on-success',
-    event: 'agent.success',
+    event: 'task:after',
     handler: 'console.log("Success hook triggered")',
     enabled: true,
     priority: 50,

@@ -46,7 +46,7 @@ test.describe('Tools API', () => {
 
     test('should filter by category', async () => {
       const response = await api.get<unknown[]>('/tools', {
-        category: 'filesystem',
+        category: 'file_system',
       });
 
       assertSuccess(response);
@@ -83,7 +83,7 @@ test.describe('Tools API', () => {
       registeredToolNames.push(toolName);
     });
 
-    test.skip('should reject duplicate tool name', async () => {
+    test('should reject duplicate tool name', async () => {
       const toolName = `test-tool-${Date.now()}`;
       const toolData = {
         ...sampleTools.echo,
@@ -100,7 +100,7 @@ test.describe('Tools API', () => {
       assertError(response, 'CONFLICT');
     });
 
-    test.skip('should reject tool without schema', async () => {
+    test('should reject tool without schema', async () => {
       const invalidTool = {
         name: 'invalid-tool',
         description: 'No schema',
@@ -108,7 +108,7 @@ test.describe('Tools API', () => {
 
       const response = await api.post('/tools', invalidTool);
 
-      assertError(response, 'VALIDATION_ERROR');
+      assertError(response, 'VALIDATION_FAILED');
     });
   });
 
@@ -159,7 +159,7 @@ test.describe('Tools API', () => {
   });
 
   test.describe('Tool Execution', () => {
-    test.skip('should execute tool', async () => {
+    test('should execute tool', async () => {
       // Register tool
       const toolName = `test-tool-${Date.now()}`;
       const toolData = {
@@ -169,19 +169,19 @@ test.describe('Tools API', () => {
       await api.post('/tools', toolData);
       registeredToolNames.push(toolName);
 
-      // Execute tool
-      const response = await api.post<{ success: boolean; output: unknown }>(
+      // Execute tool (API uses 'parameters' not 'params')
+      const response = await api.post<{ status: string; result: { success: boolean } }>(
         `/tools/${toolName}/execute`,
         {
-          params: { message: 'Hello, World!' },
+          parameters: { message: 'Hello, World!' },
         }
       );
 
       assertSuccess(response);
-      expect(response.data.success).toBe(true);
+      expect(response.data.result.success).toBe(true);
     });
 
-    test.skip('should validate tool parameters', async () => {
+    test('should validate tool parameters', async () => {
       // Register tool
       const toolName = `test-tool-${Date.now()}`;
       const toolData = {
@@ -193,13 +193,13 @@ test.describe('Tools API', () => {
 
       // Execute with missing required param
       const response = await api.post(`/tools/${toolName}/execute`, {
-        params: {}, // Missing 'message'
+        parameters: {}, // Missing 'message'
       });
 
-      assertError(response, 'VALIDATION_ERROR');
+      assertError(response, 'VALIDATION_FAILED');
     });
 
-    test.skip('should batch execute tools', async () => {
+    test('should batch execute tools', async () => {
       // Register tools
       const toolName1 = `test-tool-1-${Date.now()}`;
       const toolName2 = `test-tool-2-${Date.now()}`;
@@ -208,19 +208,19 @@ test.describe('Tools API', () => {
       await api.post('/tools', { ...sampleTools.echo, name: toolName2 });
       registeredToolNames.push(toolName1, toolName2);
 
-      // Batch execute
-      const response = await api.post<Array<{ success: boolean }>>('/tools/execute/batch', {
+      // Batch execute (API uses '/batch/execute' not '/execute/batch')
+      const response = await api.post<{ results: Array<{ status: string }> }>('/tools/batch/execute', {
         executions: [
-          { tool: toolName1, params: { message: 'Hello' } },
-          { tool: toolName2, params: { message: 'World' } },
+          { toolName: toolName1, parameters: { message: 'Hello' } },
+          { toolName: toolName2, parameters: { message: 'World' } },
         ],
       });
 
       assertSuccess(response);
-      expect(response.data).toHaveLength(2);
+      expect(response.data.results).toHaveLength(2);
     });
 
-    test.skip('should get tool execution history', async () => {
+    test('should get tool execution history', async () => {
       // Register and execute tool
       const toolName = `test-tool-${Date.now()}`;
       const toolData = {
@@ -231,11 +231,11 @@ test.describe('Tools API', () => {
       registeredToolNames.push(toolName);
 
       await api.post(`/tools/${toolName}/execute`, {
-        params: { message: 'Test' },
+        parameters: { message: 'Test' },
       });
 
-      // Get history
-      const response = await api.get<unknown[]>(`/tools/${toolName}/history`);
+      // Get history (API uses '/executions' not '/history')
+      const response = await api.get<unknown[]>(`/tools/${toolName}/executions`);
 
       assertSuccess(response);
       expect(Array.isArray(response.data)).toBe(true);

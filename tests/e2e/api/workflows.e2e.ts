@@ -100,7 +100,7 @@ test.describe('Workflows API', () => {
       }
     });
 
-    test.skip('should reject workflow without steps', async () => {
+    test('should reject workflow without steps', async () => {
       const invalidWorkflow = {
         name: 'Invalid Workflow',
         description: 'No steps',
@@ -109,10 +109,10 @@ test.describe('Workflows API', () => {
 
       const response = await api.post('/workflows', invalidWorkflow);
 
-      assertError(response, 'VALIDATION_ERROR');
+      assertError(response, 'VALIDATION_FAILED');
     });
 
-    test.skip('should reject workflow with invalid step dependencies', async () => {
+    test('should reject workflow with invalid step dependencies', async () => {
       const invalidWorkflow = {
         name: 'Invalid Deps Workflow',
         steps: [
@@ -127,7 +127,7 @@ test.describe('Workflows API', () => {
 
       const response = await api.post('/workflows', invalidWorkflow);
 
-      assertError(response, 'VALIDATION_ERROR');
+      assertError(response, 'VALIDATION_FAILED');
     });
   });
 
@@ -149,13 +149,13 @@ test.describe('Workflows API', () => {
     });
 
     test('should return 404 for non-existent workflow', async () => {
-      const response = await api.getRaw('/workflows/non-existent-id-12345');
+      const response = await api.getRaw('/workflows/00000000-0000-0000-0000-000000000000');
 
       expect(response.status()).toBe(404);
     });
   });
 
-  test.describe('PUT /workflows/:id', () => {
+  test.describe('PATCH /workflows/:id', () => {
     test('should update workflow', async () => {
       // Create workflow
       const workflowData = createUniqueWorkflow('simple');
@@ -169,7 +169,7 @@ test.describe('Workflows API', () => {
         name: 'Updated Workflow Name',
         description: 'Updated description',
       };
-      const response = await api.put<{ id: string; name: string; description: string }>(
+      const response = await api.patch<{ id: string; name: string; description: string }>(
         `/workflows/${workflowId}`,
         updateData
       );
@@ -199,7 +199,7 @@ test.describe('Workflows API', () => {
   });
 
   test.describe('Workflow Execution', () => {
-    test.skip('should start workflow execution', async () => {
+    test('should start workflow execution', async () => {
       // Create workflow
       const workflowData = createUniqueWorkflow('simple');
       const createResponse = await api.post<{ id: string }>('/workflows', workflowData);
@@ -217,7 +217,7 @@ test.describe('Workflows API', () => {
       expect(response.data.instanceId).toBeDefined();
     });
 
-    test.skip('should pause workflow execution', async () => {
+    test('should pause workflow execution', async () => {
       // Create and start workflow
       const workflowData = createUniqueWorkflow('multiStep');
       const createResponse = await api.post<{ id: string }>('/workflows', workflowData);
@@ -234,7 +234,7 @@ test.describe('Workflows API', () => {
       expect(response.data.status).toBe('paused');
     });
 
-    test.skip('should resume workflow execution', async () => {
+    test('should resume workflow execution', async () => {
       // Create, start, and pause workflow
       const workflowData = createUniqueWorkflow('multiStep');
       const createResponse = await api.post<{ id: string }>('/workflows', workflowData);
@@ -252,7 +252,7 @@ test.describe('Workflows API', () => {
       expect(response.data.status).toBe('running');
     });
 
-    test.skip('should stop workflow execution', async () => {
+    test('should stop workflow execution', async () => {
       // Create and start workflow
       const workflowData = createUniqueWorkflow('simple');
       const createResponse = await api.post<{ id: string }>('/workflows', workflowData);
@@ -269,7 +269,7 @@ test.describe('Workflows API', () => {
       expect(['stopped', 'cancelled']).toContain(response.data.status);
     });
 
-    test.skip('should get workflow instances', async () => {
+    test('should get workflow instances', async () => {
       // Create and start workflow
       const workflowData = createUniqueWorkflow('simple');
       const createResponse = await api.post<{ id: string }>('/workflows', workflowData);

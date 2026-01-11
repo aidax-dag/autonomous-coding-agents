@@ -44,6 +44,7 @@ export enum HookExecutionStatus {
  */
 export interface RegisterHookRequest {
   name: string;
+  type?: string;
   description?: string;
   event: HookEvent;
   priority?: number;
@@ -109,6 +110,7 @@ export interface HookExecutionHistoryQuery extends ListQueryParams {
 export interface HookSummary {
   id: string;
   name: string;
+  type: string;
   description?: string;
   event: HookEvent;
   priority: number;

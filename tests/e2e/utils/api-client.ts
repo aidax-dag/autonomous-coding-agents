@@ -110,7 +110,7 @@ export class ApiClient {
   async post<T>(path: string, data?: unknown): Promise<ApiResponse<T>> {
     const response = await this.request.post(`${this.baseUrl}${path}`, {
       headers: this.getHeaders(),
-      data,
+      data: data ?? {},  // Prevent empty body with Content-Type: application/json
     });
 
     return response.json();
@@ -141,11 +141,23 @@ export class ApiClient {
   }
 
   /**
+   * Make PATCH request and return raw response
+   */
+  async patchRaw(path: string, data?: unknown) {
+    return this.request.patch(`${this.baseUrl}${path}`, {
+      headers: this.getHeaders(),
+      data,
+    });
+  }
+
+  /**
    * Make DELETE request
    */
   async delete<T>(path: string): Promise<ApiResponse<T>> {
+    // Send empty JSON body to satisfy Fastify's content-type validation
     const response = await this.request.delete(`${this.baseUrl}${path}`, {
       headers: this.getHeaders(),
+      data: {},
     });
 
     return response.json();

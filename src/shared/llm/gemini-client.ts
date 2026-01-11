@@ -16,11 +16,13 @@ import { LLMError, LLMRateLimitError, LLMTimeoutError } from '@/shared/errors/cu
  * Feature: F1.6 - LLM API Client
  */
 
-const DEFAULT_MODEL = 'gemini-1.5-pro';
+const DEFAULT_MODEL = 'gemini-2.0-flash';
 
 const MODEL_CONTEXT_LENGTHS: Record<string, number> = {
-  'gemini-1.5-pro': 2097152, // 2M tokens
+  'gemini-2.0-flash': 1048576, // 1M tokens
+  'gemini-2.0-flash-exp': 1048576, // 1M tokens
   'gemini-1.5-flash': 1048576, // 1M tokens
+  'gemini-1.5-pro': 2097152, // 2M tokens
   'gemini-1.0-pro': 32768,
 };
 
@@ -58,7 +60,12 @@ export class GeminiClient extends BaseLLMClient {
           role: msg.role as 'user' | 'model',
           parts: [{ text: msg.content }],
         })),
-        systemInstruction,
+        ...(systemInstruction && {
+          systemInstruction: {
+            role: 'user' as const,
+            parts: [{ text: systemInstruction }],
+          },
+        }),
       });
 
       const result = await chat.sendMessage(currentMessage);
@@ -100,7 +107,12 @@ export class GeminiClient extends BaseLLMClient {
           role: msg.role as 'user' | 'model',
           parts: [{ text: msg.content }],
         })),
-        systemInstruction,
+        ...(systemInstruction && {
+          systemInstruction: {
+            role: 'user' as const,
+            parts: [{ text: systemInstruction }],
+          },
+        }),
       });
 
       let fullContent = '';
