@@ -20,6 +20,7 @@ import {
   FeatureRequest,
 } from '@/agents/base/types';
 import { InteractiveCLI } from '@/cli/interactive';
+import { createAutonomousCLI } from '@/cli/autonomous';
 import { StaticAnalyzer } from '@/shared/analysis/static-analyzer';
 import { AutoFixService } from '@/shared/analysis/auto-fix-service';
 import dotenv from 'dotenv';
@@ -751,6 +752,10 @@ program
       process.exit(1);
     }
   });
+
+// Add Autonomous Runner subcommand
+const autonomousCLI = createAutonomousCLI();
+program.addCommand(autonomousCLI);
 
 // Parse command line arguments
 program.parse();

@@ -60,6 +60,10 @@ pids/
 # Agent working directories
 /tmp/autonomous-coding-agents/
 /work/
+.autonomous-runner/
+
+# Test files
+test-prd*.md
 
 # Misc
 .cache/

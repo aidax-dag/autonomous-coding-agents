@@ -63,3 +63,33 @@ export {
   type OrchestratorEventPayload,
   type IOrchestrator,
 } from './orchestrator-service';
+
+export {
+  // Task Decomposer
+  TaskDecomposer,
+  createTaskDecomposer,
+
+  // Enums
+  PRDSectionType,
+  ComplexityLevel,
+  DependencyType,
+  DependencyStrength,
+
+  // Schemas
+  TaskDecomposerConfigSchema,
+
+  // Defaults
+  DEFAULT_TASK_DECOMPOSER_CONFIG,
+
+  // Types
+  type PRDFeature,
+  type PRDAnalysis,
+  type DecomposedTask,
+  type TaskTree,
+  type DependencyEdge,
+  type DependencyGraph,
+  type ExecutionPlan,
+  type ExecutionPhase,
+  type TaskDecomposerConfig,
+  type ITaskDecomposer,
+} from './task-decomposer';
