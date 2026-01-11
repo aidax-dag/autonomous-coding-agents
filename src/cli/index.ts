@@ -27,6 +27,37 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// Local types for API responses (used only for CLI display)
+interface JobInfo {
+  id: string;
+  title?: string;
+  status: string;
+  priority?: string;
+  createdAt?: number;
+}
+
+interface AgentHealthInfo {
+  type: string;
+  healthy: number;
+  count: number;
+  idle: number;
+  working: number;
+}
+
+interface HealthCheckResponse {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  uptime: number;
+  system: {
+    agentCount: number;
+    agents?: AgentHealthInfo[];
+  };
+  dependencies: {
+    nats: {
+      connected: boolean;
+    };
+  };
+}
+
 const program = new Command();
 
 /**
@@ -452,7 +483,7 @@ program
           return;
         }
 
-        jobsData.jobs.forEach((job: any, index: number) => {
+        jobsData.jobs.forEach((job: JobInfo, index: number) => {
           console.log();
           console.log(chalk.bold(`  ${index + 1}. ${job.title || job.id}`));
           console.log(chalk.gray('     Task ID:  ') + chalk.cyan(job.id));
@@ -501,7 +532,7 @@ program
 
     try {
       const response = await fetch(`${options.url}/health`);
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as HealthCheckResponse;
 
       spinner.stop();
 
@@ -522,7 +553,7 @@ program
       if (data.system.agents && data.system.agents.length > 0) {
         console.log();
         console.log(chalk.bold('  Agents:'));
-        data.system.agents.forEach((agent: any) => {
+        data.system.agents.forEach((agent: AgentHealthInfo) => {
           const agentIcon = agent.healthy === agent.count ? '✅' : '⚠️';
           console.log(
             chalk.gray(`    ${agentIcon} ${agent.type}: `) +
