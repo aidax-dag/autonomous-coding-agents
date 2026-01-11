@@ -148,6 +148,17 @@ multi-agent auto-fix --repo . --owner user --name repo
 
 ## 📊 구현 현황
 
+### 코어 아키텍처 (리팩토링)
+
+| Phase | 설명 | 상태 | 테스트 |
+|-------|------|------|--------|
+| Phase 0 | Foundation (DI, Events, Error Recovery) | ✅ 완료 | 119개 |
+| Phase 1 | Core Agents (Factory, Registry, Communication) | 🔄 진행 중 | 238개 |
+| Phase 2 | Workflow Engine (Definition, Executor, Orchestrator) | 🔄 진행 중 | 369개 |
+| Phase 3 | Tools & Hooks (Registry, Git, File, Shell, LSP, AST-Grep, MCP, Hooks, Session, Web Search) | 🔄 진행 중 | 983개 |
+
+### 레거시 시스템
+
 | Phase                    | 상태    |
 | ------------------------ | ------- |
 | Phase 1: 핵심 인프라     | ✅ 완료 |
@@ -155,7 +166,7 @@ multi-agent auto-fix --repo . --owner user --name repo
 | Phase 3: 프로덕션 인프라 | ✅ 완료 |
 | Phase 4: 고급 기능       | ✅ 완료 |
 
-**현재 버전**: 0.1.0 (Production Ready 🚀)
+**현재 버전**: 0.1.0 | **총 테스트**: 2,234개 통과
 
 ---
 

@@ -13,6 +13,10 @@ export default {
       statements: 70,
     },
   },
+  // Transform ESM-only packages
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid|chalk|ora)/)',
+  ],
   moduleNameMapper: {
     // Handle .js extensions in ESM imports (both alias and relative)
     '^(\\.{1,2}/.*)\\.js$': '$1',
@@ -25,5 +29,6 @@ export default {
     '^@octokit/rest$': '<rootDir>/tests/__mocks__/@octokit/rest.ts',
     '^octokit$': '<rootDir>/tests/__mocks__/octokit.ts',
     '^nats$': '<rootDir>/tests/__mocks__/nats.ts',
+    '^uuid$': '<rootDir>/tests/__mocks__/uuid.ts',
   },
 };
