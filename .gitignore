@@ -63,3 +63,7 @@ pids/
 .cache/
 tmp/
 temp/
+
+# Separate applications (built independently)
+desktop/
+web/
