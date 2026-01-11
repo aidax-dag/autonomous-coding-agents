@@ -65,7 +65,7 @@ describe('CodeScanner', () => {
 
     it('should run secret detection on code', async () => {
       const code = `
-        const awsKey = "AKIAIOSFODNN7EXAMPLE";
+        const awsKey = "AKIATESTFAKEKEY12345";
       `;
 
       const result = await scanner.scanCode(code, {
@@ -79,7 +79,7 @@ describe('CodeScanner', () => {
 
     it('should run both static and secret detection', async () => {
       const code = `
-        const awsKey = "AKIAIOSFODNN7EXAMPLE";
+        const awsKey = "AKIATESTFAKEKEY12345";
         eval(userInput);
       `;
 
@@ -117,7 +117,7 @@ describe('CodeScanner', () => {
     it('should run scans in parallel by default', async () => {
       const code = `
         eval(userInput);
-        const aws = "AKIAIOSFODNN7EXAMPLE";
+        const aws = "AKIATESTFAKEKEY12345";
       `;
 
       const startTime = Date.now();
@@ -187,7 +187,7 @@ describe('CodeScanner', () => {
     it('should combine results from all scan types', async () => {
       // Create files with various issues
       fs.writeFileSync(path.join(tempDir, 'code.js'), 'eval(a);');
-      fs.writeFileSync(path.join(tempDir, 'secrets.js'), 'const aws = "AKIAIOSFODNN7EXAMPLE";');
+      fs.writeFileSync(path.join(tempDir, 'secrets.js'), 'const aws = "AKIATESTFAKEKEY12345";');
       fs.writeFileSync(
         path.join(tempDir, 'package.json'),
         JSON.stringify({ name: 'test', version: '1.0.0', dependencies: { lodash: '4.17.20' } })
@@ -234,7 +234,7 @@ describe('CodeScanner', () => {
   describe('failOnSeverity', () => {
     it('should fail on critical issues when option is set', async () => {
       const code = `
-        const aws = "AKIAIOSFODNN7EXAMPLE";
+        const aws = "AKIATESTFAKEKEY12345";
       `;
 
       const result = await scanner.scanCode(code, {
@@ -312,7 +312,7 @@ describe('CodeScanner', () => {
     });
 
     it('should include secrets in text report', async () => {
-      const code = 'const aws = "AKIAIOSFODNN7EXAMPLE";';
+      const code = 'const aws = "AKIATESTFAKEKEY12345";';
       const result = await scanner.scanCode(code, {
         scanTypes: ['secret-detection'],
       });
@@ -399,7 +399,7 @@ describe('CodeScanner', () => {
       // Even if static analysis has issues, secret detection should run
       fs.writeFileSync(
         path.join(tempDir, 'test.js'),
-        'const aws = "AKIAIOSFODNN7EXAMPLE";'
+        'const aws = "AKIATESTFAKEKEY12345";'
       );
 
       const result = await scanner.scanDirectory(tempDir, {
@@ -415,7 +415,7 @@ describe('CodeScanner', () => {
     it('should correctly sum issues from all scan types', async () => {
       // Create directory with issues from multiple scan types
       fs.writeFileSync(path.join(tempDir, 'code.js'), 'eval(a);');
-      fs.writeFileSync(path.join(tempDir, 'secrets.js'), 'const aws = "AKIAIOSFODNN7EXAMPLE";');
+      fs.writeFileSync(path.join(tempDir, 'secrets.js'), 'const aws = "AKIATESTFAKEKEY12345";');
 
       const result = await scanner.scanDirectory(tempDir, {
         scanTypes: ['static-analysis', 'secret-detection'],
@@ -456,7 +456,7 @@ describe('CodeScanner', () => {
       fs.writeFileSync(
         path.join(tempDir, 'secrets.js'),
         `
-        const aws = "AKIAIOSFODNN7EXAMPLE";
+        const aws = "AKIATESTFAKEKEY12345";
         const github = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
       `
       );

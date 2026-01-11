@@ -64,7 +64,7 @@ describe('SecretDetector', () => {
   describe('detectInCode', () => {
     it('should detect AWS Access Key ID', async () => {
       const code = `
-        const awsKey = "AKIAIOSFODNN7EXAMPLE";
+        const awsKey = "AKIATESTFAKEKEY12345";
       `;
 
       const result = await detector.detectInCode(code);
@@ -96,7 +96,7 @@ describe('SecretDetector', () => {
 
     it('should detect Stripe API Key', async () => {
       const code = `
-        const stripeKey = "sk_live_abcdefghijklmnopqrstuvwx";
+        const stripeKey = "sk_test_FakeKeyForTestingOnly1234";
       `;
 
       const result = await detector.detectInCode(code);
@@ -258,8 +258,8 @@ line3`;
 
     it('should filter by secret types', async () => {
       const code = `
-        const awsKey = "AKIAIOSFODNN7EXAMPLE";
-        const stripeKey = "sk_live_abcdefghijklmnopqrstuvwx";
+        const awsKey = "AKIATESTFAKEKEY12345";
+        const stripeKey = "sk_test_FakeKeyForTestingOnly1234";
       `;
 
       const result = await detector.detectInCode(code, {
@@ -271,7 +271,7 @@ line3`;
 
     it('should return secrets by type count', async () => {
       const code = `
-        const awsKey = "AKIAIOSFODNN7EXAMPLE";
+        const awsKey = "AKIATESTFAKEKEY12345";
         const token = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
       `;
 
@@ -305,7 +305,7 @@ line3`;
     it('should detect secrets in all files', async () => {
       fs.writeFileSync(
         path.join(tempDir, 'file1.js'),
-        'const aws = "AKIAIOSFODNN7EXAMPLE";'
+        'const aws = "AKIATESTFAKEKEY12345";'
       );
       fs.writeFileSync(
         path.join(tempDir, 'file2.ts'),
@@ -322,7 +322,7 @@ line3`;
     it('should track files with secrets', async () => {
       fs.writeFileSync(
         path.join(tempDir, 'with-secret.js'),
-        'const aws = "AKIAIOSFODNN7EXAMPLE";'
+        'const aws = "AKIATESTFAKEKEY12345";'
       );
       fs.writeFileSync(path.join(tempDir, 'without-secret.js'), 'const x = 1;');
 
@@ -336,7 +336,7 @@ line3`;
       fs.mkdirSync(nodeModules);
       fs.writeFileSync(
         path.join(nodeModules, 'secret.js'),
-        'const aws = "AKIAIOSFODNN7EXAMPLE";'
+        'const aws = "AKIATESTFAKEKEY12345";'
       );
       fs.writeFileSync(path.join(tempDir, 'app.js'), 'const x = 1;');
 
@@ -354,7 +354,7 @@ line3`;
       fs.writeFileSync(path.join(tempDir, 'image.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
       fs.writeFileSync(
         path.join(tempDir, 'code.js'),
-        'const aws = "AKIAIOSFODNN7EXAMPLE";'
+        'const aws = "AKIATESTFAKEKEY12345";'
       );
 
       const result = await detector.detectInDirectory(tempDir);
@@ -442,7 +442,7 @@ line3`;
   describe('Options', () => {
     it('should include rules by ID', async () => {
       const code = `
-        const aws = "AKIAIOSFODNN7EXAMPLE";
+        const aws = "AKIATESTFAKEKEY12345";
         const github = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
       `;
 
@@ -455,7 +455,7 @@ line3`;
 
     it('should exclude rules by ID', async () => {
       const code = `
-        const aws = "AKIAIOSFODNN7EXAMPLE";
+        const aws = "AKIATESTFAKEKEY12345";
       `;
 
       const result = await detector.detectInCode(code, {
