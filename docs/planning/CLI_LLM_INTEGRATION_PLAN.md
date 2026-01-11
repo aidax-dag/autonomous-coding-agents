@@ -116,6 +116,7 @@ src/shared/llm/
 ├── cli/                    # 새로 추가
 │   ├── base-cli-client.ts  # BaseCLIClient (공통 로직)
 │   ├── claude-cli-client.ts
+│   ├── codex-cli-client.ts
 │   ├── gemini-cli-client.ts
 │   └── ollama-cli-client.ts
 └── index.ts                # 통합 export
@@ -160,7 +161,7 @@ interface CLIAvailability {
   error?: string;
 }
 
-async function checkCLIAvailability(cli: 'claude' | 'gemini' | 'ollama'): Promise<CLIAvailability>;
+async function checkCLIAvailability(cli: 'claude' | 'codex' | 'gemini' | 'ollama'): Promise<CLIAvailability>;
 ```
 
 ### Phase 2: 개별 CLI 클라이언트 (2단계)
@@ -171,12 +172,19 @@ async function checkCLIAvailability(cli: 'claude' | 'gemini' | 'ollama'): Promis
 - [ ] 모델 선택: `--model`
 - [ ] 스트리밍: `--output-format stream-json`
 
-#### 4.2.2 GeminiCLIClient
+#### 4.2.2 CodexCLIClient
+- [ ] `exec --json` 모드 구현
+- [ ] JSONL 파싱 (이벤트 스트림)
+- [ ] `agent_message` 이벤트에서 응답 추출
+- [ ] `turn.completed` 이벤트에서 토큰 사용량 추출
+- [ ] 모델 선택: `-m/--model`
+
+#### 4.2.3 GeminiCLIClient
 - [ ] `-o json` 모드 구현
 - [ ] 모델 선택: `-m/--model`
 - [ ] 스트리밍: `-o stream-json`
 
-#### 4.2.3 OllamaCLIClient
+#### 4.2.4 OllamaCLIClient
 - [ ] REST API 기반 구현 (localhost:11434)
 - [ ] `/api/generate` 엔드포인트 사용
 - [ ] 모델 선택 지원
@@ -191,15 +199,17 @@ function createLLMClient(provider: LLMProvider, options?: LLMClientOptions): Bas
 
 #### 4.3.2 CLI 옵션 확장
 ```bash
-# 기존
-runner create prd.md -p claude        # API
-runner create prd.md -p gemini        # API
+# 기존 (API Key 방식)
+runner create prd.md -p claude        # Claude API
+runner create prd.md -p openai        # OpenAI API
+runner create prd.md -p gemini        # Gemini API
 
-# 확장
-runner create prd.md -p claude-cli    # CLI
-runner create prd.md -p gemini-cli    # CLI
-runner create prd.md -p ollama        # Local
-runner create prd.md -p ollama -m llama3  # 모델 지정
+# 확장 (CLI 방식 - 구독 인증)
+runner create prd.md -p claude-cli    # Claude Code CLI
+runner create prd.md -p codex-cli     # OpenAI Codex CLI
+runner create prd.md -p gemini-cli    # Gemini CLI
+runner create prd.md -p ollama        # Ollama (로컬)
+runner create prd.md -p ollama -m llama3  # Ollama 모델 지정
 ```
 
 ---
@@ -293,11 +303,17 @@ describe('Runner with CLI Provider', () => {
 - [ ] 에러 시 적절한 메시지 출력
 - [ ] Ctrl+C로 중단 시 정상 종료
 
-#### 5.3.2 Gemini CLI
+#### 5.3.2 Codex CLI
+- [ ] `runner create prd.md -p codex-cli -v` 실행 성공
+- [ ] `runner run <project-id> -p codex-cli -v` 실행 성공
+- [ ] JSONL 파싱 정상 동작 확인
+- [ ] 에러 시 적절한 메시지 출력
+
+#### 5.3.3 Gemini CLI
 - [ ] `runner create prd.md -p gemini-cli -v` 실행 성공
 - [ ] `runner run <project-id> -p gemini-cli -v` 실행 성공
 
-#### 5.3.3 Ollama
+#### 5.3.4 Ollama
 - [ ] `ollama serve` 실행 상태 확인
 - [ ] `runner create prd.md -p ollama -m llama3 -v` 실행 성공
 - [ ] 모델 미설치 시 적절한 에러 메시지
@@ -339,11 +355,11 @@ export class CLIAuthenticationError extends Error {
 | Phase | 작업 | 예상 시간 |
 |-------|------|----------|
 | 1 | BaseCLIClient + 유틸리티 | 2-3시간 |
-| 2 | 개별 CLI 클라이언트 (3개) | 3-4시간 |
+| 2 | 개별 CLI 클라이언트 (4개) | 4-5시간 |
 | 3 | 통합 + CLI 옵션 | 1-2시간 |
 | 4 | 테스트 작성 | 2-3시간 |
 | 5 | 수동 검증 + 버그 수정 | 1-2시간 |
-| **총** | | **9-14시간** |
+| **총** | | **10-15시간** |
 
 ---
 
@@ -355,13 +371,15 @@ export class CLIAuthenticationError extends Error {
 |--------|------|------|
 | CLI 버전 호환성 | 출력 형식 변경 가능 | 버전별 파서 분기 |
 | 스트리밍 파싱 복잡도 | stream-json 처리 어려움 | 우선 non-streaming 구현 |
+| Codex JSONL 파싱 | 이벤트 스트림 처리 복잡 | 이벤트 타입별 핸들러 구현 |
 | Ollama 서버 의존성 | 별도 프로세스 관리 필요 | 서버 상태 체크 로직 |
 
 ### 8.2 우선순위
 
 1. **claude-cli** (가장 많이 사용, 출력 형식 명확)
-2. **ollama** (로컬 실행, 비용 없음)
-3. **gemini-cli** (추가 지원)
+2. **codex-cli** (OpenAI 구독자용, ChatGPT Plus 계정 활용)
+3. **ollama** (로컬 실행, 비용 없음)
+4. **gemini-cli** (추가 지원)
 
 ---
 
@@ -384,5 +402,6 @@ export class CLIAuthenticationError extends Error {
 ## 10. 참고 자료
 
 - Claude CLI: https://docs.anthropic.com/en/docs/claude-code
-- Gemini CLI: https://github.com/anthropics/anthropic-tools/gemini-cli
+- Codex CLI: https://github.com/openai/codex
+- Gemini CLI: https://github.com/google-gemini/gemini-cli
 - Ollama API: https://github.com/ollama/ollama/blob/main/docs/api.md
