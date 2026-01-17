@@ -163,7 +163,7 @@ describe('Error Middleware', () => {
       expect(response.error?.stack).toBeUndefined();
     });
 
-    it('should handle Fastify-style errors', () => {
+    it('should handle Fastify-style errors with validation', () => {
       const error = {
         statusCode: 400,
         message: 'Bad request',
@@ -176,9 +176,23 @@ describe('Error Middleware', () => {
       const { statusCode, response } = mapErrorToResponse(error, 'req-123');
 
       expect(statusCode).toBe(400);
-      expect(response.error?.code).toBe('CUSTOM_CODE');
+      // Validation errors are normalized to VALIDATION_FAILED code
+      expect(response.error?.code).toBe('VALIDATION_FAILED');
       expect(response.error?.details).toBeDefined();
       expect(response.error?.details?.length).toBe(1);
+    });
+
+    it('should preserve custom code for Fastify-style errors without validation', () => {
+      const error = {
+        statusCode: 400,
+        message: 'Bad request',
+        code: 'CUSTOM_CODE',
+      } as Error & { statusCode: number; code: string };
+
+      const { statusCode, response } = mapErrorToResponse(error, 'req-123');
+
+      expect(statusCode).toBe(400);
+      expect(response.error?.code).toBe('CUSTOM_CODE');
     });
 
     it('should include timestamp in response', () => {

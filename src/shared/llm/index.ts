@@ -2,15 +2,21 @@
  * LLM Client Factory and Exports
  *
  * Provides a unified interface to create LLM clients for different providers.
+ * Supports both API-based providers (require API keys) and CLI-based providers
+ * (use subscription authentication).
  *
  * Feature: F1.6 - LLM API Client
  */
 
-import { Config, LLMProvider, getLLMApiKey } from '@/shared/config';
+import { Config, LLMProvider, getLLMApiKey, isCLIProvider } from '@/shared/config';
 import { ILLMClient } from '@/shared/llm/base-client';
 import { ClaudeClient } from '@/shared/llm/claude-client';
 import { OpenAIClient } from '@/shared/llm/openai-client';
 import { GeminiClient } from '@/shared/llm/gemini-client';
+import { ClaudeCLIClient } from '@/shared/llm/cli/claude-cli-client';
+import { CodexCLIClient } from '@/shared/llm/cli/codex-cli-client';
+import { GeminiCLIClient } from '@/shared/llm/cli/gemini-cli-client';
+import { OllamaClient } from '@/shared/llm/cli/ollama-client';
 
 // Re-export types and utilities
 export * from '@/shared/llm/base-client';
@@ -18,8 +24,11 @@ export { ClaudeClient } from '@/shared/llm/claude-client';
 export { OpenAIClient } from '@/shared/llm/openai-client';
 export { GeminiClient } from '@/shared/llm/gemini-client';
 
+// Re-export CLI clients
+export * from '@/shared/llm/cli';
+
 /**
- * Create an LLM client based on provider
+ * Create an LLM client based on provider (API-based)
  */
 export function createLLMClient(
   provider: LLMProvider,
@@ -34,18 +43,47 @@ export function createLLMClient(
     case 'gemini':
       return new GeminiClient(apiKey, defaultModel);
     default:
-      throw new Error(`Unknown LLM provider: ${provider}`);
+      throw new Error(`Unknown API-based LLM provider: ${provider}. Use createCLILLMClient for CLI providers.`);
+  }
+}
+
+/**
+ * Create a CLI-based LLM client
+ */
+export function createCLILLMClient(
+  provider: LLMProvider,
+  defaultModel?: string,
+  ollamaHost?: string
+): ILLMClient {
+  switch (provider) {
+    case 'claude-cli':
+      return new ClaudeCLIClient(defaultModel);
+    case 'codex-cli':
+      return new CodexCLIClient(defaultModel);
+    case 'gemini-cli':
+      return new GeminiCLIClient(defaultModel);
+    case 'ollama':
+      return new OllamaClient(defaultModel, ollamaHost);
+    default:
+      throw new Error(`Unknown CLI-based LLM provider: ${provider}. Use createLLMClient for API providers.`);
   }
 }
 
 /**
  * Create an LLM client from configuration
+ * Automatically selects API or CLI client based on provider type
  */
 export function createLLMClientFromConfig(config: Config): ILLMClient {
-  const provider = config.llm.provider;
-  const apiKey = getLLMApiKey(config);
+  const { provider, defaultModel, ollamaHost } = config.llm;
 
-  return createLLMClient(provider, apiKey);
+  // CLI-based providers don't need API keys
+  if (isCLIProvider(provider)) {
+    return createCLILLMClient(provider, defaultModel, ollamaHost);
+  }
+
+  // API-based providers need API keys
+  const apiKey = getLLMApiKey(config);
+  return createLLMClient(provider, apiKey, defaultModel);
 }
 
 /**

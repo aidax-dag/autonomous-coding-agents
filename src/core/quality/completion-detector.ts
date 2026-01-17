@@ -21,8 +21,15 @@ import {
   ProjectStatus,
   TaskStatus,
   TaskRecord,
-} from '../memory/project-store';
-import { PRDAnalysis } from '../orchestrator/task-decomposer';
+} from '../memory/project-store.js';
+import { PRDAnalysis } from '../orchestrator/task-decomposer.js';
+import {
+  TestCoverageChecker,
+  CodeQualityChecker,
+  DocumentationChecker,
+  SecurityChecker,
+  PerformanceChecker,
+} from './checks/index.js';
 
 // ============================================================================
 // Types and Interfaces
@@ -280,10 +287,22 @@ export const QUALITY_GATES: Record<QualityGateLevel, QualityGate> = {
  */
 export class CompletionDetector extends EventEmitter implements ICompletionDetector {
   private config: CompletionDetectorConfig;
+  private coverageChecker: TestCoverageChecker;
+  private codeQualityChecker: CodeQualityChecker;
+  private documentationChecker: DocumentationChecker;
+  private securityChecker: SecurityChecker;
+  private performanceChecker: PerformanceChecker;
 
   constructor(config: Partial<CompletionDetectorConfig> = {}) {
     super();
     this.config = { ...DEFAULT_COMPLETION_DETECTOR_CONFIG, ...config };
+
+    // Initialize real quality checkers
+    this.coverageChecker = new TestCoverageChecker();
+    this.codeQualityChecker = new CodeQualityChecker();
+    this.documentationChecker = new DocumentationChecker();
+    this.securityChecker = new SecurityChecker();
+    this.performanceChecker = new PerformanceChecker();
   }
 
   // ==================== Completion Checking ====================
@@ -582,72 +601,116 @@ export class CompletionDetector extends EventEmitter implements ICompletionDetec
     };
   }
 
-  private async checkTestCoverage(_project: ProjectState): Promise<QualityCheckResult> {
-    // In a real implementation, this would check actual test coverage
-    // For now, we assume tests are run and return a mock score
-    const mockScore = 75;
+  private async checkTestCoverage(project: ProjectState): Promise<QualityCheckResult> {
+    // Use the real test coverage checker
+    const workspacePath = this.getWorkspacePath(project);
+    if (!workspacePath) {
+      return {
+        dimension: QualityDimension.TEST_COVERAGE,
+        passed: false,
+        score: 0,
+        threshold: 60,
+        details: 'No workspace path available for coverage check',
+        recommendations: ['Configure workspace path in project metadata'],
+      };
+    }
 
-    return {
-      dimension: QualityDimension.TEST_COVERAGE,
-      passed: mockScore >= 60,
-      score: mockScore,
-      threshold: 60,
-      details: `Test coverage: ${mockScore}%`,
-      recommendations: mockScore < 80 ? ['Add more unit tests', 'Increase integration test coverage'] : undefined,
-    };
+    return this.coverageChecker.check(workspacePath);
   }
 
-  private async checkCodeQuality(_project: ProjectState): Promise<QualityCheckResult> {
-    // In a real implementation, this would run linters, complexity checks, etc.
-    const mockScore = 85;
+  private async checkCodeQuality(project: ProjectState): Promise<QualityCheckResult> {
+    // Use the real code quality checker
+    const workspacePath = this.getWorkspacePath(project);
+    if (!workspacePath) {
+      return {
+        dimension: QualityDimension.CODE_QUALITY,
+        passed: false,
+        score: 0,
+        threshold: 80,
+        details: 'No workspace path available for code quality check',
+        recommendations: ['Configure workspace path in project metadata'],
+      };
+    }
 
-    return {
-      dimension: QualityDimension.CODE_QUALITY,
-      passed: mockScore >= 80,
-      score: mockScore,
-      threshold: 80,
-      details: `Code quality score: ${mockScore}%`,
-    };
+    return this.codeQualityChecker.check(workspacePath);
   }
 
-  private async checkDocumentation(_project: ProjectState): Promise<QualityCheckResult> {
-    // In a real implementation, this would check for README, API docs, etc.
-    const mockScore = 70;
+  private async checkDocumentation(project: ProjectState): Promise<QualityCheckResult> {
+    // Use the real documentation checker
+    const workspacePath = this.getWorkspacePath(project);
+    if (!workspacePath) {
+      return {
+        dimension: QualityDimension.DOCUMENTATION,
+        passed: false,
+        score: 0,
+        threshold: 70,
+        details: 'No workspace path available for documentation check',
+        recommendations: ['Configure workspace path in project metadata'],
+      };
+    }
 
-    return {
-      dimension: QualityDimension.DOCUMENTATION,
-      passed: mockScore >= 70,
-      score: mockScore,
-      threshold: 70,
-      details: `Documentation coverage: ${mockScore}%`,
-      recommendations: mockScore < 80 ? ['Add API documentation', 'Update README'] : undefined,
-    };
+    return this.documentationChecker.check(workspacePath);
   }
 
-  private async checkSecurity(_project: ProjectState): Promise<QualityCheckResult> {
-    // In a real implementation, this would run security scans
-    const mockScore = 90;
+  private async checkSecurity(project: ProjectState): Promise<QualityCheckResult> {
+    // Use the real security checker
+    const workspacePath = this.getWorkspacePath(project);
+    if (!workspacePath) {
+      return {
+        dimension: QualityDimension.SECURITY,
+        passed: false,
+        score: 0,
+        threshold: 90,
+        details: 'No workspace path available for security check',
+        recommendations: ['Configure workspace path in project metadata'],
+      };
+    }
 
-    return {
-      dimension: QualityDimension.SECURITY,
-      passed: mockScore >= 90,
-      score: mockScore,
-      threshold: 90,
-      details: `Security scan passed: ${mockScore}%`,
-    };
+    return this.securityChecker.check(workspacePath);
   }
 
-  private async checkPerformance(_project: ProjectState): Promise<QualityCheckResult> {
-    // In a real implementation, this would run performance tests
-    const mockScore = 80;
+  private async checkPerformance(project: ProjectState): Promise<QualityCheckResult> {
+    // Use the real performance checker
+    const workspacePath = this.getWorkspacePath(project);
+    if (!workspacePath) {
+      return {
+        dimension: QualityDimension.PERFORMANCE,
+        passed: false,
+        score: 0,
+        threshold: 70,
+        details: 'No workspace path available for performance check',
+        recommendations: ['Configure workspace path in project metadata'],
+      };
+    }
 
-    return {
-      dimension: QualityDimension.PERFORMANCE,
-      passed: mockScore >= 70,
-      score: mockScore,
-      threshold: 70,
-      details: `Performance score: ${mockScore}%`,
-    };
+    return this.performanceChecker.check(workspacePath);
+  }
+
+  /**
+   * Get workspace path from project state
+   */
+  private getWorkspacePath(project: ProjectState): string | null {
+    // Try to get workspace path from project context or metadata
+    // Use type assertion since these are optional extension properties
+    const context = project.context as unknown as Record<string, unknown> | undefined;
+    if (context?.workspacePath && typeof context.workspacePath === 'string') {
+      return context.workspacePath;
+    }
+    if (context?.projectPath && typeof context.projectPath === 'string') {
+      return context.projectPath;
+    }
+
+    // Check project metadata for path information
+    const metadata = project.metadata as Record<string, unknown> | undefined;
+    if (metadata?.workspacePath && typeof metadata.workspacePath === 'string') {
+      return metadata.workspacePath;
+    }
+
+    // Fallback to current working directory if available
+    if (typeof process !== 'undefined' && process.cwd) {
+      return process.cwd();
+    }
+    return null;
   }
 
   private extractProjectFeatures(project: ProjectState): Set<string> {

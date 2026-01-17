@@ -17,3 +17,8 @@ export * from './histogram.js';
 
 // Registry
 export * from './registry.js';
+
+// Metrics Collection and Monitoring
+export * from './metrics-collector.js';
+export * from './quality-dashboard.js';
+export * from './alert-system.js';

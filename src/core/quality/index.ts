@@ -2,6 +2,8 @@
  * Quality Module
  *
  * Provides completion detection, quality gates, and validation for autonomous projects.
+ * Includes real quality measurement implementations for test coverage, code quality,
+ * documentation, security, and performance.
  *
  * @module core/quality
  */
@@ -36,4 +38,7 @@ export {
 
   // Factory
   createCompletionDetector,
-} from './completion-detector';
+} from './completion-detector.js';
+
+// Re-export quality checks module
+export * from './checks/index.js';

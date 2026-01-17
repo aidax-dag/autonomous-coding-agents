@@ -16,9 +16,27 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 /**
  * LLM Provider Configuration Schema
+ *
+ * API-based providers: claude, openai, gemini (require API keys)
+ * CLI-based providers: claude-cli, codex-cli, gemini-cli, ollama (use subscription authentication)
  */
-const LLMProviderSchema = z.enum(['claude', 'openai', 'gemini']);
+const LLMProviderSchema = z.enum([
+  'claude',
+  'openai',
+  'gemini',
+  'claude-cli',
+  'codex-cli',
+  'gemini-cli',
+  'ollama',
+]);
 export type LLMProvider = z.infer<typeof LLMProviderSchema>;
+
+/**
+ * Check if provider is CLI-based (uses subscription auth, not API key)
+ */
+export function isCLIProvider(provider: LLMProvider): boolean {
+  return ['claude-cli', 'codex-cli', 'gemini-cli', 'ollama'].includes(provider);
+}
 
 /**
  * Log Level Schema
@@ -45,6 +63,9 @@ const ConfigSchema = z.object({
     anthropicApiKey: z.string().optional(),
     openaiApiKey: z.string().optional(),
     geminiApiKey: z.string().optional(),
+    // CLI-specific configuration
+    ollamaHost: z.string().url().optional(),
+    defaultModel: z.string().optional(),
   }),
 
   // GitHub Configuration
@@ -126,6 +147,8 @@ function parseEnv(): Config {
       anthropicApiKey: env.ANTHROPIC_API_KEY,
       openaiApiKey: env.OPENAI_API_KEY,
       geminiApiKey: env.GEMINI_API_KEY,
+      ollamaHost: env.OLLAMA_HOST,
+      defaultModel: env.LLM_DEFAULT_MODEL,
     },
 
     github: {
@@ -178,19 +201,23 @@ function parseEnv(): Config {
  * Validate configuration and throw errors if invalid
  */
 export function validateConfig(config: Config): void {
-  // Check that at least one LLM API key is provided
   const { anthropicApiKey, openaiApiKey, geminiApiKey, provider } = config.llm;
 
-  const hasApiKey =
-    (provider === 'claude' && anthropicApiKey) ||
-    (provider === 'openai' && openaiApiKey) ||
-    (provider === 'gemini' && geminiApiKey);
+  // CLI-based providers don't require API keys (use subscription authentication)
+  if (!isCLIProvider(provider)) {
+    // Check that API key is provided for API-based providers
+    const hasApiKey =
+      (provider === 'claude' && anthropicApiKey) ||
+      (provider === 'openai' && openaiApiKey) ||
+      (provider === 'gemini' && geminiApiKey);
 
-  if (!hasApiKey) {
-    throw new Error(
-      `LLM API key for provider '${provider}' is required. ` +
-        `Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env file.`
-    );
+    if (!hasApiKey) {
+      throw new Error(
+        `LLM API key for provider '${provider}' is required. ` +
+          `Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env file.\n` +
+          `Alternatively, use a CLI-based provider: claude-cli, codex-cli, gemini-cli, or ollama.`
+      );
+    }
   }
 
   // Check database URL

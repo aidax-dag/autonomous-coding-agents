@@ -42,12 +42,12 @@ describe('LLM Clients', () => {
 
       expect(client).toBeInstanceOf(GeminiClient);
       expect(client.getProvider()).toBe('gemini');
-      expect(client.getDefaultModel()).toBe('gemini-1.5-pro');
+      expect(client.getDefaultModel()).toBe('gemini-2.0-flash');
     });
 
     it('should throw error for unknown provider', () => {
       expect(() => createLLMClient('unknown' as LLMProvider, 'test-key')).toThrow(
-        'Unknown LLM provider'
+        'Unknown API-based LLM provider'
       );
     });
 
@@ -95,8 +95,10 @@ describe('LLM Clients', () => {
     it('should return correct max context length', () => {
       const client = new GeminiClient('test-key');
 
-      expect(client.getMaxContextLength()).toBe(2097152);
+      // Default model is gemini-2.0-flash with 1M context
+      expect(client.getMaxContextLength()).toBe(1048576);
       expect(client.getMaxContextLength('gemini-1.5-flash')).toBe(1048576);
+      expect(client.getMaxContextLength('gemini-1.5-pro')).toBe(2097152);
       expect(client.getMaxContextLength('gemini-1.0-pro')).toBe(32768);
       expect(client.getMaxContextLength('unknown-model')).toBe(1048576);
     });
@@ -213,8 +215,8 @@ describe('LLM Clients', () => {
       // OpenAI GPT-4o has 128k
       expect(openaiClient.getMaxContextLength()).toBe(128000);
 
-      // Gemini 1.5 Pro has 2M tokens
-      expect(geminiClient.getMaxContextLength()).toBe(2097152);
+      // Gemini 2.0-flash has 1M tokens
+      expect(geminiClient.getMaxContextLength()).toBe(1048576);
     });
 
     it('should handle unknown models with defaults', () => {
