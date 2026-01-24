@@ -102,6 +102,8 @@ export {
 
 // Transport implementations
 export { StdioTransport } from './stdio-transport.js';
+export { HttpTransport } from './http-transport.js';
+export { WebSocketTransport } from './websocket-transport.js';
 
 // Client implementation
 export { MCPClient } from './mcp-client.js';

@@ -11,6 +11,7 @@ import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { MetricsCollector } from './metrics-collector';
 import { QualityDashboard } from './quality-dashboard';
+import { createLogger, ILogger } from '../services/logger.js';
 
 // ============================================================================
 // Types
@@ -172,6 +173,7 @@ export class AlertSystem extends EventEmitter {
   private lastTriggered: Map<string, Date>;
   private checkTimer?: ReturnType<typeof setInterval>;
   private started: boolean;
+  private readonly logger: ILogger;
 
   constructor(
     collector: MetricsCollector,
@@ -192,6 +194,7 @@ export class AlertSystem extends EventEmitter {
     this.history = [];
     this.lastTriggered = new Map();
     this.started = false;
+    this.logger = createLogger(`AlertSystem:${this.config.name}`);
 
     // Connect to dashboard events if available
     if (this.dashboard) {
@@ -632,7 +635,7 @@ export class AlertSystem extends EventEmitter {
    */
   private logAlert(alert: Alert): void {
     const prefix = this.getSeverityPrefix(alert.severity);
-    console.log(`${prefix} [ALERT] ${alert.message}`);
+    this.logger.warn(`${prefix} [ALERT] ${alert.message}`);
   }
 
   /**

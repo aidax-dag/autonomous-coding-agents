@@ -17,6 +17,9 @@ import type {
   UsageStats,
 } from '../interfaces/token-budget.interface';
 import { BudgetExceededError, BudgetNotFoundError } from '../interfaces/token-budget.interface';
+import { createLogger, type ILogger } from '../../../core/services/logger.js';
+
+const logger: ILogger = createLogger('TokenBudgetManager');
 
 /**
  * Generate unique ID
@@ -489,7 +492,7 @@ export class TokenBudgetManager implements ITokenBudgetManager {
       try {
         callback(state.history[state.history.length - 1]?.usage ?? {} as TokenUsage, status);
       } catch (error) {
-        console.error('Error in usage callback:', error);
+        logger.error('Error in usage callback', { error });
       }
     }
 
@@ -499,7 +502,7 @@ export class TokenBudgetManager implements ITokenBudgetManager {
         try {
           callback(status);
         } catch (error) {
-          console.error('Error in warning callback:', error);
+          logger.error('Error in warning callback', { error });
         }
       }
     }
@@ -510,7 +513,7 @@ export class TokenBudgetManager implements ITokenBudgetManager {
         try {
           callback(status);
         } catch (error) {
-          console.error('Error in exceeded callback:', error);
+          logger.error('Error in exceeded callback', { error });
         }
       }
     }

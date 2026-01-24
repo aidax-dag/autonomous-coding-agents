@@ -414,4 +414,183 @@ describe('ToolExecutor', () => {
       expect(result.error?.code).toBe('VALIDATION_FAILED');
     });
   });
+
+  describe('Exponential Backoff', () => {
+    it('should apply exponential backoff on retries', async () => {
+      const retryDelays: number[] = [];
+      registry.register(new MockTool('failing-tool', { shouldFail: true }));
+
+      await executor.execute(
+        'failing-tool',
+        { input: 'test' },
+        {
+          retries: 3,
+          retryDelay: 100,
+          backoffMultiplier: 2,
+          onRetry: (_attempt, _error, delay) => {
+            retryDelays.push(delay);
+          },
+        }
+      );
+
+      // Delays should follow exponential pattern: 100, 200, 400
+      expect(retryDelays).toHaveLength(3);
+      expect(retryDelays[0]).toBe(100);
+      expect(retryDelays[1]).toBe(200);
+      expect(retryDelays[2]).toBe(400);
+    });
+
+    it('should respect maxRetryDelay cap', async () => {
+      const retryDelays: number[] = [];
+      registry.register(new MockTool('failing-tool', { shouldFail: true }));
+
+      await executor.execute(
+        'failing-tool',
+        { input: 'test' },
+        {
+          retries: 5,
+          retryDelay: 100,
+          backoffMultiplier: 3,
+          maxRetryDelay: 500,
+          onRetry: (_attempt, _error, delay) => {
+            retryDelays.push(delay);
+          },
+        }
+      );
+
+      // All delays should be capped at 500
+      expect(retryDelays.every((d) => d <= 500)).toBe(true);
+    });
+  });
+
+  describe('Retry Conditions', () => {
+    it('should retry on recoverable errors by default', async () => {
+      let attemptCount = 0;
+
+      // Create a tool that fails with a recoverable error
+      class RecoverableErrorTool extends MockTool {
+        async execute(
+          _params: { input: string },
+          _options?: ToolExecutionOptions
+        ): Promise<ToolResult<string>> {
+          attemptCount++;
+          throw new Error('Network connection failed'); // recoverable
+        }
+      }
+
+      registry.register(new RecoverableErrorTool('recoverable-tool'));
+
+      await executor.execute(
+        'recoverable-tool',
+        { input: 'test' },
+        { retries: 2, retryDelay: 10 }
+      );
+
+      // Should have attempted 3 times (initial + 2 retries)
+      expect(attemptCount).toBe(3);
+    });
+
+    it('should respect retryOn: timeout condition', async () => {
+      let attemptCount = 0;
+
+      class TimeoutErrorTool extends MockTool {
+        async execute(
+          _params: { input: string },
+          _options?: ToolExecutionOptions
+        ): Promise<ToolResult<string>> {
+          attemptCount++;
+          throw new Error('Connection timeout occurred');
+        }
+      }
+
+      registry.register(new TimeoutErrorTool('timeout-tool'));
+
+      await executor.execute(
+        'timeout-tool',
+        { input: 'test' },
+        { retries: 2, retryDelay: 10, retryOn: 'timeout' }
+      );
+
+      // Should retry on timeout errors
+      expect(attemptCount).toBe(3);
+    });
+
+    it('should not retry when retryOn condition is not met', async () => {
+      let attemptCount = 0;
+
+      class NotFoundErrorTool extends MockTool {
+        async execute(
+          _params: { input: string },
+          _options?: ToolExecutionOptions
+        ): Promise<ToolResult<string>> {
+          attemptCount++;
+          throw new Error('File not found');
+        }
+      }
+
+      registry.register(new NotFoundErrorTool('notfound-tool'));
+
+      await executor.execute(
+        'notfound-tool',
+        { input: 'test' },
+        { retries: 2, retryDelay: 10, retryOn: 'timeout' }
+      );
+
+      // Should only attempt once (not a timeout error)
+      expect(attemptCount).toBe(1);
+    });
+
+    it('should support custom retry condition function', async () => {
+      let attemptCount = 0;
+
+      class CustomErrorTool extends MockTool {
+        async execute(
+          _params: { input: string },
+          _options?: ToolExecutionOptions
+        ): Promise<ToolResult<string>> {
+          attemptCount++;
+          throw new Error('CUSTOM_ERROR: retry me');
+        }
+      }
+
+      registry.register(new CustomErrorTool('custom-tool'));
+
+      await executor.execute(
+        'custom-tool',
+        { input: 'test' },
+        {
+          retries: 2,
+          retryDelay: 10,
+          retryOn: (error) => error.message.includes('CUSTOM_ERROR'),
+        }
+      );
+
+      expect(attemptCount).toBe(3);
+    });
+
+    it('should call onRetry callback with correct parameters', async () => {
+      const retryCalls: Array<{ attempt: number; delay: number }> = [];
+
+      registry.register(new MockTool('failing-tool', { shouldFail: true }));
+
+      await executor.execute(
+        'failing-tool',
+        { input: 'test' },
+        {
+          retries: 2,
+          retryDelay: 50,
+          backoffMultiplier: 2,
+          onRetry: (attempt, _error, delay) => {
+            retryCalls.push({ attempt, delay });
+          },
+        }
+      );
+
+      expect(retryCalls).toHaveLength(2);
+      expect(retryCalls[0].attempt).toBe(1);
+      expect(retryCalls[0].delay).toBe(50);
+      expect(retryCalls[1].attempt).toBe(2);
+      expect(retryCalls[1].delay).toBe(100);
+    });
+  });
 });

@@ -15,6 +15,12 @@ import {
   validateDependencies,
   detectCircularDependencies,
 } from './workflow-schema';
+import { createLogger, ILogger } from '../../services/logger.js';
+
+/**
+ * Module-level logger
+ */
+const logger: ILogger = createLogger('WorkflowParser');
 
 // ============================================================================
 // Error Classes
@@ -298,7 +304,7 @@ export function loadWorkflowsFromDirectory(dirPath: string): Map<string, Workflo
         workflows.set(workflow.id, workflow);
       } catch (error) {
         // Log error but continue loading other workflows
-        console.error(`Failed to load workflow ${file}:`, error);
+        logger.error(`Failed to load workflow ${file}`, { error });
       }
     }
   }

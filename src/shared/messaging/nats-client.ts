@@ -9,6 +9,7 @@ import {
   StorageType,
   AckPolicy,
 } from 'nats';
+import { createLogger, ILogger } from '../../core/services/logger.js';
 
 /**
  * NATS Message Broker Client
@@ -52,8 +53,10 @@ export class NatsClient {
   private jetstreamManager: JetStreamManager | null = null;
   private subscriptions: Map<string, Subscription> = new Map();
   private isClosing = false;
+  private logger: ILogger;
 
   constructor(private config: NatsClientConfig) {
+    this.logger = createLogger('NATS');
     this.setupCleanupHandlers();
   }
 
@@ -80,7 +83,7 @@ export class NatsClient {
       this.jetstream = this.connection.jetstream();
       this.jetstreamManager = await this.connection.jetstreamManager();
 
-      console.log(`[NATS] Connected successfully to ${this.config.url}`);
+      this.logger.info(`Connected successfully to ${this.config.url}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to connect to NATS: ${message}`);
@@ -97,22 +100,22 @@ export class NatsClient {
       for await (const status of this.connection!.status()) {
         switch (status.type) {
           case 'disconnect':
-            console.warn('[NATS] Disconnected from server');
+            this.logger.warn('Disconnected from server');
             break;
           case 'reconnecting':
-            console.log('[NATS] Reconnecting to server...');
+            this.logger.debug('Reconnecting to server...');
             break;
           case 'reconnect':
-            console.log('[NATS] Reconnected to server');
+            this.logger.info('Reconnected to server');
             break;
           case 'error':
-            console.error('[NATS] Connection error:', status.data);
+            this.logger.error('Connection error', { data: status.data });
             break;
         }
       }
     })().catch((err) => {
       if (!this.isClosing) {
-        console.error('[NATS] Status handler error:', err);
+        this.logger.error('Status handler error', { error: err });
       }
     });
   }
@@ -134,14 +137,14 @@ export class NatsClient {
         max_age: config.maxAge,
       });
 
-      console.log(`[NATS] Stream created: ${config.name}`);
+      this.logger.info(`Stream created: ${config.name}`);
     } catch (error) {
       // If stream already exists, that's okay
       const message = error instanceof Error ? error.message : String(error);
       if (!message.includes('already in use')) {
         throw new Error(`Failed to create stream ${config.name}: ${message}`);
       }
-      console.log(`[NATS] Stream already exists: ${config.name}`);
+      this.logger.debug(`Stream already exists: ${config.name}`);
     }
   }
 
@@ -156,7 +159,7 @@ export class NatsClient {
     try {
       const message = JSON.stringify(data);
       this.connection.publish(subject, this.codec.encode(message));
-      console.log(`[NATS] Published message to ${subject}`);
+      this.logger.debug(`Published message to ${subject}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to publish to ${subject}: ${message}`);
@@ -174,7 +177,7 @@ export class NatsClient {
     try {
       const message = JSON.stringify(data);
       const ack = await this.jetstream.publish(subject, this.codec.encode(message));
-      console.log(`[NATS] Published to stream ${subject}, seq: ${ack.seq}`);
+      this.logger.debug(`Published to stream ${subject}, seq: ${ack.seq}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to publish to stream ${subject}: ${message}`);
@@ -196,7 +199,7 @@ export class NatsClient {
       const sub = this.connection.subscribe(subject);
       this.subscriptions.set(subject, sub);
 
-      console.log(`[NATS] Subscribed to ${subject}`);
+      this.logger.info(`Subscribed to ${subject}`);
 
       // Process messages
       (async () => {
@@ -205,12 +208,12 @@ export class NatsClient {
             const data = JSON.parse(this.codec.decode(msg.data));
             await handler(data, msg.subject);
           } catch (error) {
-            console.error(`[NATS] Error processing message on ${subject}:`, error);
+            this.logger.error(`Error processing message on ${subject}`, { error });
           }
         }
       })().catch((err) => {
         if (!this.isClosing) {
-          console.error(`[NATS] Subscription error on ${subject}:`, err);
+          this.logger.error(`Subscription error on ${subject}`, { error: err });
         }
       });
     } catch (error) {
@@ -238,8 +241,8 @@ export class NatsClient {
         ack_policy: config.ackPolicy ?? AckPolicy.Explicit,
       });
 
-      console.log(
-        `[NATS] Consumer created: ${config.consumerName} on stream ${config.streamName}`
+      this.logger.info(
+        `Consumer created: ${config.consumerName} on stream ${config.streamName}`
       );
 
       // Subscribe to consumer
@@ -256,16 +259,16 @@ export class NatsClient {
             await handler(data, msg.subject);
             msg.ack();
           } catch (error) {
-            console.error(
-              `[NATS] Error processing message from consumer ${config.consumerName}:`,
-              error
+            this.logger.error(
+              `Error processing message from consumer ${config.consumerName}`,
+              { error }
             );
             msg.nak();
           }
         }
       })().catch((err) => {
         if (!this.isClosing) {
-          console.error(`[NATS] Consumer error on ${config.consumerName}:`, err);
+          this.logger.error(`Consumer error on ${config.consumerName}`, { error: err });
         }
       });
     } catch (error) {
@@ -284,7 +287,7 @@ export class NatsClient {
     if (sub) {
       await sub.drain();
       this.subscriptions.delete(subject);
-      console.log(`[NATS] Unsubscribed from ${subject}`);
+      this.logger.debug(`Unsubscribed from ${subject}`);
     }
   }
 
@@ -306,7 +309,7 @@ export class NatsClient {
         timeout: options?.timeout || 30000,
       });
 
-      console.log(`[NATS] Request-reply completed for ${subject}`);
+      this.logger.debug(`Request-reply completed for ${subject}`);
 
       return {
         data: msg.data,
@@ -325,16 +328,16 @@ export class NatsClient {
     if (this.isClosing) return;
     this.isClosing = true;
 
-    console.log('[NATS] Closing connection...');
+    this.logger.info('Closing connection...');
 
     try {
       // Drain all subscriptions
       for (const [subject, sub] of this.subscriptions.entries()) {
         try {
           await sub.drain();
-          console.log(`[NATS] Drained subscription: ${subject}`);
+          this.logger.debug(`Drained subscription: ${subject}`);
         } catch (error) {
-          console.error(`[NATS] Error draining subscription ${subject}:`, error);
+          this.logger.error(`Error draining subscription ${subject}`, { error });
         }
       }
       this.subscriptions.clear();
@@ -346,10 +349,10 @@ export class NatsClient {
         this.connection = null;
         this.jetstream = null;
         this.jetstreamManager = null;
-        console.log('[NATS] Connection closed');
+        this.logger.info('Connection closed');
       }
     } catch (error) {
-      console.error('[NATS] Error during close:', error);
+      this.logger.error('Error during close', { error });
       throw error;
     } finally {
       this.isClosing = false;
@@ -369,7 +372,7 @@ export class NatsClient {
     process.on('SIGTERM', cleanup);
     process.on('beforeExit', () => {
       if (this.connection && !this.connection.isClosed()) {
-        this.close().catch(console.error);
+        this.close().catch((err) => this.logger.error('Error during cleanup', { error: err }));
       }
     });
   }

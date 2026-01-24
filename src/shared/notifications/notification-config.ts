@@ -14,6 +14,12 @@ import {
   DiscordConfig,
   EmailConfig,
 } from './types.js';
+import { createLogger, ILogger } from '../../core/services/logger.js';
+
+/**
+ * Module-level logger
+ */
+const logger: ILogger = createLogger('NotificationConfig');
 
 /**
  * Load notification configuration from environment variables
@@ -117,14 +123,14 @@ export function validateNotificationConfig(config: NotificationConfig): boolean 
   const hasChannel = !!(config.slack || config.discord || config.email);
 
   if (!hasChannel) {
-    console.warn('Notifications enabled but no channels configured');
+    logger.warn('Notifications enabled but no channels configured');
     return false;
   }
 
   // Validate Slack config
   if (config.slack) {
     if (!config.slack.webhookUrl || !config.slack.webhookUrl.startsWith('https://')) {
-      console.error('Invalid Slack webhook URL');
+      logger.error('Invalid Slack webhook URL');
       return false;
     }
   }
@@ -132,7 +138,7 @@ export function validateNotificationConfig(config: NotificationConfig): boolean 
   // Validate Discord config
   if (config.discord) {
     if (!config.discord.webhookUrl || !config.discord.webhookUrl.startsWith('https://')) {
-      console.error('Invalid Discord webhook URL');
+      logger.error('Invalid Discord webhook URL');
       return false;
     }
   }
@@ -140,12 +146,12 @@ export function validateNotificationConfig(config: NotificationConfig): boolean 
   // Validate Email config
   if (config.email) {
     if (!config.email.smtpHost || config.email.smtpPort <= 0) {
-      console.error('Invalid email SMTP configuration');
+      logger.error('Invalid email SMTP configuration');
       return false;
     }
 
     if (!config.email.from || !config.email.to || config.email.to.length === 0) {
-      console.error('Invalid email from/to configuration');
+      logger.error('Invalid email from/to configuration');
       return false;
     }
   }

@@ -79,3 +79,59 @@ export {
   createConfigService,
   createConfigServiceAsync,
 } from './config-service';
+
+// Instruction Parser (CLAUDE.md, AGENT.md support)
+export {
+  InstructionParser,
+  createInstructionParser,
+  parseInstructionFile,
+  findInstructions,
+  INSTRUCTION_FILE_NAMES,
+  InstructionSectionType,
+} from './instruction-parser';
+
+export type {
+  CodeBlock,
+  InstructionItem,
+  InstructionSection,
+  ParsedInstructions,
+  InstructionParserOptions,
+} from './instruction-parser';
+
+// MCP Configuration (.mcp.json support)
+export {
+  MCPConfigLoader,
+  createMCPConfigLoader,
+  loadMCPConfig,
+  findMCPConfig,
+  validateMCPConfig,
+  buildStdioServerConfig,
+  buildHttpServerConfig,
+  buildWebSocketServerConfig,
+  MCP_CONFIG_FILE_NAMES,
+  MCP_DEFAULT_TIMEOUTS,
+  // Zod Schemas
+  MCPConfigSchema,
+  MCPServerConfigSchema,
+  MCPServersSchema,
+  MCPEnvSchema,
+  MCPStdioConfigSchema,
+  MCPHttpConfigSchema,
+  MCPWebSocketConfigSchema,
+  MCPServerScopeSchema,
+} from './mcp-config-schema';
+
+export type {
+  MCPEnv,
+  MCPStdioConfig,
+  MCPHttpConfig,
+  MCPWebSocketConfig,
+  MCPServerScope,
+  MCPServerConfig,
+  MCPServers,
+  MCPConfig,
+  ParsedMCPConfig,
+  MCPConfigLoaderOptions,
+  MCPConfigValidationResult,
+  MCPConfigValidationError,
+} from './mcp-config-schema';

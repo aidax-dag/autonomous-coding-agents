@@ -124,16 +124,57 @@ export interface ToolResultMetadata {
 }
 
 /**
+ * Retry condition for tool execution
+ */
+export type RetryCondition =
+  | 'always'
+  | 'timeout'
+  | 'network'
+  | 'recoverable'
+  | ((error: ToolError) => boolean);
+
+/**
+ * Retry event callback
+ */
+export type RetryCallback = (
+  attempt: number,
+  error: Error,
+  nextDelay: number
+) => void;
+
+/**
  * Tool execution options
+ *
+ * Enhanced with exponential backoff and retry conditions.
+ * Reference: oh-my-opencode/src/shared/tools patterns
  */
 export interface ToolExecutionOptions {
+  /** Timeout in milliseconds (default: 30000) */
   timeout?: number;
+  /** Number of retry attempts (default: 0) */
   retries?: number;
+  /** Initial delay between retries in ms (default: 1000) */
   retryDelay?: number;
+  /** Exponential backoff multiplier (default: 2) */
+  backoffMultiplier?: number;
+  /** Maximum delay between retries in ms (default: 30000) */
+  maxRetryDelay?: number;
+  /** Condition for when to retry (default: 'recoverable') */
+  retryOn?: RetryCondition;
+  /** Callback on each retry attempt */
+  onRetry?: RetryCallback;
+  /** Simulate execution without side effects */
   dryRun?: boolean;
+  /** Enable result caching */
   cache?: boolean;
+  /** Cache time-to-live in ms (default: 60000) */
   cacheTTL?: number;
+  /** Additional context for execution */
   context?: Record<string, unknown>;
+  /** Priority level for execution (lower = higher priority) */
+  priority?: number;
+  /** Concurrency group for limiting parallel executions */
+  concurrencyGroup?: string;
 }
 
 /**

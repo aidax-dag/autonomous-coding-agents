@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
+import { createLogger, ILogger } from '../services/logger.js';
 
 // ============================================================================
 // Types and Interfaces
@@ -591,11 +592,13 @@ export class ProjectStore extends EventEmitter implements IProjectStore {
   private autoSaveTimer?: NodeJS.Timeout;
   private initialized = false;
   private idCounter = 0;
+  private logger: ILogger;
 
   constructor(config: Partial<ProjectStoreConfig> = {}, storage?: IProjectStorageAdapter) {
     super();
     this.config = { ...DEFAULT_PROJECT_STORE_CONFIG, ...config };
     this.storage = storage || new FileSystemStorageAdapter(this.config.storagePath);
+    this.logger = createLogger('ProjectStore');
   }
 
   // ==================== Lifecycle ====================
@@ -1171,7 +1174,7 @@ export class ProjectStore extends EventEmitter implements IProjectStore {
 
   private log(message: string): void {
     if (this.config.verbose) {
-      console.log(`[ProjectStore] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

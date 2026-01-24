@@ -30,6 +30,7 @@ import {
   SecurityChecker,
   PerformanceChecker,
 } from './checks/index.js';
+import { createLogger, ILogger } from '../services/logger.js';
 
 // ============================================================================
 // Types and Interfaces
@@ -292,10 +293,12 @@ export class CompletionDetector extends EventEmitter implements ICompletionDetec
   private documentationChecker: DocumentationChecker;
   private securityChecker: SecurityChecker;
   private performanceChecker: PerformanceChecker;
+  private logger: ILogger;
 
   constructor(config: Partial<CompletionDetectorConfig> = {}) {
     super();
     this.config = { ...DEFAULT_COMPLETION_DETECTOR_CONFIG, ...config };
+    this.logger = createLogger('CompletionDetector');
 
     // Initialize real quality checkers
     this.coverageChecker = new TestCoverageChecker();
@@ -798,7 +801,7 @@ export class CompletionDetector extends EventEmitter implements ICompletionDetec
 
   private log(message: string): void {
     if (this.config.verbose) {
-      console.log(`[CompletionDetector] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

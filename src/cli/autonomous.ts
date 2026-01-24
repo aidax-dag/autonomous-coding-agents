@@ -26,7 +26,7 @@ import {
 } from '@/core/runner';
 import { QualityGateLevel } from '@/core/quality';
 import { CompletionStatus } from '@/core/quality/completion-detector';
-import { ProjectStatus, TaskStatus } from '@/core/memory/project-store';
+import { ProjectStatus, TaskStatus, ProjectState, TaskRecord } from '@/core/memory/project-store';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -478,7 +478,7 @@ function setupEventHandlers(
 /**
  * Display project status
  */
-function displayProjectStatus(project: any, verbose: boolean): void {
+function displayProjectStatus(project: ProjectState, verbose: boolean): void {
   console.log();
   console.log(chalk.bold('Project Status'));
   console.log(chalk.gray(''.repeat(60)));
@@ -493,10 +493,10 @@ function displayProjectStatus(project: any, verbose: boolean): void {
 
   // Task summary
   const tasks = Array.from(project.tasks.values());
-  const completed = tasks.filter((t: any) => t.status === TaskStatus.COMPLETED).length;
-  const failed = tasks.filter((t: any) => t.status === TaskStatus.FAILED).length;
-  const inProgress = tasks.filter((t: any) => t.status === TaskStatus.IN_PROGRESS).length;
-  const pending = tasks.filter((t: any) => t.status === TaskStatus.PENDING).length;
+  const completed = tasks.filter((t: TaskRecord) => t.status === TaskStatus.COMPLETED).length;
+  const failed = tasks.filter((t: TaskRecord) => t.status === TaskStatus.FAILED).length;
+  const inProgress = tasks.filter((t: TaskRecord) => t.status === TaskStatus.IN_PROGRESS).length;
+  const pending = tasks.filter((t: TaskRecord) => t.status === TaskStatus.PENDING).length;
 
   console.log(chalk.bold('  Task Summary:'));
   console.log(chalk.gray('    Total:       ') + tasks.length);
@@ -518,7 +518,7 @@ function displayProjectStatus(project: any, verbose: boolean): void {
   // Verbose task list
   if (verbose && tasks.length > 0) {
     console.log(chalk.bold('  Tasks:'));
-    tasks.forEach((task: any, index: number) => {
+    tasks.forEach((task: TaskRecord, index: number) => {
       const statusIcon = getTaskStatusIcon(task.status);
       console.log(chalk.gray(`    ${index + 1}. ${statusIcon} ${task.name}`));
     });

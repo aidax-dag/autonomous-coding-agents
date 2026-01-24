@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import type { RestEndpointMethodTypes } from '@octokit/rest';
 import {
   ErrorCode,
   GitHubError,
@@ -7,6 +8,12 @@ import {
   GitHubAuthenticationError,
   GitHubValidationError,
 } from '@/shared/errors/custom-errors';
+
+// Octokit type aliases
+type OctokitPullRequest = RestEndpointMethodTypes['pulls']['get']['response']['data'];
+type OctokitPullRequestSimple = RestEndpointMethodTypes['pulls']['list']['response']['data'][number];
+type OctokitReview = RestEndpointMethodTypes['pulls']['listReviews']['response']['data'][number];
+type OctokitReviewComment = RestEndpointMethodTypes['pulls']['listReviewComments']['response']['data'][number];
 
 /**
  * GitHub API Client
@@ -257,7 +264,7 @@ export class GitHubClient {
         base: options?.base,
       });
 
-      return response.data.map((pr) => this.mapPullRequest(pr));
+      return response.data.map((pr) => this.mapPullRequestSimple(pr));
     } catch (error) {
       throw this.handleError(error);
     }
@@ -475,12 +482,12 @@ export class GitHubClient {
   /**
    * Map Octokit pull request to our format
    */
-  private mapPullRequest(pr: any): PullRequest {
+  private mapPullRequest(pr: OctokitPullRequest): PullRequest {
     return {
       number: pr.number,
       title: pr.title,
       body: pr.body || '',
-      state: pr.state,
+      state: pr.state as PullRequest['state'],
       head: {
         ref: pr.head.ref,
         sha: pr.head.sha,
@@ -490,11 +497,38 @@ export class GitHubClient {
         sha: pr.base.sha,
       },
       user: {
-        login: pr.user.login,
+        login: pr.user?.login || 'unknown',
       },
       createdAt: pr.created_at,
       updatedAt: pr.updated_at,
-      mergedAt: pr.merged_at,
+      mergedAt: pr.merged_at ?? undefined,
+      url: pr.html_url,
+    };
+  }
+
+  /**
+   * Map Octokit pull request (simple) to our format
+   */
+  private mapPullRequestSimple(pr: OctokitPullRequestSimple): PullRequest {
+    return {
+      number: pr.number,
+      title: pr.title,
+      body: pr.body || '',
+      state: pr.state as PullRequest['state'],
+      head: {
+        ref: pr.head.ref,
+        sha: pr.head.sha,
+      },
+      base: {
+        ref: pr.base.ref,
+        sha: pr.base.sha,
+      },
+      user: {
+        login: pr.user?.login || 'unknown',
+      },
+      createdAt: pr.created_at,
+      updatedAt: pr.updated_at,
+      mergedAt: pr.merged_at ?? undefined,
       url: pr.html_url,
     };
   }
@@ -502,13 +536,13 @@ export class GitHubClient {
   /**
    * Map Octokit review to our format
    */
-  private mapReview(review: any): Review {
+  private mapReview(review: OctokitReview): Review {
     return {
       id: review.id,
       body: review.body || '',
-      state: review.state,
+      state: review.state as Review['state'],
       user: {
-        login: review.user.login,
+        login: review.user?.login || 'unknown',
       },
       submittedAt: review.submitted_at,
     };
@@ -517,7 +551,7 @@ export class GitHubClient {
   /**
    * Map Octokit review comment to our format
    */
-  private mapReviewComment(comment: any): ReviewComment {
+  private mapReviewComment(comment: OctokitReviewComment): ReviewComment {
     return {
       id: comment.id,
       body: comment.body,

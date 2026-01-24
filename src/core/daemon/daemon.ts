@@ -25,6 +25,7 @@ import {
   TaskStatus,
   TaskRecord,
 } from '../memory/project-store';
+import { createLogger, ILogger } from '../services/logger.js';
 
 // ============================================================================
 // Types and Interfaces
@@ -287,6 +288,7 @@ export class Daemon extends EventEmitter implements IDaemon {
   private status: DaemonStatus = DaemonStatus.STOPPED;
   private projects: Map<string, ProjectRegistration> = new Map();
   private activeTasks: Map<string, Promise<TaskExecutionResult>> = new Map();
+  private readonly logger: ILogger;
 
   private pollTimer?: NodeJS.Timeout;
   private healthTimer?: NodeJS.Timeout;
@@ -313,6 +315,7 @@ export class Daemon extends EventEmitter implements IDaemon {
     this.projectStore = projectStore;
     this.dispatcher = dispatcher;
     this.config = { ...DEFAULT_DAEMON_CONFIG, ...config };
+    this.logger = createLogger('Daemon');
   }
 
   // ==================== Lifecycle ====================
@@ -758,7 +761,7 @@ export class Daemon extends EventEmitter implements IDaemon {
 
   private log(message: string): void {
     if (this.config.verbose) {
-      console.log(`[Daemon] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

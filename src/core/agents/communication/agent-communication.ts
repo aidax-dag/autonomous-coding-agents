@@ -19,6 +19,7 @@
 
 import type { IMessageBroker } from '../interfaces';
 import type { IEventBus, IEvent } from '../../events';
+import { createLogger, ILogger } from '../../services/logger.js';
 
 /**
  * Message envelope for agent communication
@@ -122,6 +123,7 @@ export class AgentCommunication {
   private readonly eventBus?: IEventBus;
   private readonly defaultTimeout: number;
   private readonly maxPendingRequests: number;
+  private readonly logger: ILogger = createLogger('AgentCommunication');
 
   private readonly subscriptions: Map<string, Set<AgentMessageHandler>> = new Map();
   private readonly pendingRequests: Map<string, PendingRequest> = new Map();
@@ -454,7 +456,7 @@ export class AgentCommunication {
             await handler(message);
           } catch (error) {
             // Log but don't propagate handler errors
-            console.error('Message handler error:', error);
+            this.logger.error('Message handler error', { error });
           }
         }
       }
@@ -465,7 +467,7 @@ export class AgentCommunication {
         type: message.type,
       });
     } catch (error) {
-      console.error('Error handling incoming message:', error);
+      this.logger.error('Error handling incoming message', { error });
     }
   }
 

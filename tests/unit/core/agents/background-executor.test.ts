@@ -790,3 +790,182 @@ describe('BackgroundExecutor Schema Validation', () => {
     expect(stats.pendingJobs).toBe(0);
   });
 });
+
+describe('BackgroundExecutor Concurrency Groups', () => {
+  let executor: BackgroundExecutor;
+  let mockAgent: MockAgent;
+
+  beforeEach(() => {
+    executor = new BackgroundExecutor({
+      maxConcurrentJobs: 10,
+      defaultConcurrencyLimits: {
+        provider: 5,
+        model: 3,
+        agent: 2,
+      },
+    });
+    mockAgent = new MockAgent({ id: 'test-1', type: AgentType.CODER });
+  });
+
+  afterEach(async () => {
+    await executor.shutdown(true);
+  });
+
+  describe('setConcurrencyLimit and getConcurrencyLimit', () => {
+    it('should set and get concurrency limits for groups', () => {
+      executor.setConcurrencyLimit('provider:openai', 3);
+      expect(executor.getConcurrencyLimit('provider:openai')).toBe(3);
+    });
+
+    it('should throw error for invalid limit (< 1)', () => {
+      expect(() => executor.setConcurrencyLimit('test-group', 0)).toThrow(
+        'Concurrency limit must be at least 1'
+      );
+    });
+
+    it('should return default provider limit for provider: prefix', () => {
+      expect(executor.getConcurrencyLimit('provider:anthropic')).toBe(5);
+    });
+
+    it('should return default model limit for model: prefix', () => {
+      expect(executor.getConcurrencyLimit('model:gpt-4')).toBe(3);
+    });
+
+    it('should return default agent limit for agent: prefix', () => {
+      expect(executor.getConcurrencyLimit('agent:coder')).toBe(2);
+    });
+
+    it('should return global max for unknown groups', () => {
+      expect(executor.getConcurrencyLimit('unknown-group')).toBe(10);
+    });
+  });
+
+  describe('getRunningCountByGroup', () => {
+    it('should return 0 when no jobs are running in group', () => {
+      expect(executor.getRunningCountByGroup('provider:openai')).toBe(0);
+    });
+
+    it('should count running jobs in a group', async () => {
+      const slowAgent = new MockAgent(
+        { id: 'slow-1', type: AgentType.CODER },
+        { processDelay: 5000 }
+      );
+
+      await submitBackgroundJob(executor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+
+      expect(executor.getRunningCountByGroup('provider:openai')).toBe(1);
+
+      await executor.shutdown(true);
+    });
+  });
+
+  describe('getJobsByGroup', () => {
+    it('should return empty array when no jobs in group', () => {
+      const jobs = executor.getJobsByGroup('provider:openai');
+      expect(jobs).toEqual([]);
+    });
+
+    it('should return all jobs in a group', async () => {
+      const slowAgent = new MockAgent(
+        { id: 'slow-1', type: AgentType.CODER },
+        { processDelay: 100 }
+      );
+
+      await submitBackgroundJob(executor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+      await submitBackgroundJob(executor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+      await submitBackgroundJob(executor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:anthropic',
+      });
+
+      const openaiJobs = executor.getJobsByGroup('provider:openai');
+      expect(openaiJobs.length).toBe(2);
+
+      const anthropicJobs = executor.getJobsByGroup('provider:anthropic');
+      expect(anthropicJobs.length).toBe(1);
+
+      await executor.shutdown(true);
+    });
+  });
+
+  describe('Group-based concurrency limiting', () => {
+    it('should respect group concurrency limits', async () => {
+      const limitedExecutor = new BackgroundExecutor({
+        maxConcurrentJobs: 10,
+      });
+      limitedExecutor.setConcurrencyLimit('provider:openai', 2);
+
+      const slowAgent = new MockAgent(
+        { id: 'slow-1', type: AgentType.CODER },
+        { processDelay: 5000 }
+      );
+
+      // Submit 3 jobs to the openai group
+      await submitBackgroundJob(limitedExecutor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+      await submitBackgroundJob(limitedExecutor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+      await submitBackgroundJob(limitedExecutor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+
+      // Only 2 should be running (respecting group limit)
+      expect(limitedExecutor.getRunningCountByGroup('provider:openai')).toBe(2);
+      // One should still be pending
+      expect(limitedExecutor.getPendingCount()).toBe(1);
+
+      await limitedExecutor.shutdown(true);
+    });
+
+    it('should allow jobs from different groups to run in parallel', async () => {
+      const limitedExecutor = new BackgroundExecutor({
+        maxConcurrentJobs: 10,
+      });
+      limitedExecutor.setConcurrencyLimit('provider:openai', 2);
+      limitedExecutor.setConcurrencyLimit('provider:anthropic', 2);
+
+      const slowAgent = new MockAgent(
+        { id: 'slow-1', type: AgentType.CODER },
+        { processDelay: 5000 }
+      );
+
+      // Submit jobs to different groups
+      await submitBackgroundJob(limitedExecutor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+      await submitBackgroundJob(limitedExecutor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+      await submitBackgroundJob(limitedExecutor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:anthropic',
+      });
+      await submitBackgroundJob(limitedExecutor, slowAgent, createMockTask(), {
+        concurrencyGroup: 'provider:anthropic',
+      });
+
+      // Both groups should have 2 running
+      expect(limitedExecutor.getRunningCountByGroup('provider:openai')).toBe(2);
+      expect(limitedExecutor.getRunningCountByGroup('provider:anthropic')).toBe(2);
+      expect(limitedExecutor.getRunningCount()).toBe(4);
+
+      await limitedExecutor.shutdown(true);
+    });
+
+    it('should include concurrencyGroup in job info', async () => {
+      const job = await submitBackgroundJob(executor, mockAgent, createMockTask(), {
+        concurrencyGroup: 'provider:openai',
+      });
+
+      expect(job.concurrencyGroup).toBe('provider:openai');
+
+      await executor.waitFor(job.id, 5000);
+    });
+  });
+});

@@ -7,6 +7,7 @@
  */
 
 import { createHash, randomUUID } from 'crypto';
+import { createLogger, ILogger } from '../services/logger.js';
 import {
   ISessionManager,
   SessionManagerConfig,
@@ -192,6 +193,7 @@ export class SessionManager implements ISessionManager {
   private config: Required<Omit<SessionManagerConfig, 'storageAdapter' | 'storagePath' | 'encryptionKey'>> &
     Pick<SessionManagerConfig, 'storageAdapter' | 'storagePath' | 'encryptionKey'>;
   private storage: IStorageAdapter;
+  private logger: ILogger;
   private currentSessionId: string | undefined;
   private currentSession: Session | undefined;
 
@@ -215,6 +217,7 @@ export class SessionManager implements ISessionManager {
       ...DEFAULT_SESSION_MANAGER_CONFIG,
       ...config,
     };
+    this.logger = createLogger('SessionManager');
 
     // Initialize storage adapter
     if (this.config.storageAdapter) {
@@ -1220,7 +1223,7 @@ export class SessionManager implements ISessionManager {
 
   private log(message: string): void {
     if (this.config.verbose) {
-      console.log(`[SessionManager] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

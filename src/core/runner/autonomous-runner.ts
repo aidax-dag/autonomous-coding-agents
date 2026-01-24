@@ -53,6 +53,7 @@ import {
   createLLMClient as createSharedLLMClient,
   LLMMessage as SharedLLMMessage,
 } from '@/shared/llm';
+import { createLogger, ILogger } from '../services/logger.js';
 
 // ============================================================================
 // Types and Interfaces
@@ -331,10 +332,12 @@ export class LLMAgentDispatcher implements IAgentDispatcher {
   private llmClient: ILLMClient;
   private activeExecutions: Map<string, Promise<TaskExecutionResult>> = new Map();
   private verbose: boolean;
+  private logger: ILogger;
 
   constructor(llmClient: ILLMClient, verbose = false) {
     this.llmClient = llmClient;
     this.verbose = verbose;
+    this.logger = createLogger('LLMAgentDispatcher');
   }
 
   async dispatch(
@@ -467,7 +470,7 @@ Respond with a JSON object containing:
 
   private log(message: string): void {
     if (this.verbose) {
-      console.log(`[LLMAgentDispatcher] ${message}`);
+      this.logger.debug(message);
     }
   }
 }
@@ -528,6 +531,7 @@ export class MockLLMClient implements ILLMClient {
 export class AutonomousRunner extends EventEmitter implements IAutonomousRunner {
   private config: RunnerConfig;
   private status: RunnerStatus = RunnerStatus.IDLE;
+  private logger: ILogger;
 
   // Core components
   private taskDecomposer: ITaskDecomposer;
@@ -549,6 +553,7 @@ export class AutonomousRunner extends EventEmitter implements IAutonomousRunner 
     super();
     this.config = { ...DEFAULT_RUNNER_CONFIG, ...config };
     this.agentDispatcher = agentDispatcher;
+    this.logger = createLogger('AutonomousRunner');
 
     // Initialize components
     this.taskDecomposer = createTaskDecomposer();
@@ -873,7 +878,7 @@ export class AutonomousRunner extends EventEmitter implements IAutonomousRunner 
 
   private log(message: string): void {
     if (this.config.verbose) {
-      console.log(`[AutonomousRunner] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

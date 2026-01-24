@@ -449,15 +449,20 @@ export class WorkflowEngine implements IWorkflowEngine {
 
       // Set timeout if specified
       const timeout = options.timeout ?? definition.timeout?.workflowTimeout ?? this.config.defaultWorkflowTimeout;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Workflow execution timeout')), timeout);
+        timeoutId = setTimeout(() => reject(new Error('Workflow execution timeout')), timeout);
       });
 
       // Execute steps
-      await Promise.race([
-        this.executeSteps(instance, definition.steps, options),
-        timeoutPromise,
-      ]);
+      try {
+        await Promise.race([
+          this.executeSteps(instance, definition.steps, options),
+          timeoutPromise,
+        ]);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
 
       // Complete workflow
       instance.status = WorkflowStatus.COMPLETED;

@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { existsSync, statSync } from 'fs';
+import { GitFileStatus } from '../../tools/git/git.interface.js';
 import type {
   IMultiRepoManager,
   Repository,
@@ -1065,7 +1066,7 @@ export class MultiRepoManager implements IMultiRepoManager {
       staged,
       unstaged,
       untracked,
-      hasConflicts: unstaged.some((c) => c.status === 'U' as any),
+      hasConflicts: unstaged.some((c) => c.status === GitFileStatus.UNMERGED),
       isClean: staged.length === 0 && unstaged.length === 0 && untracked.length === 0,
     };
   }
@@ -1276,18 +1277,18 @@ export class MultiRepoManager implements IMultiRepoManager {
     };
   }
 
-  private parseGitStatus(char: string): any {
-    const mapping: Record<string, string> = {
-      M: 'M',
-      A: 'A',
-      D: 'D',
-      R: 'R',
-      C: 'C',
-      U: 'U',
-      '?': '?',
-      '!': '!',
+  private parseGitStatus(char: string): GitFileStatus {
+    const mapping: Record<string, GitFileStatus> = {
+      M: GitFileStatus.MODIFIED,
+      A: GitFileStatus.ADDED,
+      D: GitFileStatus.DELETED,
+      R: GitFileStatus.RENAMED,
+      C: GitFileStatus.COPIED,
+      U: GitFileStatus.UNMERGED,
+      '?': GitFileStatus.UNTRACKED,
+      '!': GitFileStatus.IGNORED,
     };
-    return mapping[char] || 'M';
+    return mapping[char] || GitFileStatus.MODIFIED;
   }
 
   private async wouldCreateCycle(sourceId: string, targetId: string): Promise<boolean> {

@@ -9,6 +9,7 @@
 import { BaseHook } from '../base-hook.js';
 import { HookEvent, HookContext, HookResult } from '../../interfaces/hook.interface.js';
 import { IDisposable } from '../../di/interfaces/container.interface.js';
+import { createLogger, ILogger } from '../../services/logger.js';
 import {
   CompactionStrategy,
   CompactionRequest,
@@ -161,8 +162,13 @@ export class AutoCompactionHook
   private failedCallbacks: CompactionFailedCallback[] = [];
   private summarizedCallbacks: MessagesSummarizedCallback[] = [];
 
+  // Logger
+  private readonly logger: ILogger;
+
   constructor(config?: AutoCompactionConfig) {
     super(config);
+
+    this.logger = createLogger('AutoCompaction');
 
     // Apply mode-specific defaults first
     const modeConfig = MODE_CONFIGS[config?.mode ?? CompactionMode.BALANCED];
@@ -985,7 +991,7 @@ export class AutoCompactionHook
 
   private log(message: string): void {
     if (this.verbose) {
-      console.log(`[AutoCompaction] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

@@ -59,6 +59,27 @@ export enum BackgroundJobStatus {
 // ============================================================================
 
 /**
+ * Concurrency scope for group-based limiting
+ *
+ * Reference: oh-my-opencode providerConcurrency, modelConcurrency pattern
+ */
+export type ConcurrencyScope = 'global' | 'provider' | 'model' | 'agent' | 'custom';
+
+/**
+ * Concurrency group configuration
+ */
+export interface ConcurrencyGroupConfig {
+  /** Group name */
+  name: string;
+  /** Maximum concurrent jobs in this group */
+  maxConcurrent: number;
+  /** Scope type */
+  scope: ConcurrencyScope;
+  /** Priority boost for this group (negative = higher priority) */
+  priorityBoost?: number;
+}
+
+/**
  * Background job options schema
  */
 export const BackgroundJobOptionsSchema = z.object({
@@ -70,6 +91,8 @@ export const BackgroundJobOptionsSchema = z.object({
   correlationId: z.string().optional(),
   /** Tags for categorization */
   tags: z.array(z.string()).optional(),
+  /** Concurrency group for limiting parallel jobs */
+  concurrencyGroup: z.string().optional(),
   /** Callback on completion */
   onComplete: z.function().optional(),
   /** Callback on failure */
@@ -84,7 +107,7 @@ export type BackgroundJobOptions = z.infer<typeof BackgroundJobOptionsSchema>;
  * Background executor config schema
  */
 export const BackgroundExecutorConfigSchema = z.object({
-  /** Maximum concurrent jobs */
+  /** Maximum concurrent jobs (global limit) */
   maxConcurrentJobs: z.number().min(1).max(100).default(10),
   /** Default job timeout in milliseconds */
   defaultTimeout: z.number().positive().default(300000), // 5 minutes
@@ -92,6 +115,14 @@ export const BackgroundExecutorConfigSchema = z.object({
   enableEvents: z.boolean().default(true),
   /** Job queue size limit */
   queueSizeLimit: z.number().positive().default(1000),
+  /** Default concurrency limits by scope */
+  defaultConcurrencyLimits: z
+    .record(z.string(), z.number().min(1).max(50))
+    .default({
+      provider: 5,
+      model: 3,
+      agent: 2,
+    }),
 });
 
 export type BackgroundExecutorConfig = z.infer<typeof BackgroundExecutorConfigSchema>;
@@ -132,6 +163,8 @@ export interface BackgroundJob {
   correlationId?: string;
   /** Tags for categorization */
   tags?: string[];
+  /** Concurrency group for limiting parallel jobs */
+  concurrencyGroup?: string;
 }
 
 /**
@@ -196,6 +229,28 @@ export interface IBackgroundExecutor {
    * Shutdown the executor gracefully
    */
   shutdown(force?: boolean): Promise<void>;
+
+  // === Concurrency Management ===
+
+  /**
+   * Set concurrency limit for a group
+   */
+  setConcurrencyLimit(group: string, limit: number): void;
+
+  /**
+   * Get concurrency limit for a group
+   */
+  getConcurrencyLimit(group: string): number;
+
+  /**
+   * Get running count for a specific group
+   */
+  getRunningCountByGroup(group: string): number;
+
+  /**
+   * Get jobs by concurrency group
+   */
+  getJobsByGroup(group: string): BackgroundJob[];
 
   /**
    * Check if executor is running
@@ -303,6 +358,9 @@ export class BackgroundExecutor implements IBackgroundExecutor {
   private totalSubmitted = 0;
   private totalDuration = 0;
 
+  // Concurrency group limits (group name -> max concurrent jobs)
+  private readonly concurrencyGroupLimits: Map<string, number> = new Map();
+
   constructor(config?: Partial<BackgroundExecutorConfig>, eventBus?: IEventBus) {
     this.config = BackgroundExecutorConfigSchema.parse(config ?? {});
     this.eventBus = eventBus;
@@ -342,6 +400,7 @@ export class BackgroundExecutor implements IBackgroundExecutor {
       timeout,
       correlationId: options?.correlationId,
       tags: options?.tags,
+      concurrencyGroup: options?.concurrencyGroup,
       agent,
       resolvers: [],
       options,
@@ -484,6 +543,84 @@ export class BackgroundExecutor implements IBackgroundExecutor {
   }
 
   /**
+   * Set concurrency limit for a specific group
+   */
+  setConcurrencyLimit(group: string, limit: number): void {
+    if (limit < 1) {
+      throw new Error(`Concurrency limit must be at least 1, got ${limit}`);
+    }
+    this.concurrencyGroupLimits.set(group, limit);
+  }
+
+  /**
+   * Get concurrency limit for a specific group
+   * Returns the group-specific limit or the default from config
+   */
+  getConcurrencyLimit(group: string): number {
+    // Check if there's a specific limit for this group
+    const specificLimit = this.concurrencyGroupLimits.get(group);
+    if (specificLimit !== undefined) {
+      return specificLimit;
+    }
+
+    // Check default limits from config
+    const defaults = this.config.defaultConcurrencyLimits;
+    if (defaults) {
+      // Try to match group name with scope defaults
+      if (group.startsWith('provider:') && defaults.provider !== undefined) {
+        return defaults.provider;
+      }
+      if (group.startsWith('model:') && defaults.model !== undefined) {
+        return defaults.model;
+      }
+      if (group.startsWith('agent:') && defaults.agent !== undefined) {
+        return defaults.agent;
+      }
+    }
+
+    // Fall back to global max concurrent jobs
+    return this.config.maxConcurrentJobs;
+  }
+
+  /**
+   * Get the count of currently running jobs in a specific group
+   */
+  getRunningCountByGroup(group: string): number {
+    return Array.from(this.jobs.values()).filter(
+      (job) =>
+        job.status === BackgroundJobStatus.RUNNING &&
+        job.concurrencyGroup === group
+    ).length;
+  }
+
+  /**
+   * Get all jobs in a specific concurrency group
+   */
+  getJobsByGroup(group: string): BackgroundJob[] {
+    return Array.from(this.jobs.values())
+      .filter((job) => job.concurrencyGroup === group)
+      .map((job) => this.toPublicJob(job));
+  }
+
+  /**
+   * Check if a job can be started based on its concurrency group limit
+   */
+  private canStartJob(job: InternalJob): boolean {
+    // If no concurrency group, only check global limit
+    if (!job.concurrencyGroup) {
+      return this.getRunningCount() < this.config.maxConcurrentJobs;
+    }
+
+    // Check both global and group-specific limits
+    const globalOk = this.getRunningCount() < this.config.maxConcurrentJobs;
+    const groupLimit = this.getConcurrencyLimit(job.concurrencyGroup);
+    const groupRunning = this.getRunningCountByGroup(job.concurrencyGroup);
+    const groupOk = groupRunning < groupLimit;
+
+    return globalOk && groupOk;
+  }
+
+  /**
    * Wait for a job to complete
    */
   async waitFor(jobId: string, timeout?: number): Promise<TaskResult> {
@@ -614,22 +751,54 @@ export class BackgroundExecutor implements IBackgroundExecutor {
 
   /**
    * Process pending jobs queue
+   *
+   * Enhanced to respect both global and group-specific concurrency limits.
+   * Jobs that can't start due to group limits are kept in queue for later processing.
    */
   private processQueue(): void {
     if (!this.running) return;
 
-    const runningCount = this.getRunningCount();
-    const availableSlots = this.config.maxConcurrentJobs - runningCount;
+    // Global check: if we're at global capacity, don't process
+    if (this.getRunningCount() >= this.config.maxConcurrentJobs) {
+      return;
+    }
 
-    for (let i = 0; i < availableSlots && this.pendingQueue.length > 0; i++) {
+    // Track jobs that couldn't start due to group limits
+    const deferredJobIds: string[] = [];
+    let startedCount = 0;
+    const maxToProcess = this.pendingQueue.length;
+
+    for (let i = 0; i < maxToProcess && this.pendingQueue.length > 0; i++) {
       const jobId = this.pendingQueue.shift();
-      if (jobId) {
-        const job = this.jobs.get(jobId);
-        if (job && job.status === BackgroundJobStatus.PENDING) {
-          this.executeJob(job);
+      if (!jobId) continue;
+
+      const job = this.jobs.get(jobId);
+      if (!job || job.status !== BackgroundJobStatus.PENDING) {
+        continue;
+      }
+
+      // Check if this specific job can start (respects group limits)
+      if (this.canStartJob(job)) {
+        this.executeJob(job);
+        startedCount++;
+
+        // Re-check global limit after each start
+        if (this.getRunningCount() >= this.config.maxConcurrentJobs) {
+          // Put remaining pending jobs back and exit
+          while (this.pendingQueue.length > 0) {
+            const remaining = this.pendingQueue.shift();
+            if (remaining) deferredJobIds.push(remaining);
+          }
+          break;
         }
+      } else {
+        // Job can't start due to group limit, defer it
+        deferredJobIds.push(jobId);
       }
     }
+
+    // Put deferred jobs back at the end of the queue
+    this.pendingQueue.push(...deferredJobIds);
   }
 
   /**
@@ -876,6 +1045,7 @@ export class BackgroundExecutor implements IBackgroundExecutor {
       timeout: job.timeout,
       correlationId: job.correlationId,
       tags: job.tags,
+      concurrencyGroup: job.concurrencyGroup,
     };
   }
 }

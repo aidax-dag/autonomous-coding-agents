@@ -374,7 +374,7 @@ export class GitOperations {
     author_email: string;
   }>> {
     try {
-      const logOptions: any = {};
+      const logOptions: { maxCount?: number; file?: string } = {};
 
       if (options?.maxCount) {
         logOptions.maxCount = options.maxCount;

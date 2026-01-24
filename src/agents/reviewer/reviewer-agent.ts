@@ -12,7 +12,7 @@ import { NatsClient } from '@/shared/messaging/nats-client';
 import { ILLMClient } from '@/shared/llm/base-client';
 import { GitHubClient, PullRequest, DiffFile, PullRequestDiff } from '@/shared/github/client';
 import { AgentError, ErrorCode } from '@/shared/errors/custom-errors';
-import { CIChecker } from '@/shared/ci/index.js';
+import { CIChecker, CIStatus, CheckRun } from '@/shared/ci/index.js';
 import { z } from 'zod';
 
 /**
@@ -535,7 +535,7 @@ Return response in JSON format:
   /**
    * Format CI failure message for GitHub comment
    */
-  private formatCIFailure(_ciStatus: any, failedChecks: any[]): string {
+  private formatCIFailure(_ciStatus: CIStatus, failedChecks: CheckRun[]): string {
     const lines: string[] = [];
 
     lines.push('## ❌ CI Checks Failed\n');

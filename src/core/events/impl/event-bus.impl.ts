@@ -20,6 +20,7 @@ import type {
   SubscriptionOptions,
   EventMetadata,
 } from '../../interfaces/event.interface';
+import { createLogger, ILogger } from '../../services/logger.js';
 
 /**
  * Generate unique ID
@@ -40,6 +41,11 @@ interface InternalSubscription<T extends IEvent = IEvent> {
   once: boolean;
   active: boolean;
 }
+
+/**
+ * Module-level logger
+ */
+const logger: ILogger = createLogger('EventBus');
 
 /**
  * Event Bus Implementation
@@ -68,7 +74,7 @@ export class EventBus implements IAsyncEventBus {
           this.trackPromise(result);
         }
       } catch (error) {
-        console.error(`Error in event handler for ${event.type}:`, error);
+        logger.error(`Error in event handler for ${event.type}`, { error });
       }
 
       if (sub.once) {
@@ -98,7 +104,7 @@ export class EventBus implements IAsyncEventBus {
           promises.push(result);
         }
       } catch (error) {
-        console.error(`Error in event handler for ${event.type}:`, error);
+        logger.error(`Error in event handler for ${event.type}`, { error });
       }
 
       if (sub.once) {

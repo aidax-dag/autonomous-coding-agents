@@ -13,6 +13,7 @@ import { randomUUID } from 'crypto';
 import { BaseHook } from '../base-hook.js';
 import { HookEvent, HookContext, HookResult } from '../../interfaces/hook.interface.js';
 import { IDisposable } from '../../di/interfaces/container.interface.js';
+import { createLogger, ILogger } from '../../services/logger.js';
 import {
   CommentCheckerConfig,
   CommentType,
@@ -75,6 +76,7 @@ export class CommentCheckerHook
 
   private metrics: CommentCheckerMetrics;
   private disposed = false;
+  private readonly logger: ILogger;
 
   // Event subscriptions
   private checkStartedCallbacks: Map<string, CommentCheckStartedCallback> = new Map();
@@ -98,6 +100,7 @@ export class CommentCheckerHook
     this.ticketPatterns = (userConfig?.ticketPatterns || []).map((p) => new RegExp(p, 'i'));
 
     this.metrics = this.createEmptyMetrics();
+    this.logger = createLogger('CommentChecker');
   }
 
   /**
@@ -168,7 +171,7 @@ export class CommentCheckerHook
       } catch (error) {
         // Log error but continue with other files
         if (this.config.verbose) {
-          console.error(`Error analyzing ${file}:`, error);
+          this.logger.error(`Error analyzing ${file}`, { error });
         }
       }
     }

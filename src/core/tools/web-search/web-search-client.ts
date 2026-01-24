@@ -317,10 +317,10 @@ export class WebSearchClient implements IWebSearchClient {
       }
     }
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), opts.timeout || 30000);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), opts.timeout || 30000);
 
+    try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -333,9 +333,8 @@ export class WebSearchClient implements IWebSearchClient {
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
       if (!response.ok) {
+        clearTimeout(timeoutId);
         return {
           success: false,
           error: `HTTP ${response.status}: ${response.statusText}`,
@@ -392,8 +391,10 @@ export class WebSearchClient implements IWebSearchClient {
         this.setInCache(cacheKey, result);
       }
 
+      clearTimeout(timeoutId);
       return { success: true, data: result };
     } catch (error) {
+      clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
 

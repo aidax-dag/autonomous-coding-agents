@@ -12,6 +12,7 @@ import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { QualityCheckResult, QualityDimension } from '../completion-detector.js';
+import { createLogger, ILogger } from '../../services/logger.js';
 
 const execAsync = promisify(exec);
 
@@ -132,6 +133,7 @@ export const DEFAULT_CODE_QUALITY_CONFIG: CodeQualityConfig = {
  */
 export class CodeQualityChecker {
   private config: CodeQualityConfig;
+  private readonly logger: ILogger = createLogger('CodeQualityChecker');
 
   constructor(config: Partial<CodeQualityConfig> = {}) {
     this.config = { ...DEFAULT_CODE_QUALITY_CONFIG, ...config };
@@ -264,7 +266,7 @@ export class CodeQualityChecker {
       return JSON.parse(stdout) as ESLintResult[];
     } catch (error) {
       // If ESLint fails or isn't available, return empty array
-      console.warn('ESLint not available or failed:', error);
+      this.logger.warn('ESLint not available or failed', { error });
       return [];
     }
   }

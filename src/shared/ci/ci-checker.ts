@@ -7,6 +7,7 @@
  */
 
 import { Octokit } from 'octokit';
+import type { RestEndpointMethodTypes } from '@octokit/rest';
 import {
   CIStatus,
   CheckRun,
@@ -15,6 +16,8 @@ import {
   CICheckConfig,
 } from './types.js';
 import { createAgentLogger } from '../logging/logger.js';
+
+type OctokitCheckRun = RestEndpointMethodTypes['checks']['listForRef']['response']['data']['check_runs'][number];
 
 const logger = createAgentLogger('CI', 'ci-checker');
 
@@ -50,7 +53,7 @@ export class CIChecker {
         ref,
       });
 
-      const checkRuns: CheckRun[] = response.data.check_runs.map((run: any) => ({
+      const checkRuns: CheckRun[] = response.data.check_runs.map((run: OctokitCheckRun) => ({
         id: run.id,
         name: run.name,
         status: run.status as CheckStatus,

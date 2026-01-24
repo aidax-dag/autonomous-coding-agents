@@ -38,6 +38,9 @@ export * from './shell/index.js';
 // AST-Grep tools
 export * from './ast-grep/index.js';
 
+// LSP tools
+export * from './lsp/index.js';
+
 // MCP tools
 export * from './mcp/index.js';
 

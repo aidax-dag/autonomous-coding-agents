@@ -9,6 +9,7 @@
 import { BaseHook } from '../base-hook.js';
 import { HookEvent, HookContext, HookResult, HookAction } from '../../interfaces/hook.interface.js';
 import { ITokenBudgetManager, BudgetStatus } from '../../../dx/token-budget/index.js';
+import { createLogger, ILogger } from '../../services/logger.js';
 import {
   ContextMonitorConfig,
   ContextUsageLevel,
@@ -62,8 +63,13 @@ export class ContextMonitorHook extends BaseHook<unknown, ContextMonitorEventDat
   private overflowCallbacks: ContextOverflowCallback[] = [];
   private compactionCallbacks: ContextCompactionCallback[] = [];
 
+  // Logger
+  private readonly logger: ILogger;
+
   constructor(config?: ContextMonitorConfig) {
     super(config);
+
+    this.logger = createLogger('ContextMonitor');
 
     const mergedConfig = { ...DEFAULT_CONTEXT_MONITOR_CONFIG, ...config };
 
@@ -445,7 +451,7 @@ export class ContextMonitorHook extends BaseHook<unknown, ContextMonitorEventDat
 
   private log(message: string): void {
     if (this.verbose) {
-      console.log(`[ContextMonitor] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

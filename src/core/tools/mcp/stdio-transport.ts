@@ -16,6 +16,7 @@ import {
   JsonRpcResponse,
   JsonRpcNotification,
 } from './mcp.interface.js';
+import { createLogger, ILogger } from '../../services/logger.js';
 
 /**
  * STDIO Transport implementation
@@ -26,6 +27,7 @@ export class StdioTransport extends EventEmitter implements IMCPTransport {
   private config: MCPStdioTransportConfig;
   private process: ChildProcess | null = null;
   private connected = false;
+  private readonly logger: ILogger = createLogger('StdioTransport');
   private messageHandler: ((message: JsonRpcNotification | JsonRpcResponse) => void) | null = null;
   private errorHandler: ((error: Error) => void) | null = null;
   private closeHandler: ((code?: number, reason?: string) => void) | null = null;
@@ -87,7 +89,7 @@ export class StdioTransport extends EventEmitter implements IMCPTransport {
             const message = data.toString();
             // Log stderr for debugging but don't treat as error unless configured
             if (this.config.connectionTimeoutMs) {
-              console.debug(`[MCP STDIO stderr]: ${message}`);
+              this.logger.debug('[MCP STDIO stderr]', { message });
             }
           });
         }
@@ -135,18 +137,21 @@ export class StdioTransport extends EventEmitter implements IMCPTransport {
 
       // Kill the process
       if (this.process) {
+        // Store the kill timeout so we can clear it when process exits
+        const killTimeout = setTimeout(() => {
+          if (this.process && !this.process.killed) {
+            this.process.kill('SIGKILL');
+          }
+        }, 5000);
+
         this.process.once('exit', () => {
+          clearTimeout(killTimeout);
           this.cleanup();
           resolve();
         });
 
         // Send SIGTERM first, then SIGKILL after timeout
         this.process.kill('SIGTERM');
-        setTimeout(() => {
-          if (this.process && !this.process.killed) {
-            this.process.kill('SIGKILL');
-          }
-        }, 5000);
       } else {
         resolve();
       }

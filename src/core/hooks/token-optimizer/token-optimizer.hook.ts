@@ -9,6 +9,7 @@
 import { BaseHook } from '../base-hook.js';
 import { HookEvent, HookContext, HookResult } from '../../interfaces/hook.interface.js';
 import { ITokenBudgetManager } from '../../../dx/token-budget/index.js';
+import { createLogger, ILogger } from '../../services/logger.js';
 import {
   TokenOptimizerConfig,
   OptimizationStrategy,
@@ -70,8 +71,13 @@ export class TokenOptimizerHook
   private tokensSavedCallbacks: TokensSavedCallback[] = [];
   private truncationCallbacks: TruncationCallback[] = [];
 
+  // Logger
+  private readonly logger: ILogger;
+
   constructor(config?: TokenOptimizerConfig) {
     super(config);
+
+    this.logger = createLogger('TokenOptimizer');
 
     const mergedConfig = { ...DEFAULT_TOKEN_OPTIMIZER_CONFIG, ...config };
 
@@ -650,7 +656,7 @@ export class TokenOptimizerHook
 
   private log(message: string): void {
     if (this.verbose) {
-      console.log(`[TokenOptimizer] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

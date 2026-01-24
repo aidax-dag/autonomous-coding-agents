@@ -17,6 +17,7 @@ import { ClaudeCLIClient } from '@/shared/llm/cli/claude-cli-client';
 import { CodexCLIClient } from '@/shared/llm/cli/codex-cli-client';
 import { GeminiCLIClient } from '@/shared/llm/cli/gemini-cli-client';
 import { OllamaClient } from '@/shared/llm/cli/ollama-client';
+import { ResilientLLMClient, ResilientClientConfig } from '@/shared/llm/resilient-client';
 
 // Re-export types and utilities
 export * from '@/shared/llm/base-client';
@@ -26,6 +27,15 @@ export { GeminiClient } from '@/shared/llm/gemini-client';
 
 // Re-export CLI clients
 export * from '@/shared/llm/cli';
+
+// Re-export resilient client
+export {
+  ResilientLLMClient,
+  createResilientClient,
+  withResilience,
+  type ResilientClientConfig,
+  DEFAULT_RESILIENT_CONFIG,
+} from '@/shared/llm/resilient-client';
 
 /**
  * Create an LLM client based on provider (API-based)
@@ -109,4 +119,47 @@ export function getLLMClient(config?: Config): ILLMClient {
  */
 export function resetLLMClient(): void {
   llmClientInstance = null;
+}
+
+/**
+ * Create a resilient LLM client from configuration
+ * Wraps the base client with error recovery capabilities
+ */
+export function createResilientLLMClientFromConfig(
+  config: Config,
+  resilientConfig?: ResilientClientConfig
+): ResilientLLMClient {
+  const baseClient = createLLMClientFromConfig(config);
+  return new ResilientLLMClient(baseClient, resilientConfig);
+}
+
+/**
+ * Singleton resilient LLM client instance
+ */
+let resilientClientInstance: ResilientLLMClient | null = null;
+
+/**
+ * Get or create singleton resilient LLM client
+ */
+export function getResilientLLMClient(
+  config?: Config,
+  resilientConfig?: ResilientClientConfig
+): ResilientLLMClient {
+  if (!resilientClientInstance) {
+    if (!config) {
+      throw new Error('Config is required to initialize resilient LLM client');
+    }
+    resilientClientInstance = createResilientLLMClientFromConfig(config, resilientConfig);
+  }
+  return resilientClientInstance;
+}
+
+/**
+ * Reset resilient LLM client (useful for testing)
+ */
+export function resetResilientLLMClient(): void {
+  if (resilientClientInstance) {
+    resilientClientInstance.dispose();
+    resilientClientInstance = null;
+  }
 }

@@ -8,6 +8,7 @@
 
 import { BaseHook } from '../base-hook.js';
 import { HookEvent, HookContext, HookResult } from '../../interfaces/hook.interface.js';
+import { createLogger, ILogger } from '../../services/logger.js';
 import {
   MCPHealthMonitorConfig,
   MCPServerStatus,
@@ -84,6 +85,9 @@ export class MCPHealthMonitorHook extends BaseHook<unknown, MCPHealthMonitorEven
   private monitoringInterval?: ReturnType<typeof setInterval>;
   private isMonitoring = false;
 
+  // Logger
+  private readonly logger: ILogger;
+
   constructor(config?: MCPHealthMonitorConfig) {
     // Merge config with defaults BEFORE passing to super
     const mergedConfig = {
@@ -92,6 +96,8 @@ export class MCPHealthMonitorHook extends BaseHook<unknown, MCPHealthMonitorEven
     };
 
     super(mergedConfig);
+
+    this.logger = createLogger('MCPHealthMonitor');
 
     this.config = {
       ...DEFAULT_MCP_HEALTH_MONITOR_CONFIG,
@@ -1045,7 +1051,7 @@ export class MCPHealthMonitorHook extends BaseHook<unknown, MCPHealthMonitorEven
 
   private log(message: string): void {
     if (this.config.verbose) {
-      console.log(`[MCPHealthMonitor] ${message}`);
+      this.logger.debug(message);
     }
   }
 }

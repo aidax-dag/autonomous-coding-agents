@@ -12,6 +12,7 @@ import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { QualityCheckResult, QualityDimension } from '../completion-detector.js';
+import { createLogger, ILogger } from '../../services/logger.js';
 
 const execAsync = promisify(exec);
 
@@ -153,6 +154,7 @@ export const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
  */
 export class SecurityChecker {
   private config: SecurityConfig;
+  private readonly logger: ILogger = createLogger('SecurityChecker');
 
   constructor(config: Partial<SecurityConfig> = {}) {
     this.config = { ...DEFAULT_SECURITY_CONFIG, ...config };
@@ -280,7 +282,7 @@ export class SecurityChecker {
 
       return this.parseAuditOutput(stdout);
     } catch (error) {
-      console.warn('npm audit failed:', error);
+      this.logger.warn('npm audit failed', { error });
       return null;
     }
   }

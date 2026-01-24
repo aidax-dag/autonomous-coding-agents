@@ -39,16 +39,10 @@ export {
   Scheduler,
   createScheduler,
 
-  // Priority Queue
-  PriorityQueue,
-
   // Enums
   TaskPriority,
   TaskState,
   SchedulingAlgorithm,
-
-  // Schemas
-  SchedulerConfigSchema,
 
   // Defaults
   DEFAULT_SCHEDULER_CONFIG,

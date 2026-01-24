@@ -182,7 +182,7 @@ export abstract class BaseAgent {
   /**
    * Handle incoming message
    */
-  async handleMessage(message: any): Promise<void> {
+  async handleMessage(message: unknown): Promise<void> {
     try {
       // Parse task from message
       const task = this.parseTask(message);
@@ -410,7 +410,7 @@ export abstract class BaseAgent {
   /**
    * Parse task from message
    */
-  protected parseTask(message: any): Task {
+  protected parseTask(message: unknown): Task {
     // Basic validation
     if (!message || typeof message !== 'object') {
       throw new AgentError(
@@ -421,7 +421,9 @@ export abstract class BaseAgent {
       );
     }
 
-    if (!message.id || !message.type || !message.agentType) {
+    const msg = message as Record<string, unknown>;
+
+    if (!msg.id || !msg.type || !msg.agentType) {
       throw new AgentError(
         'Task missing required fields',
         ErrorCode.MESSAGE_VALIDATION_ERROR,
@@ -431,12 +433,12 @@ export abstract class BaseAgent {
     }
 
     // Verify agent type matches
-    if (message.agentType !== this.getAgentType()) {
+    if (msg.agentType !== this.getAgentType()) {
       throw new AgentError(
         'Task agent type mismatch',
         ErrorCode.MESSAGE_VALIDATION_ERROR,
         false,
-        { expected: this.getAgentType(), actual: message.agentType }
+        { expected: this.getAgentType(), actual: msg.agentType }
       );
     }
 

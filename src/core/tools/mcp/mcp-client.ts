@@ -41,6 +41,8 @@ import {
   JsonRpcNotification,
 } from './mcp.interface.js';
 import { StdioTransport } from './stdio-transport.js';
+import { HttpTransport } from './http-transport.js';
+import { WebSocketTransport } from './websocket-transport.js';
 
 /**
  * MCP Client implementation
@@ -390,9 +392,9 @@ export class MCPClient extends EventEmitter implements IMCPClient {
       case MCPTransportType.STDIO:
         return new StdioTransport(this.config.transport);
       case MCPTransportType.HTTP_SSE:
-        throw new Error('HTTP/SSE transport not implemented yet');
+        return new HttpTransport(this.config.transport);
       case MCPTransportType.WEBSOCKET:
-        throw new Error('WebSocket transport not implemented yet');
+        return new WebSocketTransport(this.config.transport);
       default:
         throw new Error(`Unknown transport type: ${(this.config.transport as { type: string }).type}`);
     }

@@ -6,6 +6,8 @@
  * Provides an in-memory storage backend for rate limiting data.
  * Suitable for single-instance deployments.
  *
+ * Uses an O(1) LRU eviction strategy with a doubly-linked list.
+ *
  * @module api/ratelimit/stores/memory
  */
 
@@ -36,19 +38,33 @@ const DEFAULT_MEMORY_STORE_CONFIG: Required<MemoryStoreConfig> = {
 };
 
 /**
+ * Node in the LRU doubly-linked list
+ * Used for O(1) LRU eviction
+ */
+interface LRUNode {
+  key: string;
+  prev: LRUNode | null;
+  next: LRUNode | null;
+}
+
+/**
  * In-memory rate limit store implementation
+ * Uses O(1) LRU eviction with doubly-linked list
  */
 export class MemoryRateLimitStore implements IRateLimitStore {
   private readonly entries: Map<string, RateLimitEntry>;
-  private readonly accessOrder: Map<string, number>; // For LRU eviction
+  private readonly nodeMap: Map<string, LRUNode>; // O(1) access to LRU nodes
   private readonly config: Required<MemoryStoreConfig>;
   private cleanupTimer: NodeJS.Timeout | null = null;
-  private accessCounter = 0;
+
+  // LRU doubly-linked list head and tail
+  private lruHead: LRUNode | null = null;
+  private lruTail: LRUNode | null = null;
 
   constructor(config?: MemoryStoreConfig) {
     this.config = { ...DEFAULT_MEMORY_STORE_CONFIG, ...config };
     this.entries = new Map();
-    this.accessOrder = new Map();
+    this.nodeMap = new Map();
 
     if (this.config.autoCleanup) {
       this.startCleanup();
@@ -93,7 +109,7 @@ export class MemoryRateLimitStore implements IRateLimitStore {
    * Delete entry
    */
   async delete(key: string): Promise<boolean> {
-    this.accessOrder.delete(key);
+    this.removeFromLRU(key);
     return this.entries.delete(key);
   }
 
@@ -151,8 +167,9 @@ export class MemoryRateLimitStore implements IRateLimitStore {
    */
   async clear(): Promise<void> {
     this.entries.clear();
-    this.accessOrder.clear();
-    this.accessCounter = 0;
+    this.nodeMap.clear();
+    this.lruHead = null;
+    this.lruTail = null;
   }
 
   /**
@@ -178,35 +195,114 @@ export class MemoryRateLimitStore implements IRateLimitStore {
       this.cleanupTimer = null;
     }
     this.entries.clear();
-    this.accessOrder.clear();
+    this.nodeMap.clear();
+    this.lruHead = null;
+    this.lruTail = null;
   }
 
   /**
-   * Update access order for LRU tracking
+   * Update access order for LRU tracking - O(1) operation
+   * Moves the key to the most recently used position (tail)
    */
   private updateAccessOrder(key: string): void {
-    this.accessCounter++;
-    this.accessOrder.set(key, this.accessCounter);
+    let node = this.nodeMap.get(key);
+
+    if (node) {
+      // Node exists, move it to tail (most recently used)
+      this.moveToTail(node);
+    } else {
+      // Create new node and add to tail
+      node = { key, prev: null, next: null };
+      this.nodeMap.set(key, node);
+      this.addToTail(node);
+    }
   }
 
   /**
-   * Evict least recently used entry
+   * Remove a key from the LRU list - O(1) operation
+   */
+  private removeFromLRU(key: string): void {
+    const node = this.nodeMap.get(key);
+    if (!node) return;
+
+    // Update neighbors
+    if (node.prev) {
+      node.prev.next = node.next;
+    } else {
+      // Node was head
+      this.lruHead = node.next;
+    }
+
+    if (node.next) {
+      node.next.prev = node.prev;
+    } else {
+      // Node was tail
+      this.lruTail = node.prev;
+    }
+
+    this.nodeMap.delete(key);
+  }
+
+  /**
+   * Add a node to the tail (most recently used) - O(1) operation
+   */
+  private addToTail(node: LRUNode): void {
+    node.prev = this.lruTail;
+    node.next = null;
+
+    if (this.lruTail) {
+      this.lruTail.next = node;
+    } else {
+      // List was empty
+      this.lruHead = node;
+    }
+
+    this.lruTail = node;
+  }
+
+  /**
+   * Move a node to the tail (most recently used) - O(1) operation
+   */
+  private moveToTail(node: LRUNode): void {
+    if (node === this.lruTail) {
+      // Already at tail
+      return;
+    }
+
+    // Remove from current position
+    if (node.prev) {
+      node.prev.next = node.next;
+    } else {
+      // Node was head
+      this.lruHead = node.next;
+    }
+
+    if (node.next) {
+      node.next.prev = node.prev;
+    }
+
+    // Add to tail
+    node.prev = this.lruTail;
+    node.next = null;
+
+    if (this.lruTail) {
+      this.lruTail.next = node;
+    }
+
+    this.lruTail = node;
+  }
+
+  /**
+   * Evict least recently used entry - O(1) operation
    */
   private evictLRU(): void {
-    let oldestKey: string | null = null;
-    let oldestAccess = Infinity;
-
-    for (const [key, access] of this.accessOrder.entries()) {
-      if (access < oldestAccess) {
-        oldestAccess = access;
-        oldestKey = key;
-      }
+    if (!this.lruHead) {
+      return;
     }
 
-    if (oldestKey) {
-      this.entries.delete(oldestKey);
-      this.accessOrder.delete(oldestKey);
-    }
+    const keyToEvict = this.lruHead.key;
+    this.removeFromLRU(keyToEvict);
+    this.entries.delete(keyToEvict);
   }
 
   /**
@@ -254,7 +350,7 @@ export class MemoryRateLimitStore implements IRateLimitStore {
 
     for (const key of keysToDelete) {
       this.entries.delete(key);
-      this.accessOrder.delete(key);
+      this.removeFromLRU(key);
     }
   }
 

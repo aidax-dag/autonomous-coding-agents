@@ -14,19 +14,32 @@ import {
   ToolExecutionOptions,
   ToolCall,
   ToolExecutionRecord,
+  ToolError,
+  RetryCondition,
 } from '../interfaces/tool.interface.js';
 
 /**
  * Default execution options
+ *
+ * Enhanced with exponential backoff and retry conditions.
  */
-const DEFAULT_OPTIONS: Required<ToolExecutionOptions> = {
+const DEFAULT_OPTIONS: Required<Omit<ToolExecutionOptions, 'onRetry' | 'concurrencyGroup'>> & {
+  onRetry?: ToolExecutionOptions['onRetry'];
+  concurrencyGroup?: string;
+} = {
   timeout: 30000,
   retries: 0,
   retryDelay: 1000,
+  backoffMultiplier: 2,
+  maxRetryDelay: 30000,
+  retryOn: 'recoverable',
+  onRetry: undefined,
   dryRun: false,
   cache: false,
   cacheTTL: 60000,
   context: {},
+  priority: 0,
+  concurrencyGroup: undefined,
 };
 
 /**
@@ -115,8 +128,10 @@ export class ToolExecutor implements IToolExecutor {
       };
     }
 
-    // Execute with retries
+    // Execute with retries and exponential backoff
     let lastError: Error | undefined;
+    let lastToolError: ToolError | undefined;
+
     for (let attempt = 0; attempt <= opts.retries; attempt++) {
       try {
         const result = await this.executeWithTimeout<T>(
@@ -136,19 +151,44 @@ export class ToolExecutor implements IToolExecutor {
         return result;
       } catch (error) {
         lastError = error as Error;
+        lastToolError = this.errorToToolError(lastError);
 
+        // Check if we should retry
         if (attempt < opts.retries) {
-          await this.delay(opts.retryDelay * Math.pow(2, attempt));
+          const shouldRetry = this.shouldRetry(lastToolError, opts.retryOn);
+
+          if (shouldRetry) {
+            // Calculate delay with exponential backoff
+            const baseDelay = opts.retryDelay ?? DEFAULT_OPTIONS.retryDelay;
+            const multiplier = opts.backoffMultiplier ?? DEFAULT_OPTIONS.backoffMultiplier;
+            const maxDelay = opts.maxRetryDelay ?? DEFAULT_OPTIONS.maxRetryDelay;
+            const calculatedDelay = baseDelay * Math.pow(multiplier, attempt);
+            const actualDelay = Math.min(calculatedDelay, maxDelay);
+
+            // Call retry callback if provided
+            if (opts.onRetry) {
+              opts.onRetry(attempt + 1, lastError, actualDelay);
+            }
+
+            await this.delay(actualDelay);
+          } else {
+            // Don't retry if condition not met
+            break;
+          }
         }
       }
     }
 
-    // All retries failed
+    // All retries failed or retry condition not met
     const result = this.createErrorResult<T>(
       toolName,
-      'EXECUTION_FAILED',
+      lastToolError?.code ?? 'EXECUTION_FAILED',
       lastError?.message ?? 'Tool execution failed',
-      { attempts: opts.retries + 1 }
+      {
+        attempts: opts.retries + 1,
+        lastError: lastToolError,
+        recoverable: lastToolError?.recoverable ?? false,
+      }
     );
 
     this.recordExecution(toolName, params, result, Date.now() - startTime, lastError);
@@ -340,5 +380,83 @@ export class ToolExecutor implements IToolExecutor {
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Check if error should trigger a retry
+   */
+  private shouldRetry(
+    error: ToolError,
+    condition: RetryCondition | undefined
+  ): boolean {
+    if (!condition) return true;
+
+    // Custom function condition
+    if (typeof condition === 'function') {
+      return condition(error);
+    }
+
+    switch (condition) {
+      case 'always':
+        return true;
+
+      case 'timeout':
+        return error.code === 'TIMEOUT' || error.message.toLowerCase().includes('timeout');
+
+      case 'network':
+        return (
+          error.code === 'NETWORK_ERROR' ||
+          error.code === 'CONNECTION_FAILED' ||
+          error.message.toLowerCase().includes('network') ||
+          error.message.toLowerCase().includes('connection')
+        );
+
+      case 'recoverable':
+        return error.recoverable;
+
+      default:
+        return error.recoverable;
+    }
+  }
+
+  /**
+   * Convert Error to ToolError
+   */
+  private errorToToolError(error: Error): ToolError {
+    const message = error.message.toLowerCase();
+
+    // Determine error type and recoverability
+    let code = 'EXECUTION_ERROR';
+    let recoverable = true;
+
+    if (message.includes('timeout')) {
+      code = 'TIMEOUT';
+      recoverable = true;
+    } else if (message.includes('network') || message.includes('connection')) {
+      code = 'NETWORK_ERROR';
+      recoverable = true;
+    } else if (message.includes('not found')) {
+      code = 'NOT_FOUND';
+      recoverable = false;
+    } else if (message.includes('permission') || message.includes('denied')) {
+      code = 'PERMISSION_DENIED';
+      recoverable = false;
+    } else if (message.includes('invalid') || message.includes('validation')) {
+      code = 'VALIDATION_ERROR';
+      recoverable = false;
+    } else if (message.includes('rate limit') || message.includes('throttle')) {
+      code = 'RATE_LIMITED';
+      recoverable = true;
+    }
+
+    return {
+      code,
+      message: error.message,
+      recoverable,
+      details: {
+        name: error.name,
+        stack: error.stack,
+      },
+    };
   }
 }

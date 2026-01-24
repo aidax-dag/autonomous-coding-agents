@@ -210,7 +210,7 @@ export {
 // ============================================================================
 
 import { TeamRegistry, TeamRegistryConfig } from './team-registry';
-import { PlanningTeam, PlanningTeamConfig } from './planning/planning-team';
+import { PlanningTeam, PlanningTeamConfig, DEFAULT_PLANNING_CONFIG } from './planning/planning-team';
 
 /**
  * Team system configuration
@@ -254,8 +254,9 @@ export async function createTeamSystem(
   // Create registry
   const registry = new TeamRegistry(config.registry);
 
-  // Create planning team
+  // Create planning team with defaults
   const planningTeam = new PlanningTeam({
+    ...DEFAULT_PLANNING_CONFIG,
     id: 'planning-main',
     name: 'Planning Team',
     ...config.planning,
