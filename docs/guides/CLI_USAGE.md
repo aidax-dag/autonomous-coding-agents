@@ -172,6 +172,80 @@ multi-agent health
 
 ---
 
+---
+
+## LLM CLI Integration
+
+CodeAvengers는 다양한 LLM CLI 도구와 통합되어 있습니다.
+
+### Supported CLI Tools
+
+| CLI | Version | Description |
+|-----|---------|-------------|
+| claude | 2.1.4+ | Anthropic Claude CLI |
+| codex | 0.76.0+ | OpenAI Codex CLI |
+| gemini | 0.22.5+ | Google Gemini CLI |
+| ollama | 0.13.5+ | Local LLM via Ollama |
+
+### CLI Configuration
+
+각 CLI 도구의 설정은 `~/.config/codeavengers/llm-cli.json`에서 관리합니다:
+
+```json
+{
+  "defaultCli": "claude",
+  "clis": {
+    "claude": {
+      "enabled": true,
+      "minVersion": "2.1.4",
+      "command": "claude"
+    },
+    "codex": {
+      "enabled": true,
+      "minVersion": "0.76.0",
+      "command": "codex"
+    },
+    "gemini": {
+      "enabled": true,
+      "minVersion": "0.22.5",
+      "command": "gemini"
+    },
+    "ollama": {
+      "enabled": true,
+      "minVersion": "0.13.5",
+      "command": "ollama",
+      "model": "llama3"
+    }
+  }
+}
+```
+
+### CLI Usage Examples
+
+```bash
+# Claude CLI로 코드 생성
+multi-agent generate --cli claude --prompt "Create a REST API"
+
+# Codex CLI로 리팩토링
+multi-agent refactor --cli codex --file src/app.ts
+
+# Gemini CLI로 문서 생성
+multi-agent docs --cli gemini --target ./src
+
+# Ollama로 로컬 LLM 사용
+multi-agent generate --cli ollama --model llama3 --prompt "Create tests"
+```
+
+### CLI Auto-Selection
+
+CLI 도구가 지정되지 않으면 다음 순서로 자동 선택됩니다:
+
+1. 환경변수 `CODEAVENGERS_DEFAULT_CLI`
+2. 설정 파일의 `defaultCli`
+3. 설치된 CLI 중 첫 번째 (claude > codex > gemini > ollama)
+
+---
+
 ## Environment Variables
 
 ```bash
@@ -181,6 +255,12 @@ NATS_URL=nats://localhost:4222
 # Optional (for health/auto-fix)
 HEALTH_PORT=3000
 GITHUB_TOKEN=your_github_token
+
+# LLM CLI Configuration
+CODEAVENGERS_DEFAULT_CLI=claude     # Default CLI tool
+ANTHROPIC_API_KEY=your_key          # For Claude CLI
+OPENAI_API_KEY=your_key             # For Codex CLI
+GOOGLE_API_KEY=your_key             # For Gemini CLI
 ```
 
 Create `.env`:
