@@ -288,6 +288,19 @@ export class DocumentQueue extends EventEmitter {
       // Process task
       await this.processTask(team, task, filePath, options);
     } catch (error) {
+      // Handle race condition: file may have been deleted/moved between existence check and read
+      // This is expected behavior in file watching systems, not an error
+      const isFileNotFoundError =
+        error instanceof Error &&
+        ((error as NodeJS.ErrnoException).code === 'ENOENT' ||
+          error.message.includes('ENOENT') ||
+          error.message.includes('no such file'));
+
+      if (isFileNotFoundError) {
+        // File was deleted/moved between existence check and read - this is normal
+        return;
+      }
+
       this.emit('error', error instanceof Error ? error : new Error(String(error)));
     }
   }
