@@ -9,6 +9,7 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
+import { createLogger, ILogger } from '../../services/logger.js';
 import {
   ILSPClient,
   LSPServerConfig,
@@ -109,6 +110,7 @@ class LSPServerConnection {
   private capabilities: ServerCapabilities | undefined;
   private initialized = false;
   private restartAttempts = 0;
+  private logger: ILogger;
 
   readonly config: LSPServerConfig;
   readonly options: Required<LSPClientOptions>;
@@ -119,6 +121,7 @@ class LSPServerConnection {
   constructor(config: LSPServerConfig, options: Required<LSPClientOptions>) {
     this.config = config;
     this.options = options;
+    this.logger = createLogger(`LSP-${this.config.id}`);
   }
 
   /**
@@ -145,7 +148,7 @@ class LSPServerConnection {
 
       this.process.stderr?.on('data', (data: Buffer) => {
         if (this.options.logging) {
-          console.error(`[LSP ${this.config.id}] stderr:`, data.toString());
+          this.logger.warn('stderr', { output: data.toString() });
         }
       });
 
@@ -165,7 +168,7 @@ class LSPServerConnection {
       this.restartAttempts = 0;
 
       if (this.options.logging) {
-        console.log(`[LSP ${this.config.id}] Server started`);
+        this.logger.info('Server started');
       }
     } catch (err) {
       this.status = LSPServerStatus.ERROR;
@@ -387,7 +390,7 @@ class LSPServerConnection {
     const header = `Content-Length: ${Buffer.byteLength(json)}\r\n\r\n`;
 
     if (this.options.logging && this.options.logLevel === 'debug') {
-      console.log(`[LSP ${this.config.id}] ->`, json);
+      this.logger.debug('Sending message', { message: json });
     }
 
     this.process?.stdin?.write(header + json);
@@ -422,13 +425,13 @@ class LSPServerConnection {
         const message = JSON.parse(messageContent);
 
         if (this.options.logging && this.options.logLevel === 'debug') {
-          console.log(`[LSP ${this.config.id}] <-`, messageContent);
+          this.logger.debug('Received message', { message: messageContent });
         }
 
         this.handleMessage(message);
       } catch (err) {
         if (this.options.logging) {
-          console.error(`[LSP ${this.config.id}] Parse error:`, err);
+          this.logger.error('Parse error', { error: err });
         }
       }
     }
@@ -470,7 +473,7 @@ class LSPServerConnection {
     this.error = err.message;
 
     if (this.options.logging) {
-      console.error(`[LSP ${this.config.id}] Process error:`, err);
+      this.logger.error('Process error', { error: err.message });
     }
 
     this.cleanup();
@@ -482,7 +485,7 @@ class LSPServerConnection {
    */
   private handleProcessExit(code: number | null, signal: string | null): void {
     if (this.options.logging) {
-      console.log(`[LSP ${this.config.id}] Process exited:`, { code, signal });
+      this.logger.info('Process exited', { code, signal });
     }
 
     if (this.status !== LSPServerStatus.STOPPING) {
@@ -513,15 +516,13 @@ class LSPServerConnection {
       this.restartAttempts++;
 
       if (this.options.logging) {
-        console.log(
-          `[LSP ${this.config.id}] Restarting (attempt ${this.restartAttempts})`
-        );
+        this.logger.info('Restarting', { attempt: this.restartAttempts });
       }
 
       setTimeout(() => {
         this.start().catch((err) => {
           if (this.options.logging) {
-            console.error(`[LSP ${this.config.id}] Restart failed:`, err);
+            this.logger.error('Restart failed', { error: err instanceof Error ? err.message : String(err) });
           }
         });
       }, this.options.restartDelay);

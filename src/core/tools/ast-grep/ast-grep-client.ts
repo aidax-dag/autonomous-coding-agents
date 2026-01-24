@@ -1026,14 +1026,20 @@ export class ASTGrepClient implements IASTGrepClient {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
-      proc.on('error', () => resolve(false));
-      proc.on('close', (code) => resolve(code === 0));
-
-      // Timeout after 5 seconds
-      setTimeout(() => {
+      // Timeout after 5 seconds - store reference so we can clear it
+      const timeoutId = setTimeout(() => {
         proc.kill();
         resolve(false);
       }, 5000);
+
+      proc.on('error', () => {
+        clearTimeout(timeoutId);
+        resolve(false);
+      });
+      proc.on('close', (code) => {
+        clearTimeout(timeoutId);
+        resolve(code === 0);
+      });
     });
   }
 
@@ -1056,7 +1062,18 @@ export class ASTGrepClient implements IASTGrepClient {
         stderr += data.toString();
       });
 
+      // Apply timeout - store reference so we can clear it on completion
+      const timeout = this.config.defaultTimeout || 30000;
+      const timeoutId = setTimeout(() => {
+        proc.kill();
+        resolve({
+          success: false,
+          error: 'Command timed out',
+        });
+      }, timeout);
+
       proc.on('error', (err) => {
+        clearTimeout(timeoutId);
         resolve({
           success: false,
           error: `Command execution failed: ${err.message}`,
@@ -1064,6 +1081,7 @@ export class ASTGrepClient implements IASTGrepClient {
       });
 
       proc.on('close', (code) => {
+        clearTimeout(timeoutId);
         if (code === 0) {
           resolve({ success: true, data: stdout });
         } else {
@@ -1073,16 +1091,6 @@ export class ASTGrepClient implements IASTGrepClient {
           });
         }
       });
-
-      // Apply timeout
-      const timeout = this.config.defaultTimeout || 30000;
-      setTimeout(() => {
-        proc.kill();
-        resolve({
-          success: false,
-          error: 'Command timed out',
-        });
-      }, timeout);
     });
   }
 
