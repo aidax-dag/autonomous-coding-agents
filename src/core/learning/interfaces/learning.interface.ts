@@ -392,7 +392,8 @@ export interface IInstinctStore {
 // ============================================================================
 
 /**
- * Cache entry for quick solution lookup
+ * @deprecated Use CachedSolution instead
+ * Cache entry for quick solution lookup (legacy)
  */
 export interface SolutionCacheEntry {
   /** Error signature (hash) */
@@ -406,42 +407,245 @@ export interface SolutionCacheEntry {
 }
 
 /**
- * Solutions cache interface
+ * Cached solution entry
+ */
+export interface CachedSolution {
+  /** Error signature (key) */
+  signature: string;
+  /** Solution description */
+  solution: string;
+  /** Root cause description */
+  rootCause: string;
+  /** Prevention checklist */
+  prevention: string[];
+  /** Error type */
+  errorType: string;
+  /** Normalized error message pattern */
+  errorMessagePattern: string;
+  /** Number of cache hits */
+  hits: number;
+  /** Number of successful applications */
+  successCount: number;
+  /** Number of failed applications */
+  failureCount: number;
+  /** When created */
+  createdAt: Date;
+  /** When last accessed */
+  lastAccessedAt: Date;
+  /** Additional metadata */
+  metadata?: CacheSolutionMetadata;
+}
+
+/**
+ * Cache solution metadata
+ */
+export interface CacheSolutionMetadata {
+  /** Tags for categorization */
+  tags?: string[];
+  /** Context description */
+  context?: string;
+  /** Related solution signatures */
+  relatedSolutions?: string[];
+  /** Solution confidence (0-1) */
+  confidence?: number;
+  /** How this solution was added */
+  source?: 'manual' | 'learned' | 'imported';
+}
+
+/**
+ * Cache lookup result
+ */
+export interface CacheLookupResult {
+  /** Whether a solution was found */
+  found: boolean;
+  /** The found solution (if any) */
+  solution?: CachedSolution;
+  /** Similarity score for fuzzy matches (0-1) */
+  similarity?: number;
+  /** Alternative solutions */
+  alternatives?: CachedSolution[];
+}
+
+/**
+ * Cache statistics
+ */
+export interface CacheStats {
+  /** Total number of entries */
+  totalEntries: number;
+  /** Total cache hits */
+  totalHits: number;
+  /** Total cache misses */
+  totalMisses: number;
+  /** Hit rate (0-1) */
+  hitRate: number;
+  /** Average success rate of solutions */
+  avgSuccessRate: number;
+  /** Estimated memory usage in bytes */
+  memoryUsage: number;
+  /** Oldest entry date */
+  oldestEntry: Date | null;
+  /** Newest entry date */
+  newestEntry: Date | null;
+}
+
+/**
+ * Cache configuration
+ */
+export interface CacheConfig {
+  /** Maximum number of entries */
+  maxSize: number;
+  /** Time-to-live in milliseconds */
+  ttlMs: number;
+  /** Persistence file path */
+  persistPath: string;
+  /** Auto-save interval in milliseconds (0 to disable) */
+  autoSaveInterval: number;
+  /** Enable fuzzy matching */
+  enableFuzzyMatching: boolean;
+  /** Fuzzy matching threshold (0-1) */
+  fuzzyThreshold: number;
+}
+
+/**
+ * Cache event types
+ */
+export type CacheEvent = 'hit' | 'miss' | 'evict' | 'persist' | 'load';
+
+/**
+ * Cache event handler function
+ */
+export type CacheEventHandler = (data: CacheEventData) => void;
+
+/**
+ * Cache event data
+ */
+export interface CacheEventData {
+  /** Event type */
+  event: CacheEvent;
+  /** Related signature (if applicable) */
+  signature?: string;
+  /** Event timestamp */
+  timestamp: Date;
+  /** Additional details */
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Solutions cache interface (F006)
  */
 export interface ISolutionsCache {
+  // Lookup operations
   /**
-   * Get solution from cache
-   * @param errorSignature Error signature/hash
-   * @returns Solution ID if cached
+   * Get solution by signature
+   * @param signature Error signature
+   * @returns Lookup result with solution if found
    */
-  get(errorSignature: string): Promise<string | null>;
+  get(signature: string): Promise<CacheLookupResult>;
 
   /**
-   * Set solution in cache
-   * @param errorSignature Error signature/hash
-   * @param solutionId Solution ID
+   * Get solution by error object
+   * @param error Error to lookup
+   * @returns Lookup result with solution if found
    */
-  set(errorSignature: string, solutionId: string): Promise<void>;
+  getByError(error: Error): Promise<CacheLookupResult>;
 
   /**
-   * Invalidate cache entry
-   * @param errorSignature Error signature/hash
+   * Find similar solutions using fuzzy matching
+   * @param signature Error signature to match
+   * @param limit Maximum number of results
+   * @returns Array of similar solutions
    */
-  invalidate(errorSignature: string): Promise<void>;
+  findSimilar(signature: string, limit?: number): Promise<CachedSolution[]>;
+
+  // Storage operations
+  /**
+   * Store a solution in cache
+   * @param solution Solution to cache
+   */
+  set(solution: CachedSolution): Promise<void>;
 
   /**
-   * Clear entire cache
+   * Store a solution from LearnedSolution
+   * @param learned LearnedSolution from ReflexionPattern
+   */
+  setFromLearned(learned: LearnedSolution): Promise<void>;
+
+  // Feedback operations
+  /**
+   * Record successful solution application
+   * @param signature Solution signature
+   */
+  recordSuccess(signature: string): Promise<void>;
+
+  /**
+   * Record failed solution application
+   * @param signature Solution signature
+   */
+  recordFailure(signature: string): Promise<void>;
+
+  // Management operations
+  /**
+   * Delete a solution from cache
+   * @param signature Solution signature
+   * @returns true if deleted, false if not found
+   */
+  delete(signature: string): Promise<boolean>;
+
+  /**
+   * Clear all entries from cache
    */
   clear(): Promise<void>;
 
   /**
+   * Prune old or low-performing entries
+   * @returns Number of entries removed
+   */
+  prune(): Promise<number>;
+
+  // Persistence operations
+  /**
+   * Persist cache to storage
+   */
+  persist(): Promise<void>;
+
+  /**
+   * Load cache from storage
+   */
+  load(): Promise<void>;
+
+  // Statistics operations
+  /**
    * Get cache statistics
    */
-  getStats(): Promise<{
-    size: number;
-    hitRate: number;
-    avgAccessCount: number;
-  }>;
+  getStats(): Promise<CacheStats>;
+
+  /**
+   * Get top performing solutions
+   * @param limit Maximum number of results
+   * @returns Array of top solutions sorted by score
+   */
+  getTopSolutions(limit?: number): Promise<CachedSolution[]>;
+
+  // Event operations
+  /**
+   * Register event handler
+   * @param event Event type
+   * @param handler Event handler function
+   */
+  on(event: CacheEvent, handler: CacheEventHandler): void;
+
+  /**
+   * Unregister event handler
+   * @param event Event type
+   * @param handler Event handler function
+   */
+  off(event: CacheEvent, handler: CacheEventHandler): void;
+
+  // Lifecycle
+  /**
+   * Dispose resources (stop auto-save, persist final state)
+   */
+  dispose(): Promise<void>;
 }
 
 // ============================================================================

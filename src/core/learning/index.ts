@@ -66,6 +66,14 @@ export {
 
   // Solutions Cache
   type SolutionCacheEntry,
+  type CachedSolution,
+  type CacheSolutionMetadata,
+  type CacheLookupResult,
+  type CacheStats,
+  type CacheConfig,
+  type CacheEvent,
+  type CacheEventHandler,
+  type CacheEventData,
   type ISolutionsCache,
 
   // Constants
@@ -95,8 +103,15 @@ export {
   type InstinctStoreOptions,
 } from './instinct-store.js';
 
-// TODO: Implement these
-// export { SolutionsCache, createSolutionsCache } from './solutions-cache.js';
+export {
+  SolutionsCache,
+  createSolutionsCache,
+  DEFAULT_CACHE_CONFIG,
+  LRU_CONFIG,
+  FUZZY_MATCHING_CONFIG,
+  PRUNING_CONFIG,
+  type SolutionsCacheOptions,
+} from './solutions-cache.js';
 
 // ============================================================================
 // Utility Functions
