@@ -68,7 +68,7 @@
 | 보안 샌드박싱 미흡 | codex Kernel-level + opencode Permission System | P1 |
 | 토큰 비용 최적화 없음 | oh-my-claudecode Ecomode | P1 |
 | 병렬 실행 미최적화 | oh-my-claudecode Ultrapilot + SuperClaude Parallel | P1 |
-| **에러 재발 방지** | **SuperClaude ReflexionPattern (<10% 재발)** | **P1 (신규)** |
+| **에러 재발 방지** | **SuperClaude ReflexionPattern (목표 <10% 재발)** | **P1 (신규)** |
 | **학습 시스템 부재** | **everything-claude-code Instinct System** | **P1 (신규)** |
 | Hook 시스템 미완성 | claude-code + everything-claude-code 34 Hooks | P2 |
 | **Provider 종속** | **opencode Provider-Agnostic Architecture** | **P2 (신규)** |
@@ -181,11 +181,10 @@
 
   goal_backward_verification:
     설명: "Task Completion이 아닌 Goal Achievement 검증"
-    4단계_검증:
+    3단계_검증:
       1_exists: "파일이 예상 경로에 존재"
       2_substantive: "실제 구현, placeholder 아님"
       3_wired: "시스템에 연결됨"
-      4_functional: "실제로 동작함"
     vs_wrong: "파일 존재 = 완료 (❌)"
 
   user_decision_fidelity:
@@ -207,7 +206,7 @@
 
 **autonomous-coding-agents 적용 가능 패턴**:
 1. **Context Engineering**: 품질 곡선 기반 컨텍스트 관리
-2. **Goal-Backward Verification**: 4단계 검증 (exists→substantive→wired→functional)
+2. **Goal-Backward Verification**: 3단계 검증 (exists→substantive→wired)
 3. **User Decision Fidelity**: 결정 잠금 및 전파 메커니즘
 4. **XML Task Structure**: 실행 가능한 명세 형식
 5. **Atomic Commits**: 태스크당 개별 커밋 (git bisect 가능)
@@ -257,7 +256,7 @@
     철학: "autonomy must be genuine, not simulated"
 
   todo_continuation_enforcer:
-    설명: "미완성 작업 방지 (17K LOC)"
+    설명: "미완성 작업 방지 (~1.8K LOC)"
     동작: "에이전트가 중단하면 강제 완료"
     철학: "The boulder must keep rolling"
 ```
@@ -271,7 +270,7 @@
 
 ---
 
-#### opencode (10M+ 다운로드, Provider-Agnostic)
+#### opencode (368K+ 다운로드, Provider-Agnostic)
 
 ```yaml
 핵심_구조:
@@ -357,7 +356,7 @@
 
   self_check_protocol:
     설명: "사후 구현 검증"
-    정확도: "94% 환각 탐지율"
+    정확도: "환각 탐지 목표 (미검증)"
     4대_질문:
       1: "모든 테스트 통과? (실제 출력 필수)"
       2: "모든 요구사항 충족? (구체적 목록)"
@@ -371,7 +370,7 @@
 
   reflexion_pattern:
     설명: "에러 학습 및 예방"
-    재발율: "<10%"
+    재발율: "목표 <10% (미검증)"
     저장: "docs/memory/solutions_learned.jsonl"
     프로세스:
       1: "에러 발생 시 기존 해결책 조회"
@@ -384,7 +383,7 @@
 
   parallel_execution:
     설명: "Wave → Checkpoint → Wave 패턴"
-    속도향상: "3.5x"
+    속도향상: "목표 3.5x (특정 시나리오)"
     예시: |
       Wave 1: [Read file1, file2, file3] (병렬)
          ↓
@@ -394,10 +393,10 @@
 ```
 
 **autonomous-coding-agents 적용 가능 패턴**:
-1. **ConfidenceChecker**: 잘못된 방향 작업 방지 (25-250x ROI)
-2. **SelfCheckProtocol**: 94% 환각 탐지
-3. **ReflexionPattern**: <10% 에러 재발
-4. **Wave-based Parallel**: 3.5x 속도 향상
+1. **ConfidenceChecker**: 잘못된 방향 작업 방지 (목표 25-250x ROI)
+2. **SelfCheckProtocol**: 환각 탐지 프레임워크 (목표 지표, 미검증)
+3. **ReflexionPattern**: 에러 재발 방지 (목표 지표, 미검증)
+4. **Wave-based Parallel**: 병렬 실행 최적화 (특정 시나리오에서 효과적)
 5. **Knowledge Evolution**: temp → patterns → mistakes 3-tier
 
 ---
@@ -503,20 +502,20 @@ get-shit-done의 Context Engineering 원칙을 적용하면, autonomous-coding-a
 
 #### 가설 (Hypothesis)
 
-SuperClaude의 SelfCheckProtocol과 get-shit-done의 Goal-Backward Verification을 결합하면, 94%+ 정확도의 완료 검증 시스템을 구축할 수 있다.
+SuperClaude의 SelfCheckProtocol과 get-shit-done의 Goal-Backward Verification을 결합하면, 높은 정확도의 완료 검증 시스템을 구축할 수 있다.
 
 #### 증거 (Evidence)
 
 | 유형 | 설명 | 출처 |
 |------|------|------|
-| [IMPL] | SuperClaude SelfCheck: 94% 환각 탐지 | `/SuperClaude_Framework/src/superclaude/pm_agent/self_check.py` |
-| [IMPL] | get-shit-done: 4단계 Goal-Backward | `/get-shit-done/workflows/` |
+| [IMPL] | SuperClaude SelfCheck: 환각 탐지 프레임워크 | `/SuperClaude_Framework/src/superclaude/pm_agent/self_check.py` |
+| [IMPL] | get-shit-done: 3단계 Goal-Backward | `/get-shit-done/workflows/` |
 | [GAP] | autonomous-coding-agents: Task-Completion 검증만 | 코드 분석 |
 
 #### 검증 로직
 
 ```yaml
-4단계_검증:
+3단계_검증:
   1_exists:
     질문: "파일이 예상 경로에 있는가?"
     검증: "fs.existsSync(path)"
@@ -529,10 +528,6 @@ SuperClaude의 SelfCheckProtocol과 get-shit-done의 Goal-Backward Verification�
     질문: "시스템에 연결되어 있는가?"
     검증: "import 추적, 라우팅 확인"
 
-  4_functional:
-    질문: "실제로 동작하는가?"
-    검증: "테스트 실행, API 호출"
-
 SelfCheck_4대_질문:
   1: "모든 테스트 통과? (실제 출력 첨부)"
   2: "모든 요구사항 충족? (체크리스트)"
@@ -540,7 +535,7 @@ SelfCheck_4대_질문:
   4: "증거 있음? (테스트 결과, diff)"
 ```
 
-**권장**: 두 시스템 결합 - 4단계 검증 + SelfCheck 4대 질문
+**권장**: 두 시스템 결합 - 3단계 검증 + SelfCheck 4대 질문
 
 ---
 
@@ -548,13 +543,13 @@ SelfCheck_4대_질문:
 
 #### 가설 (Hypothesis)
 
-SuperClaude의 ReflexionPattern과 everything-claude-code의 Instinct System을 결합하면, 에러 재발률 <10%와 지속적 학습 시스템을 구축할 수 있다.
+SuperClaude의 ReflexionPattern과 everything-claude-code의 Instinct System을 결합하면, 에러 재발 방지와 지속적 학습 시스템을 구축할 수 있다.
 
 #### 증거 (Evidence)
 
 | 유형 | 설명 | 출처 |
 |------|------|------|
-| [IMPL] | SuperClaude Reflexion: <10% 재발률 | `/SuperClaude_Framework/src/superclaude/pm_agent/reflexion.py` |
+| [IMPL] | SuperClaude Reflexion: 에러 재발 방지 프레임워크 | `/SuperClaude_Framework/src/superclaude/pm_agent/reflexion.py` |
 | [IMPL] | everything-claude-code Instinct: 신뢰도 기반 학습 | `/everything-claude-code/skills/continuous-learning-v2/` |
 
 #### 통합 설계
@@ -696,7 +691,7 @@ v4.3.0_개선사항:
       - 7대 위험신호 탐지
       - 증거 수집 자동화
     검증:
-      - "환각 탐지율 90%+"
+      - "환각 탐지율 향상"
 ```
 
 ### 4.3 v4.4.0 - Context Engineering ⭐
@@ -740,7 +735,7 @@ v5.0.0_개선사항:
       - solutions_learned.jsonl 저장
       - 캐시 기반 조회 (0 토큰)
     검증:
-      - "에러 재발률 <10%"
+      - "에러 재발률 감소"
 
   instinct_system:
     출처: "everything-claude-code Instinct"
@@ -769,12 +764,12 @@ v5.1.0_개선사항:
       - "역할 혼란 에러 0건"
 
   goal_backward_verification:
-    출처: "get-shit-done 4단계 검증"
+    출처: "get-shit-done 3단계 검증"
     변경:
-      - exists → substantive → wired → functional
+      - exists → substantive → wired
       - 단계별 검증 자동화
     검증:
-      - "완료 검증 정확도 95%+"
+      - "완료 검증 정확도 향상"
 ```
 
 ### 4.6 v6.0.0 - Provider-Agnostic + Performance
@@ -925,12 +920,12 @@ v6.0.0_개선사항:
 
 | 프로젝트 | 핵심 패턴 | autonomous-coding-agents 적용 우선순위 |
 |---------|----------|---------------------------------------|
-| **SuperClaude** | ConfidenceChecker (25-250x ROI) | **P0** |
-| **SuperClaude** | SelfCheckProtocol (94% 환각 탐지) | **P0** |
+| **SuperClaude** | ConfidenceChecker (목표 25-250x ROI) | **P0** |
+| **SuperClaude** | SelfCheckProtocol (환각 탐지 프레임워크) | **P0** |
 | **get-shit-done** | Context Engineering (품질 곡선) | **P0** |
-| **get-shit-done** | Goal-Backward Verification (4단계) | **P0** |
+| **get-shit-done** | Goal-Backward Verification (3단계) | **P0** |
 | **oh-my-opencode** | Boulder State (세션 연속성) | **P0** |
-| SuperClaude | ReflexionPattern (<10% 재발) | P1 |
+| SuperClaude | ReflexionPattern (에러 재발 방지) | P1 |
 | everything-claude-code | Instinct System (신뢰도 학습) | P1 |
 | oh-my-opencode | Planning/Execution 분리 | P1 |
 | opencode | Provider-Agnostic Architecture | P1 |
@@ -955,6 +950,7 @@ v6.0.0_개선사항:
 변경_이력:
   v1.0: 4개 프로젝트 분석 (oh-my-claudecode, claude-code, codex, gemini-cli)
   v2.0: 5개 프로젝트 추가 분석 (everything-claude-code, get-shit-done, oh-my-opencode, opencode, SuperClaude_Framework)
+  v2.1: 팩트 체크 수정 - SuperClaude 미검증 수치 명시, get-shit-done 3단계 검증으로 수정, oh-my-opencode LOC 수정(~1.8K), opencode 다운로드 수 수정(368K+)
 
 검토_상태:
   초안: ✅ 완료
