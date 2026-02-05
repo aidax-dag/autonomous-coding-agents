@@ -68,10 +68,17 @@ export {
 } from './interfaces/learning.interface.js';
 
 // ============================================================================
-// Implementations (TODO: Implement these)
+// Implementations
 // ============================================================================
 
-// export { ReflexionPattern, createReflexionPattern } from './reflexion-pattern.js';
+export {
+  ReflexionPattern,
+  createReflexionPattern,
+  STORAGE_CONFIG,
+  type ReflexionPatternOptions,
+} from './reflexion-pattern.js';
+
+// TODO: Implement these
 // export { InstinctStore, createInstinctStore } from './instinct-store.js';
 // export { SolutionsCache, createSolutionsCache } from './solutions-cache.js';
 

@@ -20,6 +20,8 @@ export interface LearnedSolution {
   errorType: string;
   /** Original error message */
   errorMessage: string;
+  /** Error signature (normalized hash for matching) */
+  errorSignature: string;
   /** Identified root cause */
   rootCause: string;
   /** Solution that worked */
