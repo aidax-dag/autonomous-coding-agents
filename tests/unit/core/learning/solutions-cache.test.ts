@@ -5,6 +5,7 @@
  * Uses TDD RED-GREEN pattern.
  */
 
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs/promises';
 import {
   SolutionsCache,
