@@ -103,6 +103,51 @@ export interface IReflexionPattern {
 // ============================================================================
 
 /**
+ * Instinct domain types
+ */
+export type InstinctDomain =
+  | 'code-style'
+  | 'testing'
+  | 'git'
+  | 'documentation'
+  | 'architecture'
+  | 'debugging'
+  | 'performance'
+  | 'security'
+  | 'workflow'
+  | 'communication'
+  | 'custom';
+
+/**
+ * Instinct source types
+ */
+export type InstinctSource =
+  | 'session-observation'
+  | 'repo-analysis'
+  | 'user-correction'
+  | 'explicit-teaching'
+  | 'pattern-inference'
+  | 'imported';
+
+/**
+ * Instinct metadata
+ */
+export interface InstinctMetadata {
+  /** Project context */
+  projectContext?: string;
+  /** Related languages */
+  languageContext?: string[];
+  /** Related frameworks */
+  frameworkContext?: string[];
+  /** Tags */
+  tags?: string[];
+  /** Notes */
+  notes?: string;
+  /** Related instinct IDs */
+  relatedInstincts?: string[];
+}
+
+/**
  * Instinct - atomic learned behavior with confidence scoring
  */
 export interface Instinct {
@@ -115,9 +160,9 @@ export interface Instinct {
   /** Confidence level (0.3-0.9) */
   confidence: number;
   /** Domain/category */
-  domain: string;
+  domain: InstinctDomain;
   /** How this instinct was learned */
-  source: 'session-observation' | 'repo-analysis' | 'user-correction' | 'imported';
+  source: InstinctSource;
   /** Evidence/observations that created this */
   evidence: string[];
   /** When created */
@@ -126,6 +171,14 @@ export interface Instinct {
   updatedAt: Date;
   /** Number of times applied */
   usageCount: number;
+  /** Number of successful applications */
+  successCount: number;
+  /** Number of failed applications */
+  failureCount: number;
+  /** When last used */
+  lastUsedAt?: Date;
+  /** Additional metadata */
+  metadata?: InstinctMetadata;
   /** Source repository (if from repo-analysis) */
   sourceRepo?: string;
 }
@@ -134,14 +187,20 @@ export interface Instinct {
  * Result of instinct evolution (clustering)
  */
 export interface InstinctEvolution {
-  /** IDs of clustered instincts */
-  clusteredInstincts: string[];
-  /** What they evolved into */
-  evolvedTo: 'skill' | 'command' | 'agent';
-  /** ID of evolved artifact */
-  evolvedId: string;
+  /** What type of artifact this evolved into */
+  type: 'skill' | 'command' | 'agent';
+  /** IDs of source instincts */
+  sourceInstincts: string[];
+  /** Suggested name for the evolved artifact */
+  suggestedName: string;
+  /** Suggested description */
+  suggestedDescription: string;
+  /** Average confidence of source instincts */
+  confidence: number;
+  /** Extracted common pattern */
+  pattern: string;
   /** Evolution timestamp */
-  evolvedAt: Date;
+  createdAt: Date;
 }
 
 /**
@@ -149,55 +208,159 @@ export interface InstinctEvolution {
  */
 export interface InstinctFilter {
   /** Filter by domain */
-  domain?: string;
+  domain?: InstinctDomain | InstinctDomain[];
+  /** Filter by source */
+  source?: InstinctSource | InstinctSource[];
   /** Minimum confidence */
   minConfidence?: number;
-  /** Filter by source */
-  source?: Instinct['source'];
+  /** Maximum confidence */
+  maxConfidence?: number;
   /** Filter by usage count */
   minUsageCount?: number;
+  /** Created after date */
+  createdAfter?: Date;
+  /** Created before date */
+  createdBefore?: Date;
+  /** Search text in trigger/action */
+  searchText?: string;
+  /** Filter by tags */
+  tags?: string[];
 }
+
+/**
+ * Import result
+ */
+export interface ImportResult {
+  /** Number of imported instincts */
+  imported: number;
+  /** Number of skipped instincts */
+  skipped: number;
+  /** Number of merged instincts */
+  merged: number;
+  /** Error messages */
+  errors: string[];
+}
+
+/**
+ * Instinct statistics
+ */
+export interface InstinctStats {
+  /** Total instincts */
+  total: number;
+  /** Count by domain */
+  byDomain: Partial<Record<InstinctDomain, number>>;
+  /** Count by source */
+  bySource: Partial<Record<InstinctSource, number>>;
+  /** Count by confidence level */
+  byConfidenceLevel: Partial<Record<ConfidenceLevel, number>>;
+  /** Average confidence */
+  averageConfidence: number;
+  /** Total usage count */
+  totalUsageCount: number;
+  /** Success rate */
+  successRate: number;
+  /** Number of evolution candidates */
+  evolutionCandidates: number;
+}
+
+/**
+ * Confidence level type
+ */
+export type ConfidenceLevel = keyof typeof CONFIDENCE_LEVELS;
+
+/**
+ * Input type for creating an instinct
+ * confidence is optional (defaults based on source)
+ */
+export type InstinctCreateInput = {
+  trigger: string;
+  action: string;
+  confidence?: number;
+  domain: InstinctDomain;
+  source: InstinctSource;
+  evidence: string[];
+  metadata?: InstinctMetadata;
+  sourceRepo?: string;
+};
 
 /**
  * Instinct store interface
  */
 export interface IInstinctStore {
+  // CRUD operations
   /**
    * Create new instinct from observation
-   * @param instinct Instinct data (without id, timestamps)
+   * @param instinct Instinct data (confidence is optional, defaults based on source)
    * @returns Created instinct
    */
-  create(instinct: Omit<Instinct, 'id' | 'createdAt' | 'updatedAt'>): Promise<Instinct>;
+  create(instinct: InstinctCreateInput): Promise<Instinct>;
 
+  /**
+   * Get instinct by ID
+   */
+  get(id: string): Promise<Instinct | null>;
+
+  /**
+   * Update instinct
+   * @param id Instinct ID
+   * @param updates Partial updates
+   * @returns Updated instinct or null if not found
+   */
+  update(id: string, updates: Partial<Omit<Instinct, 'id' | 'createdAt'>>): Promise<Instinct | null>;
+
+  /**
+   * Delete instinct
+   */
+  delete(id: string): Promise<boolean>;
+
+  // Search and matching
   /**
    * Find instincts matching context
    * @param context Current context description
    * @param domain Optional domain filter
    * @returns Matching instincts sorted by confidence
    */
-  findMatching(context: string, domain?: string): Promise<Instinct[]>;
+  findMatching(context: string, domain?: InstinctDomain): Promise<Instinct[]>;
 
   /**
-   * Reinforce instinct (increase confidence)
+   * List instincts by filter
+   */
+  list(filter?: InstinctFilter): Promise<Instinct[]>;
+
+  // Confidence adjustment
+  /**
+   * Reinforce instinct (increase confidence by +0.05)
    * Called when instinct was applied and not corrected
    * @param id Instinct ID
+   * @returns Updated instinct or null if not found
    */
-  reinforce(id: string): Promise<void>;
+  reinforce(id: string): Promise<Instinct | null>;
 
   /**
-   * Correct instinct (decrease confidence)
+   * Correct instinct (decrease confidence by -0.10)
    * Called when user explicitly corrects the behavior
    * @param id Instinct ID
+   * @returns Updated instinct or null if not found
    */
-  correct(id: string): Promise<void>;
+  correct(id: string): Promise<Instinct | null>;
 
+  // Usage recording
+  /**
+   * Record usage of instinct
+   * @param id Instinct ID
+   * @param success Whether the usage was successful
+   */
+  recordUsage(id: string, success: boolean): Promise<void>;
+
+  // Evolution mechanism
   /**
    * Cluster related instincts and evolve into higher-level artifact
-   * @param threshold Minimum number of related instincts to cluster
+   * @param threshold Minimum confidence threshold for evolution
    * @returns Evolution results
    */
-  evolve(threshold: number): Promise<InstinctEvolution[]>;
+  evolve(threshold?: number): Promise<InstinctEvolution[]>;
 
+  // Export/Import
   /**
    * Export instincts for sharing
    * @param filter Optional filter
@@ -208,23 +371,20 @@ export interface IInstinctStore {
   /**
    * Import instincts from external source
    * @param instincts Instincts to import
+   * @returns Import result
    */
-  import(instincts: Instinct[]): Promise<void>;
+  import(instincts: Instinct[]): Promise<ImportResult>;
+
+  // Statistics
+  /**
+   * Get instinct statistics
+   */
+  getStats(): Promise<InstinctStats>;
 
   /**
-   * Get instinct by ID
+   * Get confidence distribution
    */
-  get(id: string): Promise<Instinct | null>;
-
-  /**
-   * List all instincts
-   */
-  list(filter?: InstinctFilter): Promise<Instinct[]>;
-
-  /**
-   * Delete instinct
-   */
-  delete(id: string): Promise<void>;
+  getConfidenceDistribution(): Promise<Map<ConfidenceLevel, number>>;
 }
 
 // ============================================================================

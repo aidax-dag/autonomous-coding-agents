@@ -53,8 +53,15 @@ export {
 
   // Instinct Store
   type Instinct,
+  type InstinctCreateInput,
+  type InstinctDomain,
+  type InstinctSource,
+  type InstinctMetadata,
   type InstinctEvolution,
   type InstinctFilter,
+  type InstinctStats,
+  type ImportResult,
+  type ConfidenceLevel,
   type IInstinctStore,
 
   // Solutions Cache
@@ -78,8 +85,17 @@ export {
   type ReflexionPatternOptions,
 } from './reflexion-pattern.js';
 
+export {
+  InstinctStore,
+  createInstinctStore,
+  INSTINCT_STORAGE_CONFIG,
+  INITIAL_CONFIDENCE_BY_SOURCE,
+  EVOLUTION_THRESHOLDS,
+  MATCHING_CONFIG,
+  type InstinctStoreOptions,
+} from './instinct-store.js';
+
 // TODO: Implement these
-// export { InstinctStore, createInstinctStore } from './instinct-store.js';
 // export { SolutionsCache, createSolutionsCache } from './solutions-cache.js';
 
 // ============================================================================
@@ -167,6 +183,7 @@ export function classifyError(error: Error): string {
 
 /**
  * Default instinct domains for categorization
+ * Note: InstinctDomain type is exported from learning.interface.ts
  */
 export const INSTINCT_DOMAINS = [
   'code-style',
@@ -180,5 +197,3 @@ export const INSTINCT_DOMAINS = [
   'debugging',
   'refactoring',
 ] as const;
-
-export type InstinctDomain = (typeof INSTINCT_DOMAINS)[number];
