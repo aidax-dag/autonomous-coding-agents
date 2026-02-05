@@ -58,5 +58,23 @@ export type {
   GoalDefinition,
   GoalBackwardResult,
   IGoalBackwardVerifier,
-  VerificationStage,
 } from './interfaces/validation.interface.js';
+
+export { VerificationStage } from './interfaces/validation.interface.js';
+
+// ============================================================================
+// F003: GoalBackwardVerifier
+// ============================================================================
+
+export {
+  // Class
+  GoalBackwardVerifier,
+  // Factory
+  createGoalBackwardVerifier,
+  // Constants
+  PLACEHOLDER_PATTERNS,
+  MIN_COMPLEXITY_THRESHOLDS,
+  // Types
+  type GoalBackwardVerifierOptions,
+  type ComplexityThresholds,
+} from './goal-backward-verifier.js';
