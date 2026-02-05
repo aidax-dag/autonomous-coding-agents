@@ -12,6 +12,14 @@
  *
  * @module dx/token-budget
  *
+ * @deprecated This module is deprecated. For new code, use the unified
+ * ContextManager from `@/core/context` instead:
+ * ```typescript
+ * import { ContextManager, createContextManager } from '@/core/context';
+ * const ctx = createContextManager();
+ * ```
+ * This module will be removed in a future version.
+ *
  * @example
  * ```typescript
  * import { createTokenBudgetManager } from '@/dx/token-budget';

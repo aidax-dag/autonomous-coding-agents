@@ -1,13 +1,17 @@
 /**
  * Context Module
  *
- * Provides context management and quality curve functionality.
+ * Unified context management providing:
+ * - Token budget management
+ * - Quality curve (context usage → quality level)
+ * - Output optimization and compression
+ * - Event-driven monitoring
  *
  * @module core/context
  */
 
 // ============================================================================
-// Interfaces
+// Quality Curve Interfaces (F007)
 // ============================================================================
 
 export {
@@ -23,7 +27,49 @@ export {
 } from './interfaces/quality-curve.interface.js';
 
 // ============================================================================
-// Constants
+// Context Module Interfaces (F008)
+// ============================================================================
+
+export type {
+  // Token Budget
+  TokenBudgetConfig,
+  TokenUsageStats,
+
+  // Output Optimizer
+  OutputOptimizerConfig,
+  CompressionLevel,
+  CompressionResult,
+  SummarizationRequest,
+  OptimizationOptions,
+
+  // Context Monitor
+  ContextMonitorConfig,
+  MonitorCallbacks,
+
+  // Events
+  ContextEvent,
+  ContextEventHandler,
+  ContextEventData,
+
+  // Compaction
+  CompactionStrategyType,
+  CompactionRequest,
+  CompactionResult,
+
+  // Configuration
+  QualityCurveConfig,
+  ContextManagerConfig,
+
+  // Component Interfaces
+  ITokenBudgetManager,
+  IOutputOptimizer,
+  IContextMonitor,
+  ICompactionStrategy,
+  IContextManager,
+} from './interfaces/context.interface.js';
+
+// ============================================================================
+// Quality Curve Constants (F007)
 // ============================================================================
 
 export {
@@ -34,7 +80,23 @@ export {
 } from './constants/quality-curve.constants.js';
 
 // ============================================================================
-// Implementation
+// Context Module Constants (F008)
+// ============================================================================
+
+export {
+  DEFAULT_CONTEXT_CONFIG,
+  COMPRESSION_LEVELS,
+  MODEL_TOKEN_LIMITS,
+  CHARS_PER_TOKEN,
+  TOKEN_ESTIMATION,
+  COMPACTION_CONFIG,
+  EVENT_DEBOUNCE,
+  CONTEXT_THRESHOLDS,
+  type CompressionLevelConfig,
+} from './constants/context.constants.js';
+
+// ============================================================================
+// Quality Curve Implementation (F007)
 // ============================================================================
 
 export {
@@ -42,3 +104,54 @@ export {
   createQualityCurve,
   type ContextProvider,
 } from './quality-curve.js';
+
+// ============================================================================
+// Token Budget Manager (F008)
+// ============================================================================
+
+export {
+  TokenBudgetManager,
+  createTokenBudgetManager,
+} from './token-budget-manager.js';
+
+// ============================================================================
+// Output Optimizer (F008)
+// ============================================================================
+
+export {
+  OutputOptimizer,
+  createOutputOptimizer,
+} from './output-optimizer.js';
+
+// ============================================================================
+// Context Monitor (F008)
+// ============================================================================
+
+export {
+  ContextMonitor,
+  createContextMonitor,
+} from './context-monitor.js';
+
+// ============================================================================
+// Compaction Strategy (F008)
+// ============================================================================
+
+export {
+  CompactionStrategy,
+  createCompactionStrategy,
+} from './compaction-strategy.js';
+
+// ============================================================================
+// Context Manager (F008)
+// ============================================================================
+
+export {
+  ContextManager,
+  createContextManager,
+} from './context-manager.js';
+
+// ============================================================================
+// Default Export
+// ============================================================================
+
+export { ContextManager as default } from './context-manager.js';
