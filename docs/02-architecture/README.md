@@ -12,61 +12,9 @@
 
 ## 읽기 순서
 
-1. **[OVERVIEW.md](./OVERVIEW.md)** - 전체 아키텍처 이해 (10분)
-2. **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** - 상세 설계 확인 (20분)
+1. **[OVERVIEW.md](./OVERVIEW.md)** - 전체 아키텍처 이해 (15분)
+2. **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** - 상세 설계 확인 (30분)
 3. **[MODULE_REFERENCE.md](./MODULE_REFERENCE.md)** - 구현 시 참조 (필요시)
-
-## 핵심 아키텍처
-
-### Agent OS 패러다임
-
-```
-Traditional OS              Agent OS
-─────────────────────────────────────────────
-Hardware (CPU, Memory)  →   LLM Providers (Claude, GPT, Gemini)
-Process                 →   Agent
-Thread                  →   Task
-IPC                     →   Document-based Task Queue
-File System             →   Knowledge Store
-Scheduler               →   Kernel Scheduler
-System Calls            →   Tool Invocations
-```
-
-### 시스템 레이어
-
-```
-┌─────────────────────────────────────────┐
-│  Client Layer (CLI, Desktop, Web)       │
-├─────────────────────────────────────────┤
-│  API Layer (REST, GraphQL, WebSocket)   │
-├─────────────────────────────────────────┤
-│  Security Layer (Auth, Audit, Secrets)  │
-├─────────────────────────────────────────┤
-│  Core Domain Layer (Orchestrator, etc.) │
-├─────────────────────────────────────────┤
-│  Agent Layer (Coder, Reviewer, etc.)    │
-├─────────────────────────────────────────┤
-│  Team Layer (Frontend, Backend, QA)     │
-├─────────────────────────────────────────┤
-│  Tool & Plugin Layer (LSP, Git, MCP)    │
-├─────────────────────────────────────────┤
-│  Kernel Layer (Scheduler, Security)     │
-├─────────────────────────────────────────┤
-│  Infrastructure (LLM, NATS, PostgreSQL) │
-└─────────────────────────────────────────┘
-```
-
-### Core Agents
-
-| Agent | Role | Model |
-|-------|------|-------|
-| Coder | 코드 구현, 리팩토링 | Claude Sonnet |
-| Reviewer | 코드 리뷰, 품질 검증 | Claude Sonnet |
-| Architect | 설계, 문서 분석 | Claude Opus |
-| Tester | TDD, 테스트 작성 | Claude Sonnet |
-| DocWriter | 문서 생성 | Gemini |
-| Explorer | 코드베이스 탐색 | Claude Haiku |
-| Librarian | 레퍼런스 조회 | Claude Haiku |
 
 ## 관련 문서
 
