@@ -4,6 +4,7 @@
 > **모듈**: `src/core/validation/`
 > **효과**: Task Completion → Goal Achievement 검증 전환
 > **출처 패턴**: get-shit-done Goal-Backward Verification
+> **현재 코드 상태 (As-Is, 2026-02-06)**: ⚠️ 구현됨 (WIRED 검증은 스펙 대비 완화)
 
 ---
 
