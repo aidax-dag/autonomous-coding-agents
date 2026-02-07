@@ -584,6 +584,6 @@ AI 코딩 에이전트 시장은 빠르게 성장하고 있으며, 주요 AI 기
 
 ### 관련 문서
 
-- [VISION.md](./VISION.md) - autonomous-coding-agents 비전 문서
-- [PRD.md](../PRD.md) - 제품 요구사항 명세
-- [MULTI_AGENT_SYSTEM_DESIGN.md](../MULTI_AGENT_SYSTEM_DESIGN.md) - 시스템 설계 문서
+- [VISION.md](./VISION.md) - 비전 요약
+- [UNIFIED_VISION.md](./UNIFIED_VISION.md) - 통합 비전 문서 (마스터)
+- [SYSTEM_DESIGN.md](../02-architecture/SYSTEM_DESIGN.md) - 시스템 설계 문서

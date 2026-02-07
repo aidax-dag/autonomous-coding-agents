@@ -189,4 +189,4 @@ cd desktop && npm run tauri:dev
 - [Current Status](./STATUS.md) - 현재 진행 상황
 - [Next Tasks](./NEXT_TASKS.md) - 다음 작업 리스트
 - [Reference Guide](./REFERENCE.md) - 외부 참조 가이드
-- [Architecture Overview](../architecture/OVERVIEW.md) - 아키텍처 개요
+- [Architecture Overview](../02-architecture/OVERVIEW.md) - 아키텍처 개요

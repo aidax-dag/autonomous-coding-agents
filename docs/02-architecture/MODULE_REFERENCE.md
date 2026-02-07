@@ -625,4 +625,4 @@ describe('Module Integration', () => {
 
 - [Overview](./OVERVIEW.md) - 아키텍처 개요
 - [System Design](./SYSTEM_DESIGN.md) - 시스템 설계
-- [Testing Guide](../guides/TESTING.md) - 테스트 가이드
+- [Testing Guide](../03-guides/TESTING.md) - 테스트 가이드

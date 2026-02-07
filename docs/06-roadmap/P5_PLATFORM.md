@@ -808,7 +808,7 @@ web/public/
 
 - [ROADMAP.md](./ROADMAP.md) - 전체 로드맵
 - [STATUS.md](./STATUS.md) - 현재 진행 상황
-- [Architecture Overview](../architecture/OVERVIEW.md) - 아키텍처 개요
+- [Architecture Overview](../02-architecture/OVERVIEW.md) - 아키텍처 개요
 
 ---
 

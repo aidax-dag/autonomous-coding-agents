@@ -280,5 +280,5 @@ Directories: 135+
 - [Next Tasks](./NEXT_TASKS.md) - 다음 작업 리스트
 - [Roadmap](./ROADMAP.md) - 개발 로드맵
 - [P5 Platform](./P5_PLATFORM.md) - Phase 5 상세 계획
-- [Implementation Guide](../guides/IMPLEMENTATION_GUIDE.md) - 구현 가이드
-- [Architecture Overview](../architecture/OVERVIEW.md) - 아키텍처 개요
+- [Implementation Guide](../03-guides/IMPLEMENTATION_GUIDE.md) - 구현 가이드
+- [Architecture Overview](../02-architecture/OVERVIEW.md) - 아키텍처 개요

@@ -156,4 +156,4 @@ Hook events to consider:
 
 - [Current Status](./STATUS.md) - 현재 진행 상황
 - [Roadmap](./ROADMAP.md) - 개발 로드맵
-- [System Design](../architecture/SYSTEM_DESIGN.md) - 시스템 설계
+- [System Design](../02-architecture/SYSTEM_DESIGN.md) - 시스템 설계

@@ -152,5 +152,5 @@ Phase 4: v1.0 릴리스
 
 - [STATUS.md](./STATUS.md) - 현재 진행 상황
 - [ROADMAP.md](./ROADMAP.md) - 개발 로드맵
-- [IMPLEMENTATION_GUIDE.md](../guides/IMPLEMENTATION_GUIDE.md) - 구현 가이드
-- [OVERVIEW.md](../architecture/OVERVIEW.md) - 아키텍처 개요
+- [IMPLEMENTATION_GUIDE.md](../03-guides/IMPLEMENTATION_GUIDE.md) - 구현 가이드
+- [OVERVIEW.md](../02-architecture/OVERVIEW.md) - 아키텍처 개요

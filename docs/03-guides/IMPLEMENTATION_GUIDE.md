@@ -229,12 +229,12 @@ tests/e2e/cli-llm/
 
 | 문서 | 검토 항목 |
 |------|----------|
-| `docs/architecture/OVERVIEW.md` | 아키텍처 다이어그램 |
-| `docs/architecture/SYSTEM_DESIGN.md` | 디렉토리 구조, 인터페이스 |
-| `docs/architecture/MODULE_REFERENCE.md` | 모듈 상세 |
-| `docs/guides/CLI_USAGE.md` | CLI 명령어 |
-| `docs/roadmap/STATUS.md` | 진행 상황 |
-| `docs/roadmap/ROADMAP.md` | 로드맵 |
+| `docs/02-architecture/OVERVIEW.md` | 아키텍처 다이어그램 |
+| `docs/02-architecture/SYSTEM_DESIGN.md` | 디렉토리 구조, 인터페이스 |
+| `docs/02-architecture/MODULE_REFERENCE.md` | 모듈 상세 |
+| `docs/03-guides/CLI_USAGE.md` | CLI 명령어 |
+| `docs/06-roadmap/STATUS.md` | 진행 상황 |
+| `docs/06-roadmap/ROADMAP.md` | 로드맵 |
 
 #### 동기화 체크리스트
 
@@ -274,12 +274,12 @@ async function syncDocumentation() {
   const hooks = await glob('src/core/hooks/*/index.ts');
 
   // 4. STATUS.md 업데이트
-  const status = await readFile('docs/roadmap/STATUS.md', 'utf-8');
+  const status = await readFile('docs/06-roadmap/STATUS.md', 'utf-8');
   const updatedStatus = status
     .replace(/Total Tests: \d+/, `Total Tests: ${testFiles.length * 35}`) // 추정
     .replace(/Test Suites: \d+/, `Test Suites: ${testFiles.length}`);
 
-  await writeFile('docs/roadmap/STATUS.md', updatedStatus);
+  await writeFile('docs/06-roadmap/STATUS.md', updatedStatus);
 
   console.log('Documentation synchronized');
 }
@@ -2823,10 +2823,10 @@ npm run test:coverage
 
 ## 관련 문서
 
-- [NEXT_TASKS.md](../roadmap/NEXT_TASKS.md) - 작업 리스트
-- [STATUS.md](../roadmap/STATUS.md) - 현재 상황
-- [SYSTEM_DESIGN.md](../architecture/SYSTEM_DESIGN.md) - 시스템 설계
-- [P5_PLATFORM.md](../roadmap/P5_PLATFORM.md) - Phase 5 상세 계획
+- [NEXT_TASKS.md](../06-roadmap/NEXT_TASKS.md) - 작업 리스트
+- [STATUS.md](../06-roadmap/STATUS.md) - 현재 상황
+- [SYSTEM_DESIGN.md](../02-architecture/SYSTEM_DESIGN.md) - 시스템 설계
+- [P5_PLATFORM.md](../06-roadmap/P5_PLATFORM.md) - Phase 5 상세 계획
 
 ---
 

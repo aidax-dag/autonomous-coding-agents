@@ -1,4 +1,4 @@
-# CodeAvengers Architecture Overview
+# Autonomous Coding Agents - Architecture Overview
 
 > AI 에이전트 팀이 문서 기반으로 소프트웨어를 자율적으로 개발하는 플랫폼
 
@@ -252,6 +252,6 @@ Security Module             →     Permission Manager + Audit System
 
 - [System Design](./SYSTEM_DESIGN.md) - 상세 시스템 설계
 - [Module Reference](./MODULE_REFERENCE.md) - 모듈 설계 참조
-- [Roadmap](../roadmap/ROADMAP.md) - 구현 로드맵
-- [Status](../roadmap/STATUS.md) - 현재 진행 상황
-- [Testing Guide](../guides/TESTING.md) - 테스트 가이드
+- [Roadmap](../06-roadmap/ROADMAP.md) - 구현 로드맵
+- [Status](../06-roadmap/STATUS.md) - 현재 진행 상황
+- [Testing Guide](../03-guides/TESTING.md) - 테스트 가이드

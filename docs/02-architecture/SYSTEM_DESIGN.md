@@ -672,5 +672,5 @@ interface AppConfig {
 
 - [Overview](./OVERVIEW.md) - 아키텍처 개요
 - [Module Reference](./MODULE_REFERENCE.md) - 모듈 상세
-- [CLI Usage](../guides/CLI_USAGE.md) - CLI 사용법
-- [Deployment](../guides/DEPLOYMENT.md) - 배포 가이드
+- [CLI Usage](../03-guides/CLI_USAGE.md) - CLI 사용법
+- [Deployment](../03-guides/DEPLOYMENT.md) - 배포 가이드
