@@ -263,6 +263,27 @@ export {
 } from './orchestrator-runner';
 
 export {
+  // Runner State Manager
+  RunnerStateManager,
+} from './runner-state-manager';
+
+export {
+  // Error Escalator
+  ErrorEscalator,
+  createErrorEscalator,
+
+  // Enums
+  ErrorSeverity,
+  EscalationAction,
+
+  // Types
+  type ErrorClassification,
+  type ErrorEvent,
+  type ErrorEscalatorConfig,
+  type ErrorClassifier,
+} from './error-escalator';
+
+export {
   // Agent Workflow
   AgentWorkflow,
   createAgentWorkflow,

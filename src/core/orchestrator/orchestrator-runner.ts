@@ -30,6 +30,8 @@ import { ILLMClient } from '@/shared/llm';
 import { RoutingStrategy } from './task-router';
 import { TaskHandlerResult } from './team-agent';
 import { BaseTeamAgent } from './base-team-agent';
+import { RunnerStateManager } from './runner-state-manager.js';
+import { ErrorEscalator, EscalationAction } from './error-escalator.js';
 import { createQAExecutor } from './quality';
 import { HookRegistry } from '../hooks/hook-registry';
 import { HookExecutor } from '../hooks/hook-executor';
@@ -147,9 +149,8 @@ export class OrchestratorRunner extends EventEmitter {
   private readonly hookRegistry: HookRegistry;
   private readonly hookExecutor: HookExecutor;
 
-  private status: RunnerStatus = RunnerStatus.IDLE;
-  private startTime?: Date;
-  private taskResults: Map<string, WorkflowResult> = new Map();
+  private readonly stateManager = new RunnerStateManager();
+  private readonly errorEscalator = new ErrorEscalator();
 
   constructor(config: OrchestratorRunnerConfig) {
     super();
@@ -202,7 +203,7 @@ export class OrchestratorRunner extends EventEmitter {
    * Get current status
    */
   get currentStatus(): RunnerStatus {
-    return this.status;
+    return this.stateManager.getStatus();
   }
 
   /**
@@ -223,19 +224,19 @@ export class OrchestratorRunner extends EventEmitter {
    * Get uptime in ms
    */
   get uptime(): number {
-    return this.startTime ? Date.now() - this.startTime.getTime() : 0;
+    return this.stateManager.getUptime();
   }
 
   /**
    * Initialize and start the runner
    */
   async start(): Promise<void> {
-    if (this.status === RunnerStatus.RUNNING) {
+    if (this.stateManager.getStatus() === RunnerStatus.RUNNING) {
       return;
     }
 
     try {
-      this.status = RunnerStatus.INITIALIZING;
+      this.stateManager.setStatus(RunnerStatus.INITIALIZING);
 
       // Initialize workspace and queue
       await this.workspace.initialize();
@@ -250,11 +251,10 @@ export class OrchestratorRunner extends EventEmitter {
       // Start orchestrator
       await this.orchestrator.start();
 
-      this.startTime = new Date();
-      this.status = RunnerStatus.RUNNING;
+      this.stateManager.markStarted();
       this.emit('started');
     } catch (error) {
-      this.status = RunnerStatus.ERROR;
+      this.stateManager.setStatus(RunnerStatus.ERROR);
       const err = error instanceof Error ? error : new Error(String(error));
       this.emit('error', err);
       throw err;
@@ -265,12 +265,12 @@ export class OrchestratorRunner extends EventEmitter {
    * Stop the runner
    */
   async stop(): Promise<void> {
-    if (this.status === RunnerStatus.STOPPED) {
+    if (this.stateManager.getStatus() === RunnerStatus.STOPPED) {
       return;
     }
 
     try {
-      this.status = RunnerStatus.STOPPING;
+      this.stateManager.setStatus(RunnerStatus.STOPPING);
 
       // Stop orchestrator (which stops all teams)
       await this.orchestrator.stop();
@@ -278,10 +278,10 @@ export class OrchestratorRunner extends EventEmitter {
       // Stop queue
       await this.queue.stop();
 
-      this.status = RunnerStatus.STOPPED;
+      this.stateManager.setStatus(RunnerStatus.STOPPED);
       this.emit('stopped');
     } catch (error) {
-      this.status = RunnerStatus.ERROR;
+      this.stateManager.setStatus(RunnerStatus.ERROR);
       const err = error instanceof Error ? error : new Error(String(error));
       this.emit('error', err);
       throw err;
@@ -292,12 +292,12 @@ export class OrchestratorRunner extends EventEmitter {
    * Pause the runner
    */
   async pause(): Promise<void> {
-    if (this.status !== RunnerStatus.RUNNING) {
+    if (this.stateManager.getStatus() !== RunnerStatus.RUNNING) {
       return;
     }
 
     await this.orchestrator.pause();
-    this.status = RunnerStatus.PAUSED;
+    this.stateManager.setStatus(RunnerStatus.PAUSED);
     this.emit('paused');
   }
 
@@ -305,12 +305,12 @@ export class OrchestratorRunner extends EventEmitter {
    * Resume the runner
    */
   async resume(): Promise<void> {
-    if (this.status !== RunnerStatus.PAUSED) {
+    if (this.stateManager.getStatus() !== RunnerStatus.PAUSED) {
       return;
     }
 
     await this.orchestrator.resume();
-    this.status = RunnerStatus.RUNNING;
+    this.stateManager.setStatus(RunnerStatus.RUNNING);
     this.emit('resumed');
   }
 
@@ -330,8 +330,8 @@ export class OrchestratorRunner extends EventEmitter {
       waitForCompletion?: boolean;
     }
   ): Promise<GoalResult> {
-    if (this.status !== RunnerStatus.RUNNING) {
-      throw new Error(`Runner is not running (status: ${this.status})`);
+    if (!this.stateManager.isRunning()) {
+      throw new Error(`Runner is not running (status: ${this.stateManager.getStatus()})`);
     }
 
     const goalId = `goal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -430,7 +430,7 @@ export class OrchestratorRunner extends EventEmitter {
             duration: Date.now() - startTime,
             teamType: task.metadata.to,
           };
-          this.taskResults.set(taskId, workflowResult);
+          this.stateManager.recordResult(taskId, workflowResult);
           this.emit('workflow:completed', workflowResult);
           return workflowResult;
         }
@@ -463,18 +463,28 @@ export class OrchestratorRunner extends EventEmitter {
         ).catch(() => []);
       }
 
-      this.taskResults.set(taskId, workflowResult);
+      this.stateManager.recordResult(taskId, workflowResult);
+      this.errorEscalator.recordSuccess(taskId);
       this.emit('workflow:completed', workflowResult);
 
       return workflowResult;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
 
+      // Classify error and determine action
+      const action = this.errorEscalator.handleError(err, 'executeTask', taskId);
+
       // TASK_ERROR Hooks (error learning)
       if (this.hookRegistry.count() > 0) {
         await this.hookExecutor.executeHooks(
           HookEvent.TASK_ERROR, { task, error: err }
         ).catch(() => []);
+      }
+
+      // Stop runner on critical errors
+      if (action === EscalationAction.STOP_RUNNER) {
+        this.stateManager.setStatus(RunnerStatus.ERROR);
+        this.emit('error', err);
       }
 
       const workflowResult: WorkflowResult = {
@@ -485,7 +495,7 @@ export class OrchestratorRunner extends EventEmitter {
         teamType: task.metadata.to,
       };
 
-      this.taskResults.set(taskId, workflowResult);
+      this.stateManager.recordResult(taskId, workflowResult);
       this.emit('workflow:failed', taskId, err);
 
       return workflowResult;
@@ -505,8 +515,8 @@ export class OrchestratorRunner extends EventEmitter {
       projectId?: string;
     }
   ): Promise<TaskDocument> {
-    if (this.status !== RunnerStatus.RUNNING) {
-      throw new Error(`Runner is not running (status: ${this.status})`);
+    if (!this.stateManager.isRunning()) {
+      throw new Error(`Runner is not running (status: ${this.stateManager.getStatus()})`);
     }
 
     const taskType = this.getTaskTypeForTeam(teamType);
@@ -527,14 +537,14 @@ export class OrchestratorRunner extends EventEmitter {
    * Get task result by ID
    */
   getTaskResult(taskId: string): WorkflowResult | undefined {
-    return this.taskResults.get(taskId);
+    return this.stateManager.getResult(taskId);
   }
 
   /**
    * Get all task results
    */
   getAllResults(): Map<string, WorkflowResult> {
-    return new Map(this.taskResults);
+    return this.stateManager.getAllResults();
   }
 
   /**
@@ -548,16 +558,7 @@ export class OrchestratorRunner extends EventEmitter {
     tasksFailed: number;
     orchestratorStats: ReturnType<CEOOrchestrator['getStats']>;
   } {
-    const results = Array.from(this.taskResults.values());
-
-    return {
-      status: this.status,
-      uptime: this.uptime,
-      tasksExecuted: results.length,
-      tasksSucceeded: results.filter((r) => r.success).length,
-      tasksFailed: results.filter((r) => !r.success).length,
-      orchestratorStats: this.orchestrator.getStats(),
-    };
+    return this.stateManager.getStats(this.orchestrator);
   }
 
   /**
@@ -566,7 +567,8 @@ export class OrchestratorRunner extends EventEmitter {
   async destroy(): Promise<void> {
     await this.stop();
     await this.orchestrator.destroy();
-    this.taskResults.clear();
+    this.stateManager.clearResults();
+    this.errorEscalator.reset();
     this.removeAllListeners();
 
     // Clean up integration modules
@@ -803,7 +805,7 @@ export class OrchestratorRunner extends EventEmitter {
         duration: 0,
         teamType: task.metadata.to,
       };
-      this.taskResults.set(task.metadata.id, workflowResult);
+      this.stateManager.recordResult(task.metadata.id, workflowResult);
     });
 
     this.orchestrator.on('task:failed', (task, error) => {
@@ -814,7 +816,7 @@ export class OrchestratorRunner extends EventEmitter {
         duration: 0,
         teamType: task.metadata.to,
       };
-      this.taskResults.set(task.metadata.id, workflowResult);
+      this.stateManager.recordResult(task.metadata.id, workflowResult);
     });
 
     this.orchestrator.on('error', (error) => {
