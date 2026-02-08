@@ -2,7 +2,6 @@ import {
   loadConfig,
   validateConfig,
   getLLMApiKey,
-  isNotificationConfigured,
   isProduction,
   isDevelopment,
   isTest,
@@ -38,7 +37,6 @@ describe('Configuration Management', () => {
       process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
       process.env.GITHUB_TOKEN = 'test-github-token';
       process.env.GITHUB_OWNER = 'test-owner';
-      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
 
       const config = loadConfig();
 
@@ -46,26 +44,22 @@ describe('Configuration Management', () => {
       expect(config.llm.anthropicApiKey).toBe('test-anthropic-key');
       expect(config.github.token).toBe('test-github-token');
       expect(config.github.owner).toBe('test-owner');
-      expect(config.database.url).toBe('postgresql://user:pass@localhost:5432/db');
     });
 
     it('should use default values when optional variables are not set', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.GITHUB_OWNER = 'test-owner';
-      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
       delete process.env.NODE_ENV; // Clear to test default
 
       const config = loadConfig();
 
       expect(config.nodeEnv).toBe('development');
       expect(config.llm.provider).toBe('claude');
-      expect(config.nats.url).toBe('nats://localhost:4222');
       expect(config.agent.autoMergeEnabled).toBe(false);
       expect(config.agent.humanApprovalRequired).toBe(true);
       expect(config.agent.maxConcurrentFeatures).toBe(3);
       expect(config.logging.level).toBe('info');
-      expect(config.server.port).toBe(3000);
     });
 
     it('should parse custom values from environment', () => {
@@ -74,33 +68,27 @@ describe('Configuration Management', () => {
       process.env.OPENAI_API_KEY = 'test-openai-key';
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.GITHUB_OWNER = 'test-owner';
-      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
-      process.env.NATS_URL = 'nats://remote:4222';
       process.env.AUTO_MERGE_ENABLED = 'true';
       process.env.HUMAN_APPROVAL_REQUIRED = 'false';
       process.env.MAX_CONCURRENT_FEATURES = '5';
       process.env.AGENT_TIMEOUT_MINUTES = '360';
       process.env.LOG_LEVEL = 'debug';
-      process.env.PORT = '8080';
 
       const config = loadConfig();
 
       expect(config.nodeEnv).toBe('production');
       expect(config.llm.provider).toBe('openai');
-      expect(config.nats.url).toBe('nats://remote:4222');
       expect(config.agent.autoMergeEnabled).toBe(true);
       expect(config.agent.humanApprovalRequired).toBe(false);
       expect(config.agent.maxConcurrentFeatures).toBe(5);
       expect(config.agent.timeoutMinutes).toBe(360);
       expect(config.logging.level).toBe('debug');
-      expect(config.server.port).toBe(8080);
     });
 
     it('should parse boolean values correctly', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.GITHUB_OWNER = 'test-owner';
-      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
       process.env.AUTO_MERGE_ENABLED = 'TRUE';
       process.env.LOG_TO_FILE = 'FALSE';
 
@@ -114,14 +102,11 @@ describe('Configuration Management', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       process.env.GITHUB_TOKEN = 'test-token';
       process.env.GITHUB_OWNER = 'test-owner';
-      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
       process.env.MAX_CONCURRENT_FEATURES = '10';
-      process.env.PORT = '9000';
 
       const config = loadConfig();
 
       expect(config.agent.maxConcurrentFeatures).toBe(10);
-      expect(config.server.port).toBe(9000);
     });
   });
 
@@ -140,12 +125,6 @@ describe('Configuration Management', () => {
           owner: 'test-owner',
           repo: undefined,
         },
-        nats: {
-          url: 'nats://localhost:4222',
-        },
-        database: {
-          url: 'postgresql://user:pass@localhost:5432/db',
-        },
         agent: {
           autoMergeEnabled: false,
           humanApprovalRequired: true,
@@ -157,18 +136,6 @@ describe('Configuration Management', () => {
           level: 'info',
           toFile: true,
           directory: './logs',
-        },
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: undefined,
-          smtpPort: undefined,
-          smtpUser: undefined,
-          smtpPass: undefined,
-          notificationEmail: undefined,
-        },
-        server: {
-          port: 3000,
         },
       };
 
@@ -189,12 +156,6 @@ describe('Configuration Management', () => {
           owner: 'test-owner',
           repo: undefined,
         },
-        nats: {
-          url: 'nats://localhost:4222',
-        },
-        database: {
-          url: 'postgresql://user:pass@localhost:5432/db',
-        },
         agent: {
           autoMergeEnabled: false,
           humanApprovalRequired: true,
@@ -206,71 +167,10 @@ describe('Configuration Management', () => {
           level: 'info',
           toFile: true,
           directory: './logs',
-        },
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: undefined,
-          smtpPort: undefined,
-          smtpUser: undefined,
-          smtpPass: undefined,
-          notificationEmail: undefined,
-        },
-        server: {
-          port: 3000,
         },
       };
 
       expect(() => validateConfig(invalidConfig)).toThrow(/LLM API key.*required/);
-    });
-
-    it('should throw error when DATABASE_URL is missing', () => {
-      const invalidConfig: Config = {
-        nodeEnv: 'development',
-        llm: {
-          provider: 'claude',
-          anthropicApiKey: 'test-key',
-          openaiApiKey: undefined,
-          geminiApiKey: undefined,
-        },
-        github: {
-          token: 'test-token',
-          owner: 'test-owner',
-          repo: undefined,
-        },
-        nats: {
-          url: 'nats://localhost:4222',
-        },
-        database: {
-          url: '',
-        },
-        agent: {
-          autoMergeEnabled: false,
-          humanApprovalRequired: true,
-          maxConcurrentFeatures: 3,
-          timeoutMinutes: 240,
-          maxTurnsPerFeature: 50,
-        },
-        logging: {
-          level: 'info',
-          toFile: true,
-          directory: './logs',
-        },
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: undefined,
-          smtpPort: undefined,
-          smtpUser: undefined,
-          smtpPass: undefined,
-          notificationEmail: undefined,
-        },
-        server: {
-          port: 3000,
-        },
-      };
-
-      expect(() => validateConfig(invalidConfig)).toThrow(/DATABASE_URL.*required/);
     });
 
     it('should throw error when GITHUB_TOKEN is missing', () => {
@@ -287,12 +187,6 @@ describe('Configuration Management', () => {
           owner: 'test-owner',
           repo: undefined,
         },
-        nats: {
-          url: 'nats://localhost:4222',
-        },
-        database: {
-          url: 'postgresql://user:pass@localhost:5432/db',
-        },
         agent: {
           autoMergeEnabled: false,
           humanApprovalRequired: true,
@@ -304,71 +198,10 @@ describe('Configuration Management', () => {
           level: 'info',
           toFile: true,
           directory: './logs',
-        },
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: undefined,
-          smtpPort: undefined,
-          smtpUser: undefined,
-          smtpPass: undefined,
-          notificationEmail: undefined,
-        },
-        server: {
-          port: 3000,
         },
       };
 
       expect(() => validateConfig(invalidConfig)).toThrow(/GITHUB_TOKEN.*required/);
-    });
-
-    it('should throw error when SMTP config is incomplete', () => {
-      const invalidConfig: Config = {
-        nodeEnv: 'development',
-        llm: {
-          provider: 'claude',
-          anthropicApiKey: 'test-key',
-          openaiApiKey: undefined,
-          geminiApiKey: undefined,
-        },
-        github: {
-          token: 'test-token',
-          owner: 'test-owner',
-          repo: undefined,
-        },
-        nats: {
-          url: 'nats://localhost:4222',
-        },
-        database: {
-          url: 'postgresql://user:pass@localhost:5432/db',
-        },
-        agent: {
-          autoMergeEnabled: false,
-          humanApprovalRequired: true,
-          maxConcurrentFeatures: 3,
-          timeoutMinutes: 240,
-          maxTurnsPerFeature: 50,
-        },
-        logging: {
-          level: 'info',
-          toFile: true,
-          directory: './logs',
-        },
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: 'smtp.gmail.com',
-          smtpPort: 587,
-          smtpUser: undefined, // Missing
-          smtpPass: undefined, // Missing
-          notificationEmail: undefined,
-        },
-        server: {
-          port: 3000,
-        },
-      };
-
-      expect(() => validateConfig(invalidConfig)).toThrow(/Incomplete SMTP configuration/);
     });
   });
 
@@ -383,8 +216,6 @@ describe('Configuration Management', () => {
           geminiApiKey: undefined,
         },
         github: { token: 'test', owner: 'test', repo: undefined },
-        nats: { url: 'nats://localhost:4222' },
-        database: { url: 'postgresql://localhost/db' },
         agent: {
           autoMergeEnabled: false,
           humanApprovalRequired: true,
@@ -393,16 +224,6 @@ describe('Configuration Management', () => {
           maxTurnsPerFeature: 50,
         },
         logging: { level: 'info', toFile: true, directory: './logs' },
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: undefined,
-          smtpPort: undefined,
-          smtpUser: undefined,
-          smtpPass: undefined,
-          notificationEmail: undefined,
-        },
-        server: { port: 3000 },
       };
 
       expect(getLLMApiKey(config)).toBe('test-anthropic-key');
@@ -418,8 +239,6 @@ describe('Configuration Management', () => {
           geminiApiKey: undefined,
         },
         github: { token: 'test', owner: 'test', repo: undefined },
-        nats: { url: 'nats://localhost:4222' },
-        database: { url: 'postgresql://localhost/db' },
         agent: {
           autoMergeEnabled: false,
           humanApprovalRequired: true,
@@ -428,16 +247,6 @@ describe('Configuration Management', () => {
           maxTurnsPerFeature: 50,
         },
         logging: { level: 'info', toFile: true, directory: './logs' },
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: undefined,
-          smtpPort: undefined,
-          smtpUser: undefined,
-          smtpPass: undefined,
-          notificationEmail: undefined,
-        },
-        server: { port: 3000 },
       };
 
       expect(getLLMApiKey(config)).toBe('test-openai-key');
@@ -453,8 +262,6 @@ describe('Configuration Management', () => {
           geminiApiKey: undefined,
         },
         github: { token: 'test', owner: 'test', repo: undefined },
-        nats: { url: 'nats://localhost:4222' },
-        database: { url: 'postgresql://localhost/db' },
         agent: {
           autoMergeEnabled: false,
           humanApprovalRequired: true,
@@ -463,81 +270,9 @@ describe('Configuration Management', () => {
           maxTurnsPerFeature: 50,
         },
         logging: { level: 'info', toFile: true, directory: './logs' },
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: undefined,
-          smtpPort: undefined,
-          smtpUser: undefined,
-          smtpPass: undefined,
-          notificationEmail: undefined,
-        },
-        server: { port: 3000 },
       };
 
       expect(() => getLLMApiKey(config)).toThrow(/Anthropic API key not configured/);
-    });
-  });
-
-  describe('isNotificationConfigured', () => {
-    const baseConfig: Config = {
-      nodeEnv: 'development',
-      llm: {
-        provider: 'claude',
-        anthropicApiKey: 'test-key',
-        openaiApiKey: undefined,
-        geminiApiKey: undefined,
-      },
-      github: { token: 'test', owner: 'test', repo: undefined },
-      nats: { url: 'nats://localhost:4222' },
-      database: { url: 'postgresql://localhost/db' },
-      agent: {
-        autoMergeEnabled: false,
-        humanApprovalRequired: true,
-        maxConcurrentFeatures: 3,
-        timeoutMinutes: 240,
-        maxTurnsPerFeature: 50,
-      },
-      logging: { level: 'info', toFile: true, directory: './logs' },
-      notifications: {
-        slackWebhookUrl: 'https://hooks.slack.com/test',
-        discordWebhookUrl: undefined,
-        smtpHost: undefined,
-        smtpPort: undefined,
-        smtpUser: undefined,
-        smtpPass: undefined,
-        notificationEmail: undefined,
-      },
-      server: { port: 3000 },
-    };
-
-    it('should return true when Slack is configured', () => {
-      expect(isNotificationConfigured(baseConfig, 'slack')).toBe(true);
-    });
-
-    it('should return false when Discord is not configured', () => {
-      expect(isNotificationConfigured(baseConfig, 'discord')).toBe(false);
-    });
-
-    it('should return false when email is not configured', () => {
-      expect(isNotificationConfigured(baseConfig, 'email')).toBe(false);
-    });
-
-    it('should return true when email is fully configured', () => {
-      const emailConfig: Config = {
-        ...baseConfig,
-        notifications: {
-          slackWebhookUrl: undefined,
-          discordWebhookUrl: undefined,
-          smtpHost: 'smtp.gmail.com',
-          smtpPort: 587,
-          smtpUser: 'user@gmail.com',
-          smtpPass: 'password',
-          notificationEmail: 'notifications@example.com',
-        },
-      };
-
-      expect(isNotificationConfigured(emailConfig, 'email')).toBe(true);
     });
   });
 
@@ -551,8 +286,6 @@ describe('Configuration Management', () => {
         geminiApiKey: undefined,
       },
       github: { token: 'test', owner: 'test', repo: undefined },
-      nats: { url: 'nats://localhost:4222' },
-      database: { url: 'postgresql://localhost/db' },
       agent: {
         autoMergeEnabled: false,
         humanApprovalRequired: true,
@@ -561,16 +294,6 @@ describe('Configuration Management', () => {
         maxTurnsPerFeature: 50,
       },
       logging: { level: 'info', toFile: true, directory: './logs' },
-      notifications: {
-        slackWebhookUrl: undefined,
-        discordWebhookUrl: undefined,
-        smtpHost: undefined,
-        smtpPort: undefined,
-        smtpUser: undefined,
-        smtpPass: undefined,
-        notificationEmail: undefined,
-      },
-      server: { port: 3000 },
     };
 
     it('should correctly identify development environment', () => {

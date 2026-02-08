@@ -75,16 +75,6 @@ const ConfigSchema = z.object({
     repo: z.string().optional(),
   }),
 
-  // NATS Configuration
-  nats: z.object({
-    url: z.string().url().default('nats://localhost:4222'),
-  }),
-
-  // Database Configuration
-  database: z.object({
-    url: z.string().url(),
-  }),
-
   // Agent Configuration
   agent: z.object({
     autoMergeEnabled: z.boolean().default(false),
@@ -101,21 +91,6 @@ const ConfigSchema = z.object({
     directory: z.string().default('./logs'),
   }),
 
-  // Notification Configuration
-  notifications: z.object({
-    slackWebhookUrl: z.string().url().optional(),
-    discordWebhookUrl: z.string().url().optional(),
-    smtpHost: z.string().optional(),
-    smtpPort: z.number().int().positive().optional(),
-    smtpUser: z.string().optional(),
-    smtpPass: z.string().optional(),
-    notificationEmail: z.string().email().optional(),
-  }),
-
-  // Server Configuration
-  server: z.object({
-    port: z.number().int().positive().default(3000),
-  }),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -157,14 +132,6 @@ function parseEnv(): Config {
       repo: env.GITHUB_REPO,
     },
 
-    nats: {
-      url: env.NATS_URL || 'nats://localhost:4222',
-    },
-
-    database: {
-      url: env.DATABASE_URL || '',
-    },
-
     agent: {
       autoMergeEnabled: parseBoolean(env.AUTO_MERGE_ENABLED, false),
       humanApprovalRequired: parseBoolean(env.HUMAN_APPROVAL_REQUIRED, true),
@@ -179,19 +146,6 @@ function parseEnv(): Config {
       directory: env.LOG_DIR || './logs',
     },
 
-    notifications: {
-      slackWebhookUrl: env.SLACK_WEBHOOK_URL,
-      discordWebhookUrl: env.DISCORD_WEBHOOK_URL,
-      smtpHost: env.SMTP_HOST,
-      smtpPort: parseNumber(env.SMTP_PORT),
-      smtpUser: env.SMTP_USER,
-      smtpPass: env.SMTP_PASS,
-      notificationEmail: env.NOTIFICATION_EMAIL,
-    },
-
-    server: {
-      port: parseNumber(env.PORT, 3000)!,
-    },
   };
 
   return ConfigSchema.parse(rawConfig);
@@ -220,11 +174,6 @@ export function validateConfig(config: Config): void {
     }
   }
 
-  // Check database URL
-  if (!config.database.url) {
-    throw new Error('DATABASE_URL is required in .env file');
-  }
-
   // Check GitHub configuration
   if (!config.github.token) {
     throw new Error('GITHUB_TOKEN is required in .env file');
@@ -234,15 +183,6 @@ export function validateConfig(config: Config): void {
     throw new Error('GITHUB_OWNER is required in .env file');
   }
 
-  // Validate notification config consistency
-  const { smtpHost, smtpPort, smtpUser, smtpPass } = config.notifications;
-  const smtpConfigured = smtpHost || smtpPort || smtpUser || smtpPass;
-
-  if (smtpConfigured && (!smtpHost || !smtpPort || !smtpUser || !smtpPass)) {
-    throw new Error(
-      'Incomplete SMTP configuration. All of SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS are required.'
-    );
-  }
 }
 
 /**
@@ -298,28 +238,6 @@ export function getLLMApiKey(config: Config): string {
       return geminiApiKey;
     default:
       throw new Error(`Unknown LLM provider: ${provider}`);
-  }
-}
-
-/**
- * Check if a specific notification method is configured
- */
-export function isNotificationConfigured(config: Config, method: 'slack' | 'discord' | 'email'): boolean {
-  switch (method) {
-    case 'slack':
-      return !!config.notifications.slackWebhookUrl;
-    case 'discord':
-      return !!config.notifications.discordWebhookUrl;
-    case 'email':
-      return !!(
-        config.notifications.smtpHost &&
-        config.notifications.smtpPort &&
-        config.notifications.smtpUser &&
-        config.notifications.smtpPass &&
-        config.notifications.notificationEmail
-      );
-    default:
-      return false;
   }
 }
 
