@@ -263,6 +263,20 @@ export {
 } from './orchestrator-runner';
 
 export {
+  // Runner Config Factory
+  createRunnerFromEnv,
+  createRunnerFromConfig,
+  buildRunnerConfig,
+  loadRunnerConfig,
+
+  // Schemas
+  RunnerConfigSchema,
+
+  // Types
+  type RunnerConfig,
+} from './runner-config';
+
+export {
   // Runner State Manager
   RunnerStateManager,
 } from './runner-state-manager';
