@@ -7,7 +7,7 @@
  */
 
 import { HookConfig } from '../../interfaces/hook.interface.js';
-import { ITokenBudgetManager } from '../../../dx/token-budget/index.js';
+import { ILegacyTokenBudgetManager as ITokenBudgetManager } from '../../context/index.js';
 
 /**
  * Optimization strategy

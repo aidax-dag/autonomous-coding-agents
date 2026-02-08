@@ -8,7 +8,7 @@
 
 import { BaseHook } from '../base-hook.js';
 import { HookEvent, HookContext, HookResult, HookAction } from '../../interfaces/hook.interface.js';
-import { ITokenBudgetManager, BudgetStatus } from '../../../dx/token-budget/index.js';
+import { ILegacyTokenBudgetManager as ITokenBudgetManager, BudgetStatus } from '../../context/index.js';
 import { createLogger, ILogger } from '../../services/logger.js';
 import {
   ContextMonitorConfig,

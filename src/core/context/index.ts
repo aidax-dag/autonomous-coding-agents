@@ -151,6 +151,16 @@ export {
 } from './context-manager.js';
 
 // ============================================================================
+// Legacy dx/ re-exports (migration path)
+// ============================================================================
+
+export {
+  type BudgetStatus,
+  type BudgetSubscription,
+  type ITokenBudgetManager as ILegacyTokenBudgetManager,
+} from '../../dx/token-budget/interfaces/token-budget.interface.js';
+
+// ============================================================================
 // Default Export
 // ============================================================================
 

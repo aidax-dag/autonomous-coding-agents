@@ -7,7 +7,7 @@
  */
 
 import { HookConfig } from '../../interfaces/hook.interface.js';
-import { BudgetStatus, ITokenBudgetManager } from '../../../dx/token-budget/index.js';
+import { BudgetStatus, ILegacyTokenBudgetManager as ITokenBudgetManager } from '../../context/index.js';
 
 /**
  * Context usage level
