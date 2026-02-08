@@ -11,3 +11,10 @@ export * from './session-manager.interface.js';
 
 // Implementation
 export { SessionManager } from './session-manager.js';
+
+// JSONL Storage
+export {
+  JSONLStorageAdapter,
+  createJSONLStorageAdapter,
+  type JSONLStorageAdapterConfig,
+} from './jsonl-storage-adapter.js';
