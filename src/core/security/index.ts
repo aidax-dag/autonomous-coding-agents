@@ -30,3 +30,6 @@ export * from './secret/index.js';
 
 // F5.6 Code Scanning
 export * from './scanning/index.js';
+
+// F5.7 Progressive Sandbox Escalation
+export * from './escalation/index.js';
