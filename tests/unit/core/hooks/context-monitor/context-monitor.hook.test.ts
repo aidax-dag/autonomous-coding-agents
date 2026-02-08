@@ -13,9 +13,9 @@ import {
 } from '../../../../../src/core/hooks/context-monitor';
 import { HookEvent, HookAction, HookContext } from '../../../../../src/core/interfaces/hook.interface';
 import {
-  ITokenBudgetManager,
+  ILegacyTokenBudgetManager as ITokenBudgetManager,
   BudgetStatus,
-} from '../../../../../src/dx/token-budget';
+} from '../../../../../src/core/context';
 
 // Mock Token Budget Manager
 function createMockTokenBudgetManager(overrides?: Partial<BudgetStatus>): ITokenBudgetManager {

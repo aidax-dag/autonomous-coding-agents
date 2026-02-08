@@ -390,6 +390,50 @@ export interface IContextManager {
 }
 
 // ============================================================================
+// Legacy Token Budget Types (migrated from dx/token-budget)
+// ============================================================================
+
+/**
+ * Budget status (legacy dx/token-budget type)
+ */
+export interface BudgetStatus {
+  budgetId: string;
+  name: string;
+  used: number;
+  limit: number;
+  remaining: number;
+  percentage: number;
+  isWarning: boolean;
+  isExceeded: boolean;
+  resetAt?: Date;
+  lastUpdated: Date;
+}
+
+/**
+ * Budget subscription handle (legacy dx/token-budget type)
+ */
+export interface BudgetSubscription {
+  id: string;
+  unsubscribe(): void;
+}
+
+/**
+ * Legacy Token Budget Manager Interface (migrated from dx/token-budget)
+ *
+ * Used by hooks (context-monitor, token-optimizer) for budget-aware operations.
+ * New code should use the simpler ITokenBudgetManager above.
+ */
+export interface ILegacyTokenBudgetManager {
+  checkBudget(budgetId?: string): BudgetStatus;
+  getRemainingBudget(budgetId?: string): number;
+  canAfford(budgetId: string | undefined, tokens: number): boolean;
+  getGlobalStatus(): BudgetStatus;
+  onWarning(callback: (status: BudgetStatus) => void): BudgetSubscription;
+  onExceeded(callback: (status: BudgetStatus) => void): BudgetSubscription;
+  dispose(): void;
+}
+
+// ============================================================================
 // Re-exports from quality-curve for convenience
 // ============================================================================
 

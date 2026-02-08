@@ -151,14 +151,14 @@ export {
 } from './context-manager.js';
 
 // ============================================================================
-// Legacy dx/ re-exports (migration path)
+// Legacy Token Budget types (migrated from dx/token-budget)
 // ============================================================================
 
-export {
-  type BudgetStatus,
-  type BudgetSubscription,
-  type ITokenBudgetManager as ILegacyTokenBudgetManager,
-} from '../../dx/token-budget/interfaces/token-budget.interface.js';
+export type {
+  BudgetStatus,
+  BudgetSubscription,
+  ILegacyTokenBudgetManager,
+} from './interfaces/context.interface.js';
 
 // ============================================================================
 // Default Export
