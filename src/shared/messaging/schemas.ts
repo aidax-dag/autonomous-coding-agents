@@ -48,7 +48,11 @@ export const MessageType = z.enum([
 
 export type MessageType = z.infer<typeof MessageType>;
 
-export const AgentType = z.enum(['CODER', 'REVIEWER', 'REPO_MANAGER', 'SYSTEM']);
+export const AgentType = z.enum([
+  'ARCHITECT', 'CODER', 'REVIEWER', 'TESTER', 'DOC_WRITER',
+  'EXPLORER', 'LIBRARIAN', 'DESIGNER', 'SECURITY_AUDITOR',
+  'REPO_MANAGER', 'SYSTEM', 'CUSTOM',
+]);
 export type AgentType = z.infer<typeof AgentType>;
 
 export const Priority = z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);

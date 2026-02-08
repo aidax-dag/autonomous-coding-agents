@@ -23,8 +23,24 @@ export enum AgentType {
   LIBRARIAN = 'librarian',
   DESIGNER = 'designer',
   SECURITY_AUDITOR = 'security_auditor',
+  REPO_MANAGER = 'repo_manager',
+  SYSTEM = 'system',
   CUSTOM = 'custom',
 }
+
+/**
+ * Maps between modern (lowercase) and legacy (UPPERCASE) AgentType values.
+ * Use when crossing boundary between core/ and agents/ or messaging systems.
+ */
+export const AgentTypeNormalizer = {
+  toLegacy(type: AgentType): string {
+    return type.toUpperCase();
+  },
+  fromLegacy(value: string): AgentType | undefined {
+    const lower = value.toLowerCase();
+    return Object.values(AgentType).find((v) => v === lower);
+  },
+} as const;
 
 /**
  * Agent status enumeration

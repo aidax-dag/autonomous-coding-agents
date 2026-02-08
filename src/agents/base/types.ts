@@ -10,11 +10,23 @@ import { LLMCompletionOptions } from '@/shared/llm/base-client';
 
 /**
  * Agent types
+ * @deprecated Use AgentType from core/interfaces/agent.interface.ts for new code.
+ * This enum uses UPPERCASE values for legacy messaging/DB compatibility.
+ * See AgentTypeNormalizer in core/interfaces for cross-boundary conversion.
  */
 export enum AgentType {
+  ARCHITECT = 'ARCHITECT',
   CODER = 'CODER',
   REVIEWER = 'REVIEWER',
+  TESTER = 'TESTER',
+  DOC_WRITER = 'DOC_WRITER',
+  EXPLORER = 'EXPLORER',
+  LIBRARIAN = 'LIBRARIAN',
+  DESIGNER = 'DESIGNER',
+  SECURITY_AUDITOR = 'SECURITY_AUDITOR',
   REPO_MANAGER = 'REPO_MANAGER',
+  SYSTEM = 'SYSTEM',
+  CUSTOM = 'CUSTOM',
 }
 
 /**
