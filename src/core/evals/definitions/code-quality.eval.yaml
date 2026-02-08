@@ -1,0 +1,62 @@
+evals:
+  - id: cq-no-todo-in-output
+    name: No TODO/FIXME in generated code
+    category: code_quality
+    severity: ALWAYS_PASSES
+    tags: [code_quality, hygiene]
+    timeout: 30000
+    input:
+      prompt: "Create a utility function that validates email addresses"
+    expectedBehavior:
+      outputContains:
+        - "function|const.*=.*=>"
+        - "@.*\\..*"
+      outputExcludes:
+        - "TODO"
+        - "FIXME"
+        - "not implemented"
+
+  - id: cq-no-console-log
+    name: No console.log in production code
+    category: code_quality
+    severity: ALWAYS_PASSES
+    tags: [code_quality, hygiene]
+    timeout: 30000
+    input:
+      prompt: "Implement a retry mechanism for HTTP requests"
+    expectedBehavior:
+      outputExcludes:
+        - "console\\.log\\("
+      outputContains:
+        - "retry|attempt"
+
+  - id: cq-error-handling
+    name: Proper error handling in async code
+    category: code_quality
+    severity: USUALLY_PASSES
+    tags: [code_quality, patterns]
+    timeout: 30000
+    input:
+      prompt: "Write an async function to read and parse a JSON config file"
+    expectedBehavior:
+      outputContains:
+        - "try|catch"
+        - "async"
+      outputExcludes:
+        - "catch\\s*\\{\\s*\\}"
+
+  - id: cq-type-safety
+    name: TypeScript type annotations present
+    category: code_quality
+    severity: USUALLY_PASSES
+    tags: [code_quality, typescript]
+    timeout: 30000
+    input:
+      prompt: "Create a generic cache class with TTL support"
+      context:
+        language: typescript
+    expectedBehavior:
+      outputContains:
+        - ":\\s*(string|number|boolean|void|Promise)"
+        - "interface|type\\s"
+      minScore: 0.8
