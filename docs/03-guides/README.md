@@ -7,6 +7,7 @@
 | 문서 | 설명 | 대상 |
 |------|------|------|
 | [CLI_USAGE.md](./CLI_USAGE.md) | CLI 명령어 및 사용법 | 사용자 |
+| [CODE_QUALITY.md](./CODE_QUALITY.md) | 코드 품질 표준 및 베스트 프랙티스 | 개발자 |
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | PM2 배포 및 환경 설정 | 운영자 |
 | [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md) | 구현 가이드 (P0-P2 작업 상세) | 개발자 |
 | [INTERACTIVE_MODE.md](./INTERACTIVE_MODE.md) | 인터랙티브 모드 명령어 | 사용자 |
@@ -20,8 +21,9 @@
 2. **[INTERACTIVE_MODE.md](./INTERACTIVE_MODE.md)** - 인터랙티브 모드 (5분)
 
 ### 개발자
-1. **[TESTING.md](./TESTING.md)** - 테스트 작성 가이드 (15분)
-2. **[IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md)** - 상세 구현 가이드 (30분+)
+1. **[CODE_QUALITY.md](./CODE_QUALITY.md)** - 코드 품질 표준 (필독)
+2. **[TESTING.md](./TESTING.md)** - 테스트 작성 가이드 (15분)
+3. **[IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md)** - 상세 구현 가이드 (30분+)
 
 ### 운영자
 1. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - 배포 설정 (15분)

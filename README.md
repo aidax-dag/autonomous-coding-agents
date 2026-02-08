@@ -105,19 +105,19 @@ multi-agent auto-fix --repo . --owner user --name repo
 
 ## 📚 문서
 
-### 핵심 문서
+> **📖 [전체 문서 보기](./docs/README.md)** - 모든 문서의 인덱스
 
-- **[시스템 설계](./MULTI_AGENT_SYSTEM_DESIGN.md)** - 아키텍처 및 기술 설계
-- **[PRD](./PRD.md)** - 제품 요구사항 명세
-- **[기능 목록](./FEATURE_LIST.md)** - 상세 기능 리스트
+### 빠른 링크
 
-### 사용 가이드
-
-- **[CLI 사용법](./docs/CLI_USAGE.md)** - 명령어 레퍼런스
-- **[배포 가이드](./docs/DEPLOYMENT.md)** - PM2 프로덕션 배포
-- **[Webhook 설정](./docs/WEBHOOK_SETUP.md)** - GitHub Webhook 연동
-- **[Interactive 모드](./docs/INTERACTIVE_MODE.md)** - 실시간 모니터링
-- **[테스트 가이드](./docs/TESTING.md)** - 테스트 인프라 및 모킹
+| 분류 | 문서 | 설명 |
+|------|------|------|
+| 🎯 비전 | [프로젝트 비전](./docs/01-vision/UNIFIED_VISION.md) | 목표와 방향성 |
+| 🏗️ 아키텍처 | [시스템 설계](./docs/02-architecture/SYSTEM_DESIGN.md) | 기술 아키텍처 |
+| 📖 가이드 | [CLI 사용법](./docs/03-guides/CLI_USAGE.md) | 명령어 레퍼런스 |
+| 📖 가이드 | [코드 품질 표준](./docs/03-guides/CODE_QUALITY.md) | 개발자 필독 |
+| 📖 가이드 | [배포 가이드](./docs/03-guides/DEPLOYMENT.md) | PM2 프로덕션 배포 |
+| 📋 스펙 | [Feature 스펙](./docs/05-specifications/v2/README.md) | 기능별 상세 스펙 |
+| 🗺️ 로드맵 | [개발 현황](./docs/06-roadmap/STATUS.md) | 진행 상태 |
 
 ---
 

@@ -39,6 +39,7 @@ docs/
 | Document | Description |
 |----------|-------------|
 | [CLI_USAGE](./03-guides/CLI_USAGE.md) | CLI 명령어 사용법 |
+| [CODE_QUALITY](./03-guides/CODE_QUALITY.md) | 코드 품질 표준 (개발자 필독) |
 | [DEPLOYMENT](./03-guides/DEPLOYMENT.md) | 배포 가이드 |
 | [TESTING](./03-guides/TESTING.md) | 테스트 가이드 |
 | [WEBHOOK_SETUP](./03-guides/WEBHOOK_SETUP.md) | GitHub 웹훅 설정 |
@@ -104,7 +105,7 @@ docs/
 | **새로운 사용자** | [CLI Usage](./03-guides/CLI_USAGE.md) |
 | **프로젝트 이해** | [VISION](./01-vision/VISION.md) → [OVERVIEW](./02-architecture/OVERVIEW.md) |
 | **배포 담당자** | [Deployment](./03-guides/DEPLOYMENT.md) |
-| **개발자** | [SYSTEM_DESIGN](./02-architecture/SYSTEM_DESIGN.md) → [MODULE_REFERENCE](./02-architecture/MODULE_REFERENCE.md) |
+| **개발자** | [CODE_QUALITY](./03-guides/CODE_QUALITY.md) → [SYSTEM_DESIGN](./02-architecture/SYSTEM_DESIGN.md) |
 | **기여자** | [PROJECT_ANALYSIS_REPORT](./04-planning/PROJECT_ANALYSIS_REPORT.md) → [Specifications](./05-specifications/v2/README.md) |
 
 ---
@@ -114,10 +115,9 @@ docs/
 | Category | Count |
 |----------|-------|
 | Vision | 3 |
-| Architecture | 3 |
-| Guides | 6 |
-| Planning | 6 |
-| Specifications v1 | 5 |
-| Specifications v2 | 10 |
-| Roadmap | 7 |
-| **Total** | **40** |
+| Architecture | 4 |
+| Guides | 7 |
+| Planning | 8 |
+| Specifications | 16 |
+| Roadmap | 8 |
+| **Total** | **46** |

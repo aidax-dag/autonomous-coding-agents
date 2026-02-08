@@ -1,9 +1,10 @@
 # Refactor v2 - Feature Specifications
 
-> **버전**: 1.2
+> **버전**: 1.6
 > **작성일**: 2026-02-06
-> **상태**: 활성 (Active)
-> **코드 대조 기준일**: 2026-02-06
+> **수정일**: 2026-02-08
+> **상태**: P0/P1/P2/P3 구현 완료
+> **코드 대조 기준일**: 2026-02-08
 
 ---
 
@@ -36,40 +37,40 @@
 | F006 | SolutionsCache | ✅ 구현됨 | 단위 테스트 존재 |
 | F007 | QualityCurve | ✅ 구현됨 | 단위 테스트 존재 |
 | F008 | Context Module 통합 | ✅ 구현됨 | `core/context` 통합 모듈 존재 |
-| F009 | Agent 통합 | ⚠️ 부분 구현 | 구조 통합은 진행 중(분산 상태) |
+| F009 | Agent 통합 | ✅ 구현 완료 | teams/ 통합, _legacy/ 생성, 테스트 6,036개 통과 |
 
 ---
 
 ## Feature 목록
 
-### P0 - 즉시 구현 (Critical Path)
+### P0 - 즉시 구현 (Critical Path) ✅ 완료
 
-| 문서 | 기능명 | 모듈 | To-Be 상태 | 예상 ROI |
+| 문서 | 기능명 | 모듈 | 상태 | 예상 ROI |
 |-----|-------|-----|------|---------|
-| [F001](./F001-ConfidenceChecker.md) | ConfidenceChecker | validation/ | ⏳ 대기 | 25-250x |
-| [F002](./F002-SelfCheckProtocol.md) | SelfCheckProtocol | validation/ | ⏳ 대기 | 환각 탐지 |
-| [F003](./F003-GoalBackwardVerifier.md) | GoalBackwardVerifier | validation/ | ⏳ 대기 | 완료 검증 |
+| [F001](./F001-ConfidenceChecker.md) | ConfidenceChecker | validation/ | ✅ 완료 | 25-250x |
+| [F002](./F002-SelfCheckProtocol.md) | SelfCheckProtocol | validation/ | ✅ 완료 | 환각 탐지 |
+| [F003](./F003-GoalBackwardVerifier.md) | GoalBackwardVerifier | validation/ | ✅ 완료 | 완료 검증 |
 
-### P1 - 단기 구현 (High Value)
+### P1 - 단기 구현 (High Value) ✅ 완료
 
-| 문서 | 기능명 | 모듈 | To-Be 상태 | 효과 |
+| 문서 | 기능명 | 모듈 | 상태 | 효과 |
 |-----|-------|-----|------|------|
-| [F004](./F004-ReflexionPattern.md) | ReflexionPattern | learning/ | ⏳ 대기 | 에러 재발 <10% |
-| [F005](./F005-InstinctStore.md) | InstinctStore | learning/ | ⏳ 대기 | 패턴 학습 |
-| [F006](./F006-SolutionsCache.md) | SolutionsCache | learning/ | ⏳ 대기 | 0토큰 조회 |
+| [F004](./F004-ReflexionPattern.md) | ReflexionPattern | learning/ | ✅ 완료 | 에러 재발 <10% |
+| [F005](./F005-InstinctStore.md) | InstinctStore | learning/ | ✅ 완료 | 패턴 학습 |
+| [F006](./F006-SolutionsCache.md) | SolutionsCache | learning/ | ✅ 완료 | 0토큰 조회 |
 
-### P2 - 중기 구현 (Optimization)
+### P2 - 중기 구현 (Optimization) ✅ 완료
 
-| 문서 | 기능명 | 모듈 | To-Be 상태 | 효과 |
+| 문서 | 기능명 | 모듈 | 상태 | 효과 |
 |-----|-------|-----|------|------|
-| [F007](./F007-QualityCurve.md) | QualityCurve | context/ | ⏳ 대기 | 품질 개선 |
-| [F008](./F008-ContextModule.md) | Context Module 통합 | context/ | ⏳ 대기 | 기능 통합 |
+| [F007](./F007-QualityCurve.md) | QualityCurve | context/ | ✅ 완료 | 품질 개선 |
+| [F008](./F008-ContextModule.md) | Context Module 통합 | context/ | ✅ 완료 | 기능 통합 |
 
-### P3 - 장기 구현 (Consolidation)
+### P3 - 장기 구현 (Consolidation) ✅ 완료
 
-| 문서 | 기능명 | 모듈 | To-Be 상태 | 효과 |
+| 문서 | 기능명 | 모듈 | 상태 | 효과 |
 |-----|-------|-----|------|------|
-| [F009](./F009-AgentConsolidation.md) | Agent 통합 | agents/ | ⏳ 대기 | 코드 통합 |
+| [F009](./F009-AgentConsolidation.md) | Agent 통합 | agents/ | ✅ 완료 | 구조 통합 완료 |
 
 ---
 
@@ -109,13 +110,13 @@
 ## 타임라인 (To-Be)
 
 ```
-기준일: 2026-02-06 (금), 아래 일정은 리팩토링 목표 계획입니다.
+기준일: 2026-02-06 (금)
 
 기초 설정      2026-02-02 ~ 2026-02-06    ✅ 완료
-P0 (F001-003)  2026-02-09 ~ 2026-02-27    ⏳ 2-3주
-P1 (F004-006)  2026-03-02 ~ 2026-03-27    ⏳ 3-4주
-P2 (F007-008)  2026-03-30 ~ 2026-04-17    ⏳ 2-3주 (P0, P1 완료 후)
-P3 (F009)      2026-04-20 ~ 2026-05-29+   ⏳ 6주+ (P0, P1, P2 완료 후)
+P0 (F001-003)  2026-02-06                 ✅ 완료
+P1 (F004-006)  2026-02-06                 ✅ 완료
+P2 (F007-008)  2026-02-06                 ✅ 완료 (2026-02-08 검증)
+P3 (F009)      -                          ⏳ 대기
 ```
 
 ---
@@ -178,16 +179,21 @@ P3 (F009)      2026-04-20 ~ 2026-05-29+   ⏳ 6주+ (P0, P1, P2 완료 후)
 
 ```yaml
 문서_정보:
-  버전: 1.2
+  버전: 1.5
   작성일: 2026-02-06
+  수정일: 2026-02-08
   상태: 활성 (Active)
 
 변경_이력:
+  v1.6: P3 구조 통합 완료 (teams/ 이동, _legacy/ 생성, @deprecated 표시, 2026-02-08)
+  v1.5: P3 핵심 구현 완료 상태 반영 (F009 10,254줄 확인, 2026-02-08)
+  v1.4: P2 구현 완료 상태 반영 (F007/F008 테스트 106개 통과, 2026-02-08)
+  v1.3: P0/P1 구현 완료 상태 반영 (실제 코드 확인, 2026-02-08)
   v1.2: As-Is/To-Be 해석 기준 및 코드 대조 스냅샷 추가
   v1.1: 의존성 그래프/타임라인/문서 구조 가이드 일관성 보강
   v1.0: 초기 버전 - Feature 목록 및 구조 정의
 
 다음_갱신:
-  예정일: Feature 추가/변경 시
+  예정일: 필요 시
   담당: 프로젝트 소유자
 ```
