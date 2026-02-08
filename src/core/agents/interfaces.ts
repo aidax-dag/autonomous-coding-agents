@@ -38,6 +38,16 @@ export interface ILLMClient {
    * Get model name
    */
   getModel(): string;
+
+  /**
+   * Count tokens in messages (optional capability)
+   */
+  countTokens?(messages: LLMMessage[]): Promise<number>;
+
+  /**
+   * Get maximum context length for a model (optional capability)
+   */
+  getMaxContextLength?(model?: string): number;
 }
 
 /**
