@@ -10,6 +10,7 @@
  * @module core/context/quality-curve
  */
 
+import { createAgentLogger } from '../../shared/logging/logger.js';
 import type {
   IQualityCurve,
   QualityLevelInfo,
@@ -45,6 +46,8 @@ export type ContextProvider = () => Promise<{ used: number; total: number }>;
  *
  * Manages quality levels based on context usage percentage.
  */
+const logger = createAgentLogger('quality-curve');
+
 export class QualityCurve implements IQualityCurve {
   private levelChangeCallbacks: Array<(oldLevel: QualityLevel, newLevel: QualityLevel) => void> = [];
   private currentLevel: QualityLevel = QualityLevel.PEAK;
@@ -333,7 +336,7 @@ export class QualityCurve implements IQualityCurve {
       try {
         callback(oldLevel, newLevel);
       } catch (error) {
-        console.error('Level change callback error:', error);
+        logger.error('Level change callback error', { error });
       }
     }
   }

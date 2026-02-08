@@ -483,7 +483,6 @@ describe('QualityCurve', () => {
     });
 
     it('should handle callback errors gracefully', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       let secondCallbackCalled = false;
 
       const providerCurve = new QualityCurve(async () => ({ used: 60, total: 100 }));
@@ -497,10 +496,8 @@ describe('QualityCurve', () => {
 
       await providerCurve.getCurrentLevel();
 
-      expect(consoleSpy).toHaveBeenCalled();
+      // Error in first callback should not prevent second from running
       expect(secondCallbackCalled).toBe(true);
-
-      consoleSpy.mockRestore();
     });
   });
 

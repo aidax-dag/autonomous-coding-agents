@@ -12,6 +12,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { createAgentLogger } from '../../shared/logging/logger.js';
 import type {
   ISolutionsCache,
   CachedSolution,
@@ -88,6 +89,8 @@ export interface SolutionsCacheOptions extends Partial<CacheConfig> {}
  *
  * Fast lookup cache for learned solutions with fuzzy matching support.
  */
+const logger = createAgentLogger('solutions-cache');
+
 export class SolutionsCache implements ISolutionsCache {
   private cache: Map<string, CachedSolution> = new Map();
   private config: CacheConfig;
@@ -112,7 +115,7 @@ export class SolutionsCache implements ISolutionsCache {
     // Setup auto-save if enabled
     if (this.config.autoSaveInterval > 0) {
       this.autoSaveTimer = setInterval(() => {
-        this.persist().catch(console.error);
+        this.persist().catch((err) => logger.error('Auto-save failed', { error: err }));
       }, this.config.autoSaveInterval);
     }
   }
@@ -507,7 +510,7 @@ export class SolutionsCache implements ISolutionsCache {
       try {
         handler(eventData);
       } catch (error) {
-        console.error(`Cache event handler error for ${event}:`, error);
+        logger.error('Cache event handler error', { event, error });
       }
     }
   }

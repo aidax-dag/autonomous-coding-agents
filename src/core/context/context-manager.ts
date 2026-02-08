@@ -7,6 +7,7 @@
  * @module core/context/context-manager
  */
 
+import { createAgentLogger } from '../../shared/logging/logger.js';
 import type {
   IContextManager,
   ContextManagerConfig,
@@ -45,6 +46,8 @@ import { QualityCurve } from './quality-curve.js';
  * - Compression strategies
  * - Event-driven monitoring
  */
+const logger = createAgentLogger('context-manager');
+
 export class ContextManager implements IContextManager {
   private config: ContextManagerConfig;
   private tokenManager: TokenBudgetManager;
@@ -354,7 +357,7 @@ export class ContextManager implements IContextManager {
       try {
         handler(data);
       } catch (error) {
-        console.error(`Context event handler error for ${event}:`, error);
+        logger.error('Context event handler error', { event, error });
       }
     }
   }
