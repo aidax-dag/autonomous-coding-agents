@@ -4,7 +4,7 @@
  * Tests for quality level management based on context usage.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Jest globals are available automatically
 import {
   QualityCurve,
   createQualityCurve,
@@ -13,10 +13,7 @@ import {
   PLAN_CONFIG,
   WARNING_TEMPLATES,
 } from '../../../../src/core/context/index.js';
-import {
-  QualityLevel,
-  type ContextState,
-} from '../../../../src/core/context/interfaces/quality-curve.interface.js';
+import { QualityLevel } from '../../../../src/core/context/interfaces/quality-curve.interface.js';
 
 describe('QualityCurve', () => {
   let curve: QualityCurve;
@@ -486,7 +483,7 @@ describe('QualityCurve', () => {
     });
 
     it('should handle callback errors gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       let secondCallbackCalled = false;
 
       const providerCurve = new QualityCurve(async () => ({ used: 60, total: 100 }));

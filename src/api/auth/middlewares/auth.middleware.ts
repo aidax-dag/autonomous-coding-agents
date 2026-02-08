@@ -48,14 +48,12 @@ export interface AuthMiddlewareConfig {
  */
 export function createAuthMiddleware(config: AuthMiddlewareConfig): preHandlerHookHandler {
   const logger = createLogger('AuthMiddleware');
-  const {
-    jwtService,
-    apiKeyService,
-    apiKeyHeader = 'x-api-key',
-    bearerPrefix = 'Bearer',
-  } = config;
+  const { jwtService, apiKeyService, apiKeyHeader = 'x-api-key', bearerPrefix = 'Bearer' } = config;
 
-  return async function authMiddleware(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
+  return async function authMiddleware(
+    request: FastifyRequest,
+    _reply: FastifyReply
+  ): Promise<void> {
     const authResult = await authenticate(request, {
       jwtService,
       apiKeyService,
@@ -77,12 +75,7 @@ export function createAuthGuard(
   config: AuthMiddlewareConfig
 ): preHandlerHookHandler {
   const logger = createLogger('AuthGuard');
-  const {
-    jwtService,
-    apiKeyService,
-    apiKeyHeader = 'x-api-key',
-    bearerPrefix = 'Bearer',
-  } = config;
+  const { jwtService, apiKeyService, apiKeyHeader = 'x-api-key', bearerPrefix = 'Bearer' } = config;
 
   const allowedMethods = options.methods || [AuthMethod.JWT, AuthMethod.API_KEY];
 
@@ -135,7 +128,9 @@ export function createAuthGuard(
           required: options.requiredPermissions,
           missing: missingPermissions,
         });
-        throw new ForbiddenException(`Missing required permissions: ${missingPermissions.join(', ')}`);
+        throw new ForbiddenException(
+          `Missing required permissions: ${missingPermissions.join(', ')}`
+        );
       }
     }
 
@@ -287,9 +282,10 @@ async function authenticate(
       error: {
         code: result.error?.code === 'KEY_EXPIRED' ? 'API_KEY_EXPIRED' : 'INVALID_API_KEY',
         message: result.error?.message || 'Invalid API key',
-        statusCode: result.error?.code === 'RATE_LIMIT_EXCEEDED'
-          ? AUTH_ERROR_STATUS.RATE_LIMIT_EXCEEDED
-          : AUTH_ERROR_STATUS.INVALID_API_KEY,
+        statusCode:
+          result.error?.code === 'RATE_LIMIT_EXCEEDED'
+            ? AUTH_ERROR_STATUS.RATE_LIMIT_EXCEEDED
+            : AUTH_ERROR_STATUS.INVALID_API_KEY,
       },
     };
   }

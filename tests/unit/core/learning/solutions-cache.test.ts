@@ -5,7 +5,7 @@
  * Uses TDD RED-GREEN pattern.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// Jest globals are available automatically
 import * as fs from 'fs/promises';
 import {
   SolutionsCache,

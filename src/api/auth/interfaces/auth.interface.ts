@@ -622,7 +622,9 @@ export function formatPermission(resource: ResourceType, scope: PermissionScope)
 /**
  * Parse permission string to resource and scope
  */
-export function parsePermission(permission: string): { resource: ResourceType; scope: PermissionScope } | null {
+export function parsePermission(
+  permission: string
+): { resource: ResourceType; scope: PermissionScope } | null {
   const parts = permission.split(':');
   if (parts.length !== 2) return null;
 
