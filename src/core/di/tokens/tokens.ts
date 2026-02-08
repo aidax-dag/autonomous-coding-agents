@@ -130,6 +130,52 @@ interface IMockLLMClient extends ILLMClient {
   setResponse(pattern: string | RegExp, response: unknown): void;
 }
 
+// Validation Layer forward declarations
+interface IConfidenceChecker {
+  check(context: unknown): Promise<unknown>;
+  setCheckItems(items: unknown[]): void;
+  setThresholds(proceedThreshold: number, alternativesThreshold: number): void;
+}
+
+interface ISelfCheckProtocol {
+  check(evidence: unknown): Promise<unknown>;
+  scanForDangerSignals(text: string): unknown[];
+}
+
+interface IGoalBackwardVerifier {
+  verify(goal: unknown): Promise<unknown>;
+  verifyExists(paths: string[]): Promise<boolean>;
+  verifySubstantive(paths: string[]): Promise<boolean>;
+  verifyWired(paths: string[]): Promise<boolean>;
+}
+
+// Learning Layer forward declarations
+interface IReflexionPattern {
+  lookup(error: Error): Promise<unknown>;
+  learn(error: Error, solution: string, rootCause: string): Promise<void>;
+  getPreventionChecklist(errorType: string): string[];
+}
+
+interface IInstinctStore {
+  findMatching(context: string, domain?: string): Promise<unknown[]>;
+  recordUsage?(id: string, success: boolean): Promise<void>;
+}
+
+interface ISolutionsCache {
+  get(signature: string): Promise<unknown>;
+  set(solution: unknown): Promise<void>;
+  dispose(): Promise<void>;
+}
+
+// Context Layer forward declarations
+interface IContextManager {
+  getQualityLevel(): string;
+  optimizeOutput(output: string): Promise<unknown>;
+  on(event: string, handler: (...args: unknown[]) => void): void;
+  off(event: string, handler: (...args: unknown[]) => void): void;
+  dispose(): void;
+}
+
 /**
  * System Tokens
  *
@@ -186,6 +232,19 @@ export const TOKENS = {
   // === Testing Layer ===
   AgentTestRunner: createToken<IAgentTestRunner>('AgentTestRunner'),
   MockLLMClient: createToken<IMockLLMClient>('MockLLMClient'),
+
+  // === Validation Layer ===
+  ConfidenceChecker: createToken<IConfidenceChecker>('ConfidenceChecker'),
+  SelfCheckProtocol: createToken<ISelfCheckProtocol>('SelfCheckProtocol'),
+  GoalBackwardVerifier: createToken<IGoalBackwardVerifier>('GoalBackwardVerifier'),
+
+  // === Learning Layer ===
+  ReflexionPattern: createToken<IReflexionPattern>('ReflexionPattern'),
+  InstinctStore: createToken<IInstinctStore>('InstinctStore'),
+  SolutionsCache: createToken<ISolutionsCache>('SolutionsCache'),
+
+  // === Context Layer ===
+  ContextManager: createToken<IContextManager>('ContextManager'),
 } as const;
 
 /**

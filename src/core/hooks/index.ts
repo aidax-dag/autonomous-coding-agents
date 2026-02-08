@@ -53,3 +53,15 @@ export * from './todo-enforcer/index.js';
 
 // Think Mode
 export * from './think-mode/index.js';
+
+// Confidence Check
+export * from './confidence-check/index.js';
+
+// Self Check
+export * from './self-check/index.js';
+
+// Error Learning
+export * from './error-learning/index.js';
+
+// Context Optimizer
+export * from './context-optimizer/index.js';

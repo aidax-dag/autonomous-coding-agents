@@ -31,6 +31,16 @@ import { RoutingStrategy } from './task-router';
 import { TaskHandlerResult } from './team-agent';
 import { BaseTeamAgent } from './base-team-agent';
 import { createQAExecutor } from './quality';
+import { HookRegistry } from '../hooks/hook-registry';
+import { HookExecutor } from '../hooks/hook-executor';
+import { HookEvent, HookAction } from '../interfaces/hook.interface';
+import { ServiceRegistry } from '../services/service-registry';
+import { ConfidenceCheckHook } from '../hooks/confidence-check/confidence-check.hook';
+import { SelfCheckHook } from '../hooks/self-check/self-check.hook';
+import { ErrorLearningHook } from '../hooks/error-learning/error-learning.hook';
+import { ContextOptimizerHook } from '../hooks/context-optimizer/context-optimizer.hook';
+import type { ContextManager } from '../context/context-manager';
+import type { GoalBackwardResult } from '../validation/interfaces/validation.interface';
 
 /**
  * Runner status
@@ -67,6 +77,8 @@ export interface GoalResult {
   totalDuration: number;
   completedTasks: number;
   failedTasks: number;
+  /** Goal-backward verification result (when enableValidation is true) */
+  verification?: GoalBackwardResult;
 }
 
 /**
@@ -89,6 +101,12 @@ export interface OrchestratorRunnerConfig {
   projectContext?: string;
   /** Use real quality tools (CodeQualityHook, TestResultParser) instead of mock/LLM */
   useRealQualityTools?: boolean;
+  /** Enable pre/post validation hooks (default: false) */
+  enableValidation?: boolean;
+  /** Enable error learning hooks (default: false) */
+  enableLearning?: boolean;
+  /** Enable context management hooks (default: false) */
+  enableContextManagement?: boolean;
 }
 
 /**
@@ -104,6 +122,9 @@ export interface RunnerEvents {
   'workflow:failed': (taskId: string, error: Error) => void;
   'goal:started': (goalId: string) => void;
   'goal:completed': (result: GoalResult) => void;
+  'goal:verification': (goalId: string, result: GoalBackwardResult) => void;
+  'context:warning': () => void;
+  'context:critical': () => void;
   error: (error: Error) => void;
 }
 
@@ -123,6 +144,9 @@ export class OrchestratorRunner extends EventEmitter {
   private developmentAgent?: DevelopmentAgent;
   private qaAgent?: QAAgent;
 
+  private readonly hookRegistry: HookRegistry;
+  private readonly hookExecutor: HookExecutor;
+
   private status: RunnerStatus = RunnerStatus.IDLE;
   private startTime?: Date;
   private taskResults: Map<string, WorkflowResult> = new Map();
@@ -140,7 +164,14 @@ export class OrchestratorRunner extends EventEmitter {
       enableLLM: config.enableLLM ?? true,
       projectContext: config.projectContext || '',
       useRealQualityTools: config.useRealQualityTools ?? false,
+      enableValidation: config.enableValidation ?? false,
+      enableLearning: config.enableLearning ?? false,
+      enableContextManagement: config.enableContextManagement ?? false,
     };
+
+    // Hook infrastructure
+    this.hookRegistry = new HookRegistry();
+    this.hookExecutor = new HookExecutor(this.hookRegistry);
 
     // Create workspace and queue
     this.workspace = new WorkspaceManager({
@@ -212,6 +243,9 @@ export class OrchestratorRunner extends EventEmitter {
 
       // Create and register team agents
       await this.initializeAgents();
+
+      // Initialize integration modules (validation/learning/context)
+      await this.initializeIntegrationModules();
 
       // Start orchestrator
       await this.orchestrator.start();
@@ -333,6 +367,15 @@ export class OrchestratorRunner extends EventEmitter {
         }
       }
 
+      // Goal-backward verification (when enableValidation is true)
+      let verification: GoalBackwardResult | undefined;
+      if (this.config.enableValidation && results.every((r) => r.success)) {
+        verification = await this.verifyGoal(description, tasks).catch(() => undefined);
+        if (verification) {
+          this.emit('goal:verification', goalId, verification);
+        }
+      }
+
       const goalResult: GoalResult = {
         success: results.every((r) => r.success),
         goalId,
@@ -340,6 +383,7 @@ export class OrchestratorRunner extends EventEmitter {
         totalDuration: Date.now() - startTime,
         completedTasks: results.filter((r) => r.success).length,
         failedTasks: results.filter((r) => !r.success).length,
+        verification,
       };
 
       this.emit('goal:completed', goalResult);
@@ -371,6 +415,27 @@ export class OrchestratorRunner extends EventEmitter {
     this.emit('workflow:started', taskId);
 
     try {
+      // TASK_BEFORE Hooks (pre-execution validation)
+      if (this.hookRegistry.count() > 0) {
+        const beforeResults = await this.hookExecutor.executeHooks(
+          HookEvent.TASK_BEFORE, task, { stopOnAction: [HookAction.ABORT] }
+        ).catch(() => []);
+
+        const aborted = beforeResults.find(r => r.action === HookAction.ABORT);
+        if (aborted) {
+          const workflowResult: WorkflowResult = {
+            success: false,
+            taskId,
+            error: `Blocked by validation: ${aborted.message}`,
+            duration: Date.now() - startTime,
+            teamType: task.metadata.to,
+          };
+          this.taskResults.set(taskId, workflowResult);
+          this.emit('workflow:completed', workflowResult);
+          return workflowResult;
+        }
+      }
+
       // Get the appropriate team agent
       const team = this.orchestrator.teams.get(task.metadata.to);
 
@@ -391,12 +456,26 @@ export class OrchestratorRunner extends EventEmitter {
         teamType: task.metadata.to,
       };
 
+      // TASK_AFTER Hooks (post-execution validation, context optimization)
+      if (this.hookRegistry.count() > 0) {
+        await this.hookExecutor.executeHooks(
+          HookEvent.TASK_AFTER, { task, result }
+        ).catch(() => []);
+      }
+
       this.taskResults.set(taskId, workflowResult);
       this.emit('workflow:completed', workflowResult);
 
       return workflowResult;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
+
+      // TASK_ERROR Hooks (error learning)
+      if (this.hookRegistry.count() > 0) {
+        await this.hookExecutor.executeHooks(
+          HookEvent.TASK_ERROR, { task, error: err }
+        ).catch(() => []);
+      }
 
       const workflowResult: WorkflowResult = {
         success: false,
@@ -489,6 +568,14 @@ export class OrchestratorRunner extends EventEmitter {
     await this.orchestrator.destroy();
     this.taskResults.clear();
     this.removeAllListeners();
+
+    // Clean up integration modules
+    try {
+      const registry = ServiceRegistry.getInstance();
+      if (registry.isInitialized()) await registry.dispose();
+    } catch {
+      /* dispose error ignored */
+    }
   }
 
   /**
@@ -584,6 +671,123 @@ export class OrchestratorRunner extends EventEmitter {
       default:
         return 'feature';
     }
+  }
+
+  /**
+   * Initialize integration modules and register hooks.
+   * Only runs when at least one feature flag is enabled.
+   */
+  private async initializeIntegrationModules(): Promise<void> {
+    const needsRegistry =
+      this.config.enableValidation ||
+      this.config.enableLearning ||
+      this.config.enableContextManagement;
+
+    if (!needsRegistry) return;
+
+    const registry = ServiceRegistry.getInstance();
+    if (!registry.isInitialized()) {
+      await registry.initialize({
+        projectRoot: this.config.workspaceDir,
+        enableValidation: this.config.enableValidation,
+        enableLearning: this.config.enableLearning,
+        enableContext: this.config.enableContextManagement,
+      });
+    }
+
+    // Register validation hooks
+    if (this.config.enableValidation) {
+      const checker = registry.getConfidenceChecker();
+      if (checker) this.hookRegistry.register(new ConfidenceCheckHook(checker));
+
+      const protocol = registry.getSelfCheckProtocol();
+      if (protocol) this.hookRegistry.register(new SelfCheckHook(protocol));
+    }
+
+    // Register learning hooks
+    if (this.config.enableLearning) {
+      const reflexion = registry.getReflexionPattern();
+      const cache = registry.getSolutionsCache();
+      if (reflexion) this.hookRegistry.register(new ErrorLearningHook(reflexion, cache));
+
+      this.registerLearningListeners(registry);
+    }
+
+    // Register context hooks
+    if (this.config.enableContextManagement) {
+      const ctxMgr = registry.getContextManager();
+      if (ctxMgr) {
+        this.hookRegistry.register(new ContextOptimizerHook(ctxMgr));
+        this.registerContextListeners(ctxMgr);
+      }
+    }
+  }
+
+  /**
+   * Register listeners for learning module feedback
+   */
+  private registerLearningListeners(registry: ServiceRegistry): void {
+    const instinctStore = registry.getInstinctStore();
+    if (!instinctStore) return;
+
+    this.on('workflow:completed', async (result: WorkflowResult) => {
+      try {
+        const matching = await instinctStore.findMatching(
+          `${result.teamType}:${result.taskId}`
+        );
+        for (const instinct of matching) {
+          if (result.success) {
+            await instinctStore.reinforce(instinct.id);
+          } else {
+            await instinctStore.correct(instinct.id);
+          }
+        }
+      } catch {
+        /* learning error ignored */
+      }
+    });
+  }
+
+  /**
+   * Register listeners for context management events
+   */
+  /**
+   * Run goal-backward verification after all tasks complete.
+   * Collects expected file paths from task metadata and verifies
+   * they exist, are substantive, and are wired into the project.
+   */
+  private async verifyGoal(
+    goalDescription: string,
+    tasks: TaskDocument[],
+  ): Promise<GoalBackwardResult | undefined> {
+    const registry = ServiceRegistry.getInstance();
+    const verifier = registry.getGoalBackwardVerifier();
+    if (!verifier) return undefined;
+
+    // Collect expected paths from task file references
+    const expectedPaths: string[] = [];
+    for (const task of tasks) {
+      if (task.metadata.files) {
+        for (const file of task.metadata.files) {
+          if (file.path && !expectedPaths.includes(file.path)) {
+            expectedPaths.push(file.path);
+          }
+        }
+      }
+    }
+
+    // Skip verification if no file paths to check
+    if (expectedPaths.length === 0) return undefined;
+
+    return verifier.verify({
+      description: goalDescription,
+      expectedPaths,
+    });
+  }
+
+  private registerContextListeners(contextManager: ContextManager): void {
+    contextManager.on('usage-warning', (_data) => this.emit('context:warning'));
+    contextManager.on('usage-critical', (_data) => this.emit('context:critical'));
   }
 
   /**

@@ -72,3 +72,6 @@ export {
   type MemoryStats,
   type SystemInfo,
 } from './profiler.js';
+
+// Service Registry
+export { ServiceRegistry, type ServiceRegistryConfig } from './service-registry.js';
