@@ -1,9 +1,9 @@
 # Implementation Priority List (구현 우선순위 리스트)
 
-> **버전**: 2.3 (Integration Sprint 완료)
+> **버전**: 2.4 (New P0 완료)
 > **작성일**: 2026-02-08
-> **이전 버전**: 2.2 (통합 검증 반영), 2.1 (팩트체크), 2.0, 1.1
-> **상태**: Integration Sprint 완료 / New P0 대기
+> **이전 버전**: 2.3 (Integration Sprint 완료), 2.2, 2.1, 2.0, 1.1
+> **상태**: New P0 완료 / New P1 대기
 > **관련 문서**: IMPROVEMENT_RECOMMENDATIONS.md v3.2
 
 ---
@@ -38,9 +38,9 @@
 | 우선순위 | 리스크 | 작업 영역 | 예상 기간 | 상태 |
 |---------|--------|----------|----------|------|
 | ~~Integration~~ | ~~Medium~~ | ~~P0/P1 파이프라인 통합 + 설정 이슈 수정~~ | ~~1-2주~~ | ✅ **완료** |
-| **New P0** | Low | Behavioral Evals + Tiered Model Routing | 3-5주 | ⏳ **다음** |
-| **기존 P2** | Low | Context 통합 (context/) | 1주 (정리만) | ✅ 대부분 완료 |
-| **New P1** | Low-High | JSONL Session + Sandbox + Thin Orchestrator | 7-11주 | ⏳ 대기 |
+| ~~New P0~~ | ~~Low~~ | ~~Behavioral Evals + Tiered Model Routing~~ | ~~3-5주~~ | ✅ **완료** |
+| **기존 P2** | Low | Context 통합 (context/) | 1주 (정리만) | ✅ 대부분 완료 (#21 잔여) |
+| **New P1** | Low-High | JSONL Session + Sandbox + Thin Orchestrator | 7-11주 | ⏳ **다음** |
 | **기존 P3** | High | Agent 통합 (agents/) | 6주+ | ⏳ 대기 |
 | **New P2** | Medium | Composable Skills + Deep Worker + Multi-Frontend | 8-12주 | ⏳ 대기 |
 | **New P3** | Low-Medium | HUD + SWE-bench + HLD/MLD/LLD + Brownfield | 12-16주 | ⏳ 대기 |
@@ -48,9 +48,9 @@
 ### 1.4 핵심 목표
 
 0. ~~P0/P1 모듈 파이프라인 연결~~ ✅ 완료
-1. 🔴 **에이전트 품질 객관적 측정** (Behavioral Evals)으로 개선 검증 가능
-2. **30-50% 비용 절감** (Tiered Model Routing)으로 운영 효율 극대화
-3. **세션 안정성** (JSONL Persistence)으로 crash-safe 복구
+1. ~~에이전트 품질 객관적 측정 (Behavioral Evals)~~ ✅ 완료 — `core/evals/` (34 tests)
+2. ~~30-50% 비용 절감 (Tiered Model Routing)~~ ✅ 완료 — `shared/llm/tiered-router.ts` + `cost-tracker.ts` (37 tests)
+3. 🔴 **세션 안정성** (JSONL Persistence)으로 crash-safe 복구
 4. **오케스트레이터 경량화** (Thin Orchestrator)로 유지보수성 향상
 
 ---
@@ -478,9 +478,9 @@ export interface SessionEntry {
 |---------|--------|--------|------|
 | M1: Phase 1 P0 모듈 | 2026-02-06 | ConfidenceChecker, SelfCheck, GoalBackward | ✅ 모듈 완료 |
 | M2: Phase 1 P1 모듈 | 2026-02-06 | ReflexionPattern, InstinctStore, SolutionsCache | ✅ 모듈 완료 |
-| **M2.5: Integration** | **2026-02-21** | **P0/P1 파이프라인 통합 + 설정 수정** | **⏳ 최우선** |
-| M3: New P0 Evals | 2026-03-07 | EvalRunner, Eval 정의, CI/CD 통합 | ⏳ |
-| M4: New P0 Routing | 2026-02-28 | TieredRouter, CostTracker | ⏳ |
+| M2.5: Integration | 2026-02-08 | P0/P1 파이프라인 통합 + 설정 수정 | ✅ **완료** |
+| M3: New P0 Evals | 2026-02-08 | EvalRunner, Eval 정의, 3 Evaluators | ✅ **완료** |
+| M4: New P0 Routing | 2026-02-08 | TieredRouter, CostTracker, DefaultRoutingStrategy | ✅ **완료** |
 | M5: 기존 P2 Context | 2026-03-14 | context/ 모듈 통합, QualityCurve | ✅ 대부분 완료 (dx/ 정리만 잔여) |
 | M6: New P1 JSONL | 2026-03-21 | JSONL Persistence, Session Recovery | ⏳ |
 | M7: New P1 Sandbox | 2026-04-04 | Progressive Sandbox Escalation | ⏳ |
