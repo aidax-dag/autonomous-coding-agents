@@ -76,37 +76,6 @@ export {
   type CoderAgentConfig,
 } from './specialized';
 
-// Agent Communication
-export {
-  AgentCommunication,
-  createAgentCommunication,
-  COMMUNICATION_EVENTS,
-  type AgentMessage,
-  type MessageRoutingOptions,
-  type MessageFilter,
-  type AgentMessageHandler,
-  type Subscription,
-  type AgentCommunicationOptions,
-} from './communication';
-
-// Background Execution
-export {
-  BackgroundExecutor,
-  createBackgroundExecutor,
-  submitBackgroundJob,
-  BackgroundJobStatus,
-  BackgroundJobOptionsSchema,
-  BackgroundExecutorConfigSchema,
-  BackgroundExecutorEvents,
-  type BackgroundJob,
-  type BackgroundJobOptions,
-  type BackgroundExecutorConfig,
-  type IBackgroundExecutor,
-  type BackgroundExecutorStats,
-  type BackgroundJobEventPayload,
-  type BackgroundExecutorEventType,
-} from './execution';
-
 // Team Agents (consolidated from orchestrator/agents)
 export {
   // Base team agent
