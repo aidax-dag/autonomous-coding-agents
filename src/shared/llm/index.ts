@@ -37,6 +37,31 @@ export {
   DEFAULT_RESILIENT_CONFIG,
 } from '@/shared/llm/resilient-client';
 
+// Re-export tiered router
+export {
+  TieredRouter,
+  createTieredRouter,
+  DefaultRoutingStrategy,
+  ModelTier,
+  DEFAULT_MODEL_MAPPING,
+  DEFAULT_TIER_COSTS,
+  type IRoutingStrategy,
+  type TaskContext,
+  type ModelSelection,
+  type TieredRouterConfig,
+  type ModelMapping,
+  type TierCostConfig,
+} from '@/shared/llm/tiered-router';
+
+// Re-export cost tracker
+export {
+  CostTracker,
+  createCostTracker,
+  type CostEntry,
+  type CostReport,
+  type CostTrackerConfig,
+} from '@/shared/llm/cost-tracker';
+
 /**
  * Create an LLM client based on provider (API-based)
  */
