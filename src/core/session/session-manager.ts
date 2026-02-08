@@ -8,6 +8,7 @@
 
 import { createHash, randomUUID } from 'crypto';
 import { createLogger, ILogger } from '../services/logger.js';
+import { JSONLStorageAdapter } from './jsonl-storage-adapter.js';
 import {
   ISessionManager,
   SessionManagerConfig,
@@ -107,84 +108,7 @@ class MemoryStorageAdapter implements IStorageAdapter {
   }
 }
 
-/**
- * File-based storage adapter for Session Manager
- */
-class FileStorageAdapter implements IStorageAdapter {
-  private sessions = new Map<string, Session>();
-  private checkpoints = new Map<string, Checkpoint>();
-
-  constructor(_basePath: string) {
-    // basePath would be used in a real file-based implementation
-  }
-
-  async initialize(): Promise<void> {
-    // In a real implementation, this would create directories and load existing data
-    // For now, we use in-memory with file path as configuration
-  }
-
-  async saveSession(session: Session): Promise<void> {
-    this.sessions.set(session.id, { ...session });
-    // In real implementation: write to file
-  }
-
-  async loadSession(sessionId: string): Promise<Session | undefined> {
-    // In real implementation: read from file if not in memory
-    const session = this.sessions.get(sessionId);
-    return session ? { ...session } : undefined;
-  }
-
-  async deleteSession(sessionId: string): Promise<boolean> {
-    // In real implementation: delete file
-    return this.sessions.delete(sessionId);
-  }
-
-  async listSessions(): Promise<Session[]> {
-    // In real implementation: read directory
-    return Array.from(this.sessions.values()).map((s) => ({ ...s }));
-  }
-
-  async saveCheckpoint(checkpoint: Checkpoint): Promise<void> {
-    this.checkpoints.set(checkpoint.id, { ...checkpoint });
-    // In real implementation: write to file
-  }
-
-  async loadCheckpoint(checkpointId: string): Promise<Checkpoint | undefined> {
-    const checkpoint = this.checkpoints.get(checkpointId);
-    return checkpoint ? { ...checkpoint } : undefined;
-  }
-
-  async deleteCheckpoint(checkpointId: string): Promise<boolean> {
-    return this.checkpoints.delete(checkpointId);
-  }
-
-  async listCheckpoints(sessionId: string): Promise<Checkpoint[]> {
-    return Array.from(this.checkpoints.values())
-      .filter((c) => c.sessionId === sessionId)
-      .map((c) => ({ ...c }));
-  }
-
-  async getStats(): Promise<{ sessionCount: number; checkpointCount: number; totalSizeBytes: number }> {
-    const totalSizeBytes = Array.from(this.checkpoints.values()).reduce(
-      (sum, c) => sum + c.sizeBytes,
-      0
-    );
-    return {
-      sessionCount: this.sessions.size,
-      checkpointCount: this.checkpoints.size,
-      totalSizeBytes,
-    };
-  }
-
-  async clear(): Promise<void> {
-    this.sessions.clear();
-    this.checkpoints.clear();
-  }
-
-  async dispose(): Promise<void> {
-    await this.clear();
-  }
-}
+// FileStorageAdapter stub removed — replaced by JSONLStorageAdapter
 
 /**
  * Session Manager Implementation
@@ -223,7 +147,7 @@ export class SessionManager implements ISessionManager {
     if (this.config.storageAdapter) {
       this.storage = this.config.storageAdapter;
     } else if (this.config.storageBackend === StorageBackend.FILE && this.config.storagePath) {
-      this.storage = new FileStorageAdapter(this.config.storagePath);
+      this.storage = new JSONLStorageAdapter({ basePath: this.config.storagePath });
     } else {
       this.storage = new MemoryStorageAdapter();
     }
