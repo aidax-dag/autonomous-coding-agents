@@ -305,11 +305,7 @@ export interface HookExecutionRecord {
  * Built-in hook types
  */
 export type BuiltinHookType =
-  | 'context-monitor'
-  | 'token-optimizer'
-  | 'session-recovery'
-  | 'auto-compaction'
-  | 'comment-checker'
-  | 'code-quality'
-  | 'todo-enforcer'
-  | 'think-mode';
+  | 'confidence-check'
+  | 'self-check'
+  | 'error-learning'
+  | 'context-optimizer';
