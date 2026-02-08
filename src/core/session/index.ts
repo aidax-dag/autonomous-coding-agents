@@ -18,3 +18,11 @@ export {
   createJSONLStorageAdapter,
   type JSONLStorageAdapterConfig,
 } from './jsonl-storage-adapter.js';
+
+// Session Compactor
+export {
+  SessionCompactor,
+  createSessionCompactor,
+  type SessionCompactorConfig,
+  type CompactionReport,
+} from './session-compactor.js';
