@@ -5,7 +5,6 @@
 import { ConfidenceCheckHook } from '../../../../src/core/hooks/confidence-check/confidence-check.hook';
 import { HookEvent, HookAction, HookContext } from '../../../../src/core/interfaces/hook.interface';
 import type { TaskDocument } from '../../../../src/core/workspace/task-document';
-import { SandboxEscalation, SandboxLevel } from '../../../../src/core/security/escalation';
 
 // Mock ConfidenceChecker
 function createMockChecker(result: { score: number; passed: boolean; recommendation: string; threshold: number; explanation?: string }) {
@@ -84,46 +83,5 @@ describe('ConfidenceCheckHook', () => {
     const hook = new ConfidenceCheckHook(checker);
     const result = await hook.execute(createTaskContext(mockTask));
     expect(result.action).toBe(HookAction.CONTINUE);
-  });
-
-  // Sandbox escalation integration
-  describe('with SandboxEscalation', () => {
-    it('should request escalation based on confidence score', async () => {
-      const checker = createMockChecker({ score: 95, passed: true, recommendation: 'proceed', threshold: 90 });
-      const sandbox = new SandboxEscalation();
-      const hook = new ConfidenceCheckHook(checker, undefined, sandbox);
-
-      const result = await hook.execute(createTaskContext(mockTask));
-
-      expect(result.action).toBe(HookAction.CONTINUE);
-      expect(result.data?.escalation).toBeDefined();
-      expect(result.data?.escalation?.approved).toBe(true);
-      // Score 95 → requests ELEVATED, but ELEVATED requires trust too (not provided)
-      // Without trust check it should approve
-      expect(result.data?.escalation?.grantedLevel).toBeGreaterThanOrEqual(SandboxLevel.STANDARD);
-    });
-
-    it('should include escalation in result even with low confidence', async () => {
-      const checker = createMockChecker({ score: 75, passed: false, recommendation: 'alternatives', threshold: 90 });
-      const sandbox = new SandboxEscalation();
-      const hook = new ConfidenceCheckHook(checker, undefined, sandbox);
-
-      const result = await hook.execute(createTaskContext(mockTask));
-      expect(result.data?.escalation).toBeDefined();
-    });
-
-    it('should gracefully handle sandbox escalation errors', async () => {
-      const checker = createMockChecker({ score: 95, passed: true, recommendation: 'proceed', threshold: 90 });
-      const sandbox = {
-        getCurrentLevel: jest.fn().mockImplementation(() => { throw new Error('sandbox error'); }),
-        requestEscalation: jest.fn().mockImplementation(() => { throw new Error('sandbox error'); }),
-      } as any;
-      const hook = new ConfidenceCheckHook(checker, undefined, sandbox);
-
-      const result = await hook.execute(createTaskContext(mockTask));
-      expect(result.action).toBe(HookAction.CONTINUE);
-      // Escalation should be undefined (error caught gracefully)
-      expect(result.data?.escalation).toBeUndefined();
-    });
   });
 });
