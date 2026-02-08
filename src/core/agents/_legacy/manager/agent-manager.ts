@@ -1,5 +1,10 @@
 import { BaseAgent } from '@/agents/base/agent';
-import { AgentType, AgentStatus, Task, HealthStatus } from '@/agents/base/types';
+import {
+  AgentType,
+  AgentStatus,
+  Task,
+  HealthStatus,
+} from '@/agents/base/types';
 import { AgentError, ErrorCode } from '@/shared/errors/custom-errors';
 import { AgentLogger, createAgentLogger } from '@/shared/logging/logger';
 import { z } from 'zod';
@@ -27,11 +32,9 @@ const TaskSchema = z.object({
   priority: z.string(),
   status: z.string(),
   payload: z.record(z.unknown()),
-  metadata: z
-    .object({
-      createdAt: z.number(),
-    })
-    .passthrough(),
+  metadata: z.object({
+    createdAt: z.number(),
+  }).passthrough(),
 });
 
 /**
@@ -133,9 +136,12 @@ export class AgentManager {
 
     const agent = this.agents.get(agentId);
     if (!agent) {
-      throw new AgentError(`Agent ${agentId} not found`, ErrorCode.AGENT_STATE_ERROR, false, {
-        agentId,
-      });
+      throw new AgentError(
+        `Agent ${agentId} not found`,
+        ErrorCode.AGENT_STATE_ERROR,
+        false,
+        { agentId }
+      );
     }
 
     try {
@@ -164,10 +170,12 @@ export class AgentManager {
 
       this.logger.info('Agent unregistered successfully', { agentId });
     } catch (error) {
-      throw new AgentError('Failed to unregister agent', ErrorCode.AGENT_STATE_ERROR, false, {
-        agentId,
-        originalError: String(error),
-      });
+      throw new AgentError(
+        'Failed to unregister agent',
+        ErrorCode.AGENT_STATE_ERROR,
+        false,
+        { agentId, originalError: String(error) }
+      );
     }
   }
 
@@ -181,9 +189,12 @@ export class AgentManager {
 
     const agent = this.agents.get(agentId);
     if (!agent) {
-      throw new AgentError(`Agent ${agentId} not found`, ErrorCode.AGENT_STATE_ERROR, false, {
-        agentId,
-      });
+      throw new AgentError(
+        `Agent ${agentId} not found`,
+        ErrorCode.AGENT_STATE_ERROR,
+        false,
+        { agentId }
+      );
     }
 
     try {
@@ -209,19 +220,24 @@ export class AgentManager {
 
     const agent = this.agents.get(agentId);
     if (!agent) {
-      throw new AgentError(`Agent ${agentId} not found`, ErrorCode.AGENT_STATE_ERROR, false, {
-        agentId,
-      });
+      throw new AgentError(
+        `Agent ${agentId} not found`,
+        ErrorCode.AGENT_STATE_ERROR,
+        false,
+        { agentId }
+      );
     }
 
     try {
       await agent.stop();
       this.logger.info('Agent stopped successfully', { agentId });
     } catch (error) {
-      throw new AgentError(`Failed to stop agent ${agentId}`, ErrorCode.AGENT_STATE_ERROR, false, {
-        agentId,
-        originalError: String(error),
-      });
+      throw new AgentError(
+        `Failed to stop agent ${agentId}`,
+        ErrorCode.AGENT_STATE_ERROR,
+        false,
+        { agentId, originalError: String(error) }
+      );
     }
   }
 
@@ -236,16 +252,21 @@ export class AgentManager {
     // Validate task structure
     const validationResult = TaskSchema.safeParse(task);
     if (!validationResult.success) {
-      throw new AgentError('Invalid task structure', ErrorCode.VALIDATION_ERROR, false, {
-        validationError: validationResult.error.errors,
-      });
+      throw new AgentError(
+        'Invalid task structure',
+        ErrorCode.VALIDATION_ERROR,
+        false,
+        { validationError: validationResult.error.errors }
+      );
     }
 
     const agentType = task.agentType;
     const agents = this.agentsByType.get(agentType) ?? [];
 
     // Filter for agents in IDLE state
-    const availableAgents = agents.filter((agent) => agent.getState() === 'IDLE');
+    const availableAgents = agents.filter(
+      (agent) => agent.getState() === 'IDLE'
+    );
 
     if (availableAgents.length === 0) {
       throw new AgentError(
@@ -282,9 +303,12 @@ export class AgentManager {
   async getAgentHealth(agentId: string): Promise<HealthStatus> {
     const agent = this.agents.get(agentId);
     if (!agent) {
-      throw new AgentError(`Agent ${agentId} not found`, ErrorCode.AGENT_STATE_ERROR, false, {
-        agentId,
-      });
+      throw new AgentError(
+        `Agent ${agentId} not found`,
+        ErrorCode.AGENT_STATE_ERROR,
+        false,
+        { agentId }
+      );
     }
 
     return agent.getHealth();
@@ -369,10 +393,7 @@ export class AgentManager {
    * Get system health status
    */
   async getSystemHealth(): Promise<SystemHealth> {
-    const agentStats = new Map<
-      AgentType,
-      { count: number; healthy: number; idle: number; working: number }
-    >();
+    const agentStats = new Map<AgentType, { count: number; healthy: number; idle: number; working: number }>();
 
     // Initialize stats for all agent types
     Object.values(AgentType).forEach((type) => {

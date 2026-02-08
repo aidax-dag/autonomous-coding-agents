@@ -73,9 +73,12 @@ export abstract class BaseAgent {
 
     const key = process.env[envVars[provider]];
     if (!key) {
-      throw new AgentError(`Missing API key for ${provider}`, ErrorCode.CONFIG_MISSING, false, {
-        provider,
-      });
+      throw new AgentError(
+        `Missing API key for ${provider}`,
+        ErrorCode.CONFIG_MISSING,
+        false,
+        { provider }
+      );
     }
 
     return key;
@@ -167,9 +170,12 @@ export abstract class BaseAgent {
       this.logger.info('Agent stopped successfully');
     } catch (error) {
       this.logger.error('Error while stopping agent', { error });
-      throw new AgentError('Failed to stop agent', ErrorCode.AGENT_STATE_ERROR, false, {
-        originalError: String(error),
-      });
+      throw new AgentError(
+        'Failed to stop agent',
+        ErrorCode.AGENT_STATE_ERROR,
+        false,
+        { originalError: String(error) }
+      );
     }
   }
 
@@ -333,9 +339,12 @@ export abstract class BaseAgent {
       });
     } catch (error) {
       this.logger.error('Failed to publish result', { error, result });
-      throw new AgentError('Failed to publish task result', ErrorCode.MESSAGE_BROKER_ERROR, true, {
-        originalError: String(error),
-      });
+      throw new AgentError(
+        'Failed to publish task result',
+        ErrorCode.MESSAGE_BROKER_ERROR,
+        true,
+        { originalError: String(error) }
+      );
     }
   }
 
@@ -404,9 +413,12 @@ export abstract class BaseAgent {
   protected parseTask(message: unknown): Task {
     // Basic validation
     if (!message || typeof message !== 'object') {
-      throw new AgentError('Invalid task message', ErrorCode.MESSAGE_VALIDATION_ERROR, false, {
-        message,
-      });
+      throw new AgentError(
+        'Invalid task message',
+        ErrorCode.MESSAGE_VALIDATION_ERROR,
+        false,
+        { message }
+      );
     }
 
     const msg = message as Record<string, unknown>;
@@ -422,10 +434,12 @@ export abstract class BaseAgent {
 
     // Verify agent type matches
     if (msg.agentType !== this.getAgentType()) {
-      throw new AgentError('Task agent type mismatch', ErrorCode.MESSAGE_VALIDATION_ERROR, false, {
-        expected: this.getAgentType(),
-        actual: msg.agentType,
-      });
+      throw new AgentError(
+        'Task agent type mismatch',
+        ErrorCode.MESSAGE_VALIDATION_ERROR,
+        false,
+        { expected: this.getAgentType(), actual: msg.agentType }
+      );
     }
 
     return message as Task;

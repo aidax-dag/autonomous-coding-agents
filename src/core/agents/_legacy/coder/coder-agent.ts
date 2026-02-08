@@ -150,7 +150,10 @@ export class CoderAgent extends BaseAgent {
         await this.applyFileChanges(codeGeneration.files, repoPath);
 
         // Validate syntax
-        const validationResults = await this.validateGeneratedCode(codeGeneration.files, repoPath);
+        const validationResults = await this.validateGeneratedCode(
+          codeGeneration.files,
+          repoPath
+        );
 
         // Commit changes
         const changedFiles = codeGeneration.files.map((f) => f.path);
@@ -180,8 +183,7 @@ export class CoderAgent extends BaseAgent {
             ],
             filesChanged: codeGeneration.files.map((f) => ({
               path: f.path,
-              status:
-                f.action === 'create' ? 'added' : f.action === 'delete' ? 'deleted' : 'modified',
+              status: f.action === 'create' ? 'added' : f.action === 'delete' ? 'deleted' : 'modified',
               additions: f.content.split('\n').length,
               deletions: 0,
             })),
@@ -246,10 +248,12 @@ export class CoderAgent extends BaseAgent {
       this.logger.info('Repository cloned', { url, targetPath });
       return targetPath;
     } catch (error) {
-      throw new AgentError('Failed to clone repository', ErrorCode.GIT_OPERATION_FAILED, false, {
-        url,
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to clone repository',
+        ErrorCode.GIT_OPERATION_FAILED,
+        false,
+        { url, error: String(error) }
+      );
     }
   }
 
@@ -331,9 +335,12 @@ export class CoderAgent extends BaseAgent {
           throw error;
         }
 
-        throw new AgentError('Code generation failed', ErrorCode.LLM_API_ERROR, true, {
-          error: String(error),
-        });
+        throw new AgentError(
+          'Code generation failed',
+          ErrorCode.LLM_API_ERROR,
+          true,
+          { error: String(error) }
+        );
       }
     }, 3);
   }
@@ -467,7 +474,12 @@ Generate code following these guidelines:
    */
   private async validateSyntax(code: string): Promise<SyntaxValidationResult> {
     try {
-      const sourceFile = ts.createSourceFile('temp.ts', code, ts.ScriptTarget.Latest, true);
+      const sourceFile = ts.createSourceFile(
+        'temp.ts',
+        code,
+        ts.ScriptTarget.Latest,
+        true
+      );
 
       // Check for parse diagnostics (syntax errors)
       const diagnostics = (sourceFile as any).parseDiagnostics || [];
@@ -502,9 +514,12 @@ Generate code following these guidelines:
       this.logger.info('Changes committed', { commitSha, files: files.length });
       return commitSha;
     } catch (error) {
-      throw new AgentError('Failed to commit changes', ErrorCode.GIT_OPERATION_FAILED, false, {
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to commit changes',
+        ErrorCode.GIT_OPERATION_FAILED,
+        false,
+        { error: String(error) }
+      );
     }
   }
 
@@ -516,10 +531,12 @@ Generate code following these guidelines:
       await gitOps.push('origin', branch);
       this.logger.info('Changes pushed to remote', { branch });
     } catch (error) {
-      throw new AgentError('Failed to push changes', ErrorCode.GIT_OPERATION_FAILED, true, {
-        branch,
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to push changes',
+        ErrorCode.GIT_OPERATION_FAILED,
+        true,
+        { branch, error: String(error) }
+      );
     }
   }
 

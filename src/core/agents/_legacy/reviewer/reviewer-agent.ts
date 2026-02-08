@@ -98,11 +98,9 @@ export class ReviewerAgent extends BaseAgent {
     super(config, natsClient);
     this.customLLMClient = llmClient;
     this.githubClient = githubClient || new GitHubClient(process.env.GITHUB_TOKEN || '');
-    this.ciChecker =
-      ciChecker ||
-      new CIChecker(process.env.GITHUB_TOKEN || '', {
-        minCoverage: parseInt(process.env.MIN_COVERAGE || '80', 10),
-      });
+    this.ciChecker = ciChecker || new CIChecker(process.env.GITHUB_TOKEN || '', {
+      minCoverage: parseInt(process.env.MIN_COVERAGE || '80', 10),
+    });
   }
 
   getAgentType(): AgentType {
@@ -120,9 +118,12 @@ export class ReviewerAgent extends BaseAgent {
       const validationResult = ReviewPayloadSchema.safeParse((task as ReviewRequest).payload);
 
       if (!validationResult.success) {
-        throw new AgentError('Invalid review request payload', ErrorCode.VALIDATION_ERROR, false, {
-          errors: validationResult.error.errors,
-        });
+        throw new AgentError(
+          'Invalid review request payload',
+          ErrorCode.VALIDATION_ERROR,
+          false,
+          { errors: validationResult.error.errors }
+        );
       }
 
       const payload = validationResult.data;
@@ -158,10 +159,14 @@ export class ReviewerAgent extends BaseAgent {
         });
 
         // Post review about failed CI
-        await this.githubClient.createReview(repository, pullRequest.number, {
-          event: 'REQUEST_CHANGES',
-          body: failureMessage,
-        });
+        await this.githubClient.createReview(
+          repository,
+          pullRequest.number,
+          {
+            event: 'REQUEST_CHANGES',
+            body: failureMessage,
+          }
+        );
 
         // Build early result - don't proceed with code review if CI failed
         const result: ReviewResult = {
@@ -276,10 +281,12 @@ export class ReviewerAgent extends BaseAgent {
       this.logger.info('PR details fetched', { pr: prNumber, title: pr.title });
       return pr;
     } catch (error) {
-      throw new AgentError('Failed to fetch pull request', ErrorCode.GITHUB_API_ERROR, true, {
-        prNumber,
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to fetch pull request',
+        ErrorCode.GITHUB_API_ERROR,
+        true,
+        { prNumber, error: String(error) }
+      );
     }
   }
 
@@ -295,10 +302,12 @@ export class ReviewerAgent extends BaseAgent {
       this.logger.info('PR diff fetched', { pr: prNumber, filesCount: diff.files.length });
       return diff;
     } catch (error) {
-      throw new AgentError('Failed to fetch pull request diff', ErrorCode.GITHUB_API_ERROR, true, {
-        prNumber,
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to fetch pull request diff',
+        ErrorCode.GITHUB_API_ERROR,
+        true,
+        { prNumber, error: String(error) }
+      );
     }
   }
 
@@ -369,9 +378,12 @@ export class ReviewerAgent extends BaseAgent {
           throw error;
         }
 
-        throw new AgentError('Code analysis failed', ErrorCode.LLM_API_ERROR, true, {
-          error: String(error),
-        });
+        throw new AgentError(
+          'Code analysis failed',
+          ErrorCode.LLM_API_ERROR,
+          true,
+          { error: String(error) }
+        );
       }
     }, 3);
   }
@@ -469,10 +481,12 @@ Return response in JSON format:
 
       return result;
     } catch (error) {
-      throw new AgentError('Failed to post review to GitHub', ErrorCode.GITHUB_API_ERROR, true, {
-        prNumber,
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to post review to GitHub',
+        ErrorCode.GITHUB_API_ERROR,
+        true,
+        { prNumber, error: String(error) }
+      );
     }
   }
 
@@ -525,9 +539,7 @@ Return response in JSON format:
     const lines: string[] = [];
 
     lines.push('## ❌ CI Checks Failed\n');
-    lines.push(
-      'The following CI checks have failed. Please fix these issues before the code can be reviewed:\n'
-    );
+    lines.push('The following CI checks have failed. Please fix these issues before the code can be reviewed:\n');
 
     for (const check of failedChecks) {
       lines.push(`### ${check.name}`);

@@ -95,9 +95,12 @@ export class RepoManagerAgent extends BaseAgent {
       const validationResult = FeaturePayloadSchema.safeParse((task as FeatureRequest).payload);
 
       if (!validationResult.success) {
-        throw new AgentError('Invalid feature request payload', ErrorCode.VALIDATION_ERROR, false, {
-          errors: validationResult.error.errors,
-        });
+        throw new AgentError(
+          'Invalid feature request payload',
+          ErrorCode.VALIDATION_ERROR,
+          false,
+          { errors: validationResult.error.errors }
+        );
       }
 
       const payload = validationResult.data;
@@ -112,9 +115,12 @@ export class RepoManagerAgent extends BaseAgent {
       const implementationResult = await this.requestImplementation(repository, feature);
 
       if (!implementationResult.success) {
-        throw new AgentError('Implementation failed', ErrorCode.WORKFLOW_ERROR, false, {
-          implementationError: implementationResult.error,
-        });
+        throw new AgentError(
+          'Implementation failed',
+          ErrorCode.WORKFLOW_ERROR,
+          false,
+          { implementationError: implementationResult.error }
+        );
       }
 
       const branch = implementationResult.data.branch;
@@ -296,7 +302,8 @@ export class RepoManagerAgent extends BaseAgent {
 
       // Extract feature info for notification
       const featureRequest = task as FeatureRequest;
-      const featureTitle = featureRequest.payload?.feature?.title || 'Unknown Feature';
+      const featureTitle =
+        featureRequest.payload?.feature?.title || 'Unknown Feature';
 
       // Notify task failed
       await this.notifier?.send({
@@ -308,7 +315,8 @@ export class RepoManagerAgent extends BaseAgent {
         metadata: {
           taskId: task.id,
           error: error instanceof Error ? error.message : String(error),
-          errorCode: error instanceof AgentError ? error.code : ErrorCode.WORKFLOW_ERROR,
+          errorCode:
+            error instanceof AgentError ? error.code : ErrorCode.WORKFLOW_ERROR,
         },
       });
 
@@ -417,9 +425,11 @@ export class RepoManagerAgent extends BaseAgent {
         prNumber,
       });
 
-      const response = await this.natsClient.request('task.reviewer', JSON.stringify(reviewTask), {
-        timeout: this.NATS_TIMEOUT,
-      });
+      const response = await this.natsClient.request(
+        'task.reviewer',
+        JSON.stringify(reviewTask),
+        { timeout: this.NATS_TIMEOUT }
+      );
 
       const result: ReviewResult = JSON.parse(response.data.toString());
 
@@ -430,9 +440,12 @@ export class RepoManagerAgent extends BaseAgent {
 
       return result;
     } catch (error) {
-      throw new AgentError('Failed to request review', ErrorCode.AGENT_COMMUNICATION_ERROR, true, {
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to request review',
+        ErrorCode.AGENT_COMMUNICATION_ERROR,
+        true,
+        { error: String(error) }
+      );
     }
   }
 
@@ -465,9 +478,12 @@ export class RepoManagerAgent extends BaseAgent {
 
       return pr;
     } catch (error) {
-      throw new AgentError('Failed to create pull request', ErrorCode.GITHUB_API_ERROR, true, {
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to create pull request',
+        ErrorCode.GITHUB_API_ERROR,
+        true,
+        { error: String(error) }
+      );
     }
   }
 
@@ -490,10 +506,12 @@ export class RepoManagerAgent extends BaseAgent {
 
       return result;
     } catch (error) {
-      throw new AgentError('Failed to merge pull request', ErrorCode.GITHUB_API_ERROR, true, {
-        prNumber,
-        error: String(error),
-      });
+      throw new AgentError(
+        'Failed to merge pull request',
+        ErrorCode.GITHUB_API_ERROR,
+        true,
+        { prNumber, error: String(error) }
+      );
     }
   }
 }

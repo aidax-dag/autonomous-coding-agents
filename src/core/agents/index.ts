@@ -106,3 +106,45 @@ export {
   type BackgroundJobEventPayload,
   type BackgroundExecutorEventType,
 } from './execution';
+
+// Team Agents (consolidated from orchestrator/agents)
+export {
+  // Base team agent
+  BaseTeamAgent,
+  type BaseTeamAgentEvents,
+  type BaseTeamAgentOptions,
+  // Team agent interfaces
+  type ITeamAgent,
+  type TeamAgentStatus,
+  type TeamAgentConfig,
+  type TeamMetrics,
+  type TeamCapability,
+  type TaskHandler,
+  type TaskHandlerResult,
+  createTeamConfig,
+  // Specialized team agents
+  PlanningAgent,
+  createPlanningAgent,
+  type PlanningOutput,
+  type PlanningAgentOptions,
+  DevelopmentAgent,
+  createDevelopmentAgent,
+  createFrontendAgent,
+  createBackendAgent,
+  type DevelopmentOutput,
+  type DevelopmentAgentOptions,
+  QAAgent,
+  createQAAgent,
+  type QAOutput,
+  type QAAgentOptions,
+  type TestResult,
+  CodeQualityAgent,
+  createCodeQualityAgent,
+  type CodeQualityAgentOptions,
+  type GeneratedTestCase,
+  type CodeReviewFinding,
+  type RefactoringSuggestion,
+  type TestGenerationOutput,
+  type DeepReviewOutput,
+  type RefactoringOutput,
+} from './teams';
