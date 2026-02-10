@@ -24,6 +24,12 @@ import { ReflexionPattern, createReflexionPattern } from '../learning/reflexion-
 import { InstinctStore, createInstinctStore } from '../learning/instinct-store.js';
 import { SolutionsCache, createSolutionsCache } from '../learning/solutions-cache.js';
 import { ContextManager, createContextManager } from '../context/context-manager.js';
+import {
+  SessionManager,
+  createSessionManager,
+  createJSONLPersistence,
+  createSessionRecovery,
+} from '../session/index.js';
 import { mkdir } from 'fs/promises';
 
 /**
@@ -38,8 +44,12 @@ export interface ServiceRegistryConfig {
   enableLearning?: boolean;
   /** Enable context management module (ContextManager) */
   enableContext?: boolean;
+  /** Enable session persistence module (SessionManager) */
+  enableSession?: boolean;
   /** Directory for memory/learning persistence (default: 'docs/memory') */
   memoryDir?: string;
+  /** Directory for session persistence (default: 'data/sessions') */
+  sessionDir?: string;
 }
 
 /**
@@ -58,6 +68,7 @@ export class ServiceRegistry {
   private instinctStore: InstinctStore | null = null;
   private solutionsCache: SolutionsCache | null = null;
   private contextManager: ContextManager | null = null;
+  private sessionManager: SessionManager | null = null;
   private _initialized = false;
 
   private constructor() {}
@@ -87,7 +98,9 @@ export class ServiceRegistry {
       enableValidation = false,
       enableLearning = false,
       enableContext = false,
+      enableSession = false,
       memoryDir = 'docs/memory',
+      sessionDir = 'data/sessions',
     } = config;
 
     const basePath = `${projectRoot}/${memoryDir}`;
@@ -156,6 +169,18 @@ export class ServiceRegistry {
       }
     }
 
+    // Session module (async initialization)
+    if (enableSession) {
+      const sessionBasePath = `${projectRoot}/${sessionDir}`;
+      try {
+        const persistence = await createJSONLPersistence({ baseDir: sessionBasePath });
+        const recovery = createSessionRecovery({ persistence });
+        this.sessionManager = await createSessionManager({ persistence, recovery });
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
     this._initialized = true;
   }
 
@@ -179,6 +204,14 @@ export class ServiceRegistry {
       /* dispose error ignored */
     }
 
+    try {
+      if (this.sessionManager) {
+        await this.sessionManager.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
     this.confidenceChecker = null;
     this.selfCheckProtocol = null;
     this.goalBackwardVerifier = null;
@@ -186,6 +219,7 @@ export class ServiceRegistry {
     this.instinctStore = null;
     this.solutionsCache = null;
     this.contextManager = null;
+    this.sessionManager = null;
     this._initialized = false;
   }
 
@@ -220,5 +254,9 @@ export class ServiceRegistry {
 
   getContextManager(): ContextManager | null {
     return this.contextManager;
+  }
+
+  getSessionManager(): SessionManager | null {
+    return this.sessionManager;
   }
 }
