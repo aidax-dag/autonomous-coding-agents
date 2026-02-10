@@ -30,6 +30,8 @@ import {
   createJSONLPersistence,
   createSessionRecovery,
 } from '../session/index.js';
+import { SandboxEscalation, createSandboxEscalation } from '../security/sandbox-escalation.js';
+import type { SandboxEscalationOptions } from '../security/interfaces/escalation.interface.js';
 import { mkdir } from 'fs/promises';
 
 /**
@@ -46,10 +48,14 @@ export interface ServiceRegistryConfig {
   enableContext?: boolean;
   /** Enable session persistence module (SessionManager) */
   enableSession?: boolean;
+  /** Enable security module (SandboxEscalation) */
+  enableSecurity?: boolean;
   /** Directory for memory/learning persistence (default: 'docs/memory') */
   memoryDir?: string;
   /** Directory for session persistence (default: 'data/sessions') */
   sessionDir?: string;
+  /** Sandbox escalation options */
+  sandboxOptions?: SandboxEscalationOptions;
 }
 
 /**
@@ -69,6 +75,7 @@ export class ServiceRegistry {
   private solutionsCache: SolutionsCache | null = null;
   private contextManager: ContextManager | null = null;
   private sessionManager: SessionManager | null = null;
+  private sandboxEscalation: SandboxEscalation | null = null;
   private _initialized = false;
 
   private constructor() {}
@@ -99,8 +106,10 @@ export class ServiceRegistry {
       enableLearning = false,
       enableContext = false,
       enableSession = false,
+      enableSecurity = false,
       memoryDir = 'docs/memory',
       sessionDir = 'data/sessions',
+      sandboxOptions,
     } = config;
 
     const basePath = `${projectRoot}/${memoryDir}`;
@@ -181,6 +190,15 @@ export class ServiceRegistry {
       }
     }
 
+    // Security module (synchronous initialization)
+    if (enableSecurity) {
+      try {
+        this.sandboxEscalation = createSandboxEscalation(sandboxOptions);
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
     this._initialized = true;
   }
 
@@ -220,6 +238,7 @@ export class ServiceRegistry {
     this.solutionsCache = null;
     this.contextManager = null;
     this.sessionManager = null;
+    this.sandboxEscalation = null;
     this._initialized = false;
   }
 
@@ -258,5 +277,9 @@ export class ServiceRegistry {
 
   getSessionManager(): SessionManager | null {
     return this.sessionManager;
+  }
+
+  getSandboxEscalation(): SandboxEscalation | null {
+    return this.sandboxEscalation;
   }
 }

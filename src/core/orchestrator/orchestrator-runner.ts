@@ -1,28 +1,18 @@
 /**
  * Orchestrator Runner
  *
- * Integrates CEOOrchestrator with Team Agents and LLM for complete
- * end-to-end workflow execution. Provides a high-level interface
- * for running orchestrated agent workflows.
+ * Thin integration layer that coordinates CEOOrchestrator, Team Agents,
+ * and Hook pipeline for end-to-end workflow execution.
+ *
+ * Agent initialization delegated to agent-factory.ts.
+ * Integration module setup delegated to integration-setup.ts.
  *
  * Feature: End-to-End Workflow Integration for Agent OS
  */
 
 import { EventEmitter } from 'events';
 import { CEOOrchestrator, CEOStatus } from './ceo-orchestrator';
-import { PlanningAgent, createPlanningAgent, PlanningOutput } from './agents/planning-agent';
-import {
-  DevelopmentAgent,
-  createDevelopmentAgent,
-  DevelopmentOutput,
-} from './agents/development-agent';
-import { QAAgent, createQAAgent, QAOutput } from './agents/qa-agent';
-import { TeamAgentLLMAdapter, createTeamAgentLLMAdapter } from './llm/team-agent-llm';
-import {
-  createPlanningLLMExecutor,
-  createDevelopmentLLMExecutor,
-  createQALLMExecutor,
-} from './llm';
+import { createTeamAgentLLMAdapter } from './llm/team-agent-llm';
 import { TaskDocument, TeamType, TaskPriority, TaskType } from '../workspace/task-document';
 import { DocumentQueue } from '../workspace/document-queue';
 import { WorkspaceManager } from '../workspace/workspace-manager';
@@ -32,17 +22,13 @@ import { TaskHandlerResult } from './team-agent';
 import { BaseTeamAgent } from './base-team-agent';
 import { RunnerStateManager } from './runner-state-manager.js';
 import { ErrorEscalator, EscalationAction } from './error-escalator.js';
-import { createQAExecutor } from './quality';
 import { HookRegistry } from '../hooks/hook-registry';
 import { HookExecutor } from '../hooks/hook-executor';
 import { HookEvent, HookAction } from '../interfaces/hook.interface';
 import { ServiceRegistry } from '../services/service-registry';
-import { ConfidenceCheckHook } from '../hooks/confidence-check/confidence-check.hook';
-import { SelfCheckHook } from '../hooks/self-check/self-check.hook';
-import { ErrorLearningHook } from '../hooks/error-learning/error-learning.hook';
-import { ContextOptimizerHook } from '../hooks/context-optimizer/context-optimizer.hook';
-import type { ContextManager } from '../context/context-manager';
 import type { GoalBackwardResult } from '../validation/interfaces/validation.interface';
+import { createAndRegisterAgents } from './agent-factory.js';
+import { initializeIntegrations } from './integration-setup.js';
 
 /**
  * Runner status
@@ -133,18 +119,14 @@ export interface RunnerEvents {
 /**
  * Orchestrator Runner
  *
- * High-level runner that integrates all components for end-to-end workflow execution.
+ * Thin runner that delegates agent creation and integration setup
+ * to dedicated modules while focusing on lifecycle and execution flow.
  */
 export class OrchestratorRunner extends EventEmitter {
   private readonly config: Required<OrchestratorRunnerConfig>;
   private readonly orchestrator: CEOOrchestrator;
   private readonly workspace: WorkspaceManager;
   private readonly queue: DocumentQueue;
-  private readonly llmAdapter: TeamAgentLLMAdapter;
-
-  private planningAgent?: PlanningAgent;
-  private developmentAgent?: DevelopmentAgent;
-  private qaAgent?: QAAgent;
 
   private readonly hookRegistry: HookRegistry;
   private readonly hookExecutor: HookExecutor;
@@ -155,7 +137,6 @@ export class OrchestratorRunner extends EventEmitter {
   constructor(config: OrchestratorRunnerConfig) {
     super();
 
-    // Merge with defaults
     this.config = {
       llmClient: config.llmClient,
       workspaceDir: config.workspaceDir || process.cwd(),
@@ -170,66 +151,43 @@ export class OrchestratorRunner extends EventEmitter {
       enableContextManagement: config.enableContextManagement ?? false,
     };
 
-    // Hook infrastructure
     this.hookRegistry = new HookRegistry();
     this.hookExecutor = new HookExecutor(this.hookRegistry);
 
-    // Create workspace and queue
     this.workspace = new WorkspaceManager({
       baseDir: this.config.workspaceDir,
       autoCreate: true,
     });
     this.queue = new DocumentQueue(this.workspace);
 
-    // Create LLM adapter
-    this.llmAdapter = createTeamAgentLLMAdapter({
-      client: this.config.llmClient,
-    });
-
-    // Create orchestrator
     this.orchestrator = new CEOOrchestrator({
       workspaceDir: this.config.workspaceDir,
       routingStrategy: this.config.routingStrategy,
       maxConcurrentTasks: this.config.maxConcurrentTasks,
       taskTimeout: this.config.taskTimeout,
-      autoStartTeams: false, // We'll manage teams manually
+      autoStartTeams: false,
       enableDecomposition: true,
     });
 
     this.setupEventHandlers();
   }
 
-  /**
-   * Get current status
-   */
   get currentStatus(): RunnerStatus {
     return this.stateManager.getStatus();
   }
 
-  /**
-   * Get orchestrator status
-   */
   get orchestratorStatus(): CEOStatus {
     return this.orchestrator.currentStatus;
   }
 
-  /**
-   * Get orchestrator instance
-   */
   get ceoOrchestrator(): CEOOrchestrator {
     return this.orchestrator;
   }
 
-  /**
-   * Get uptime in ms
-   */
   get uptime(): number {
     return this.stateManager.getUptime();
   }
 
-  /**
-   * Initialize and start the runner
-   */
   async start(): Promise<void> {
     if (this.stateManager.getStatus() === RunnerStatus.RUNNING) {
       return;
@@ -238,17 +196,35 @@ export class OrchestratorRunner extends EventEmitter {
     try {
       this.stateManager.setStatus(RunnerStatus.INITIALIZING);
 
-      // Initialize workspace and queue
       await this.workspace.initialize();
       await this.queue.initialize();
 
-      // Create and register team agents
-      await this.initializeAgents();
+      // Delegate agent creation to factory
+      const llmAdapter = createTeamAgentLLMAdapter({ client: this.config.llmClient });
+      await createAndRegisterAgents(
+        {
+          llmAdapter,
+          queue: this.queue,
+          maxConcurrentTasks: this.config.maxConcurrentTasks,
+          enableLLM: this.config.enableLLM,
+          projectContext: this.config.projectContext,
+          useRealQualityTools: this.config.useRealQualityTools,
+          workspaceDir: this.config.workspaceDir,
+        },
+        this.orchestrator,
+      );
+      // Delegate integration module setup
+      await initializeIntegrations(
+        {
+          enableValidation: this.config.enableValidation,
+          enableLearning: this.config.enableLearning,
+          enableContextManagement: this.config.enableContextManagement,
+        },
+        this.hookRegistry,
+        this.config.workspaceDir,
+        this,
+      );
 
-      // Initialize integration modules (validation/learning/context)
-      await this.initializeIntegrationModules();
-
-      // Start orchestrator
       await this.orchestrator.start();
 
       this.stateManager.markStarted();
@@ -261,9 +237,6 @@ export class OrchestratorRunner extends EventEmitter {
     }
   }
 
-  /**
-   * Stop the runner
-   */
   async stop(): Promise<void> {
     if (this.stateManager.getStatus() === RunnerStatus.STOPPED) {
       return;
@@ -271,13 +244,8 @@ export class OrchestratorRunner extends EventEmitter {
 
     try {
       this.stateManager.setStatus(RunnerStatus.STOPPING);
-
-      // Stop orchestrator (which stops all teams)
       await this.orchestrator.stop();
-
-      // Stop queue
       await this.queue.stop();
-
       this.stateManager.setStatus(RunnerStatus.STOPPED);
       this.emit('stopped');
     } catch (error) {
@@ -288,38 +256,24 @@ export class OrchestratorRunner extends EventEmitter {
     }
   }
 
-  /**
-   * Pause the runner
-   */
   async pause(): Promise<void> {
     if (this.stateManager.getStatus() !== RunnerStatus.RUNNING) {
       return;
     }
-
     await this.orchestrator.pause();
     this.stateManager.setStatus(RunnerStatus.PAUSED);
     this.emit('paused');
   }
 
-  /**
-   * Resume the runner
-   */
   async resume(): Promise<void> {
     if (this.stateManager.getStatus() !== RunnerStatus.PAUSED) {
       return;
     }
-
     await this.orchestrator.resume();
     this.stateManager.setStatus(RunnerStatus.RUNNING);
     this.emit('resumed');
   }
 
-  /**
-   * Execute a high-level goal
-   *
-   * This is the main entry point for running agent workflows.
-   * The goal is decomposed into tasks and executed by appropriate teams.
-   */
   async executeGoal(
     title: string,
     description: string,
@@ -340,7 +294,6 @@ export class OrchestratorRunner extends EventEmitter {
     this.emit('goal:started', goalId);
 
     try {
-      // Submit goal to orchestrator
       const tasks = await this.orchestrator.submitGoal(title, description, {
         priority: options?.priority,
         projectId: options?.projectId,
@@ -349,14 +302,12 @@ export class OrchestratorRunner extends EventEmitter {
 
       const results: WorkflowResult[] = [];
 
-      // If waitForCompletion, process tasks synchronously
       if (options?.waitForCompletion !== false) {
         for (const task of tasks) {
           const result = await this.executeTask(task);
           results.push(result);
         }
       } else {
-        // Fire and forget - just record task IDs
         for (const task of tasks) {
           results.push({
             success: true,
@@ -367,7 +318,6 @@ export class OrchestratorRunner extends EventEmitter {
         }
       }
 
-      // Goal-backward verification (when enableValidation is true)
       let verification: GoalBackwardResult | undefined;
       if (this.config.enableValidation && results.every((r) => r.success)) {
         verification = await this.verifyGoal(description, tasks).catch(() => undefined);
@@ -390,7 +340,6 @@ export class OrchestratorRunner extends EventEmitter {
       return goalResult;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-
       const goalResult: GoalResult = {
         success: false,
         goalId,
@@ -399,15 +348,11 @@ export class OrchestratorRunner extends EventEmitter {
         completedTasks: 0,
         failedTasks: 1,
       };
-
       this.emit('error', err);
       return goalResult;
     }
   }
 
-  /**
-   * Execute a single task
-   */
   async executeTask(task: TaskDocument): Promise<WorkflowResult> {
     const startTime = Date.now();
     const taskId = task.metadata.id;
@@ -415,7 +360,7 @@ export class OrchestratorRunner extends EventEmitter {
     this.emit('workflow:started', taskId);
 
     try {
-      // TASK_BEFORE Hooks (pre-execution validation)
+      // TASK_BEFORE Hooks
       if (this.hookRegistry.count() > 0) {
         const beforeResults = await this.hookExecutor.executeHooks(
           HookEvent.TASK_BEFORE, task, { stopOnAction: [HookAction.ABORT] }
@@ -436,14 +381,11 @@ export class OrchestratorRunner extends EventEmitter {
         }
       }
 
-      // Get the appropriate team agent
       const team = this.orchestrator.teams.get(task.metadata.to);
-
       if (!team) {
         throw new Error(`No team registered for type: ${task.metadata.to}`);
       }
 
-      // Execute the task with the team (cast to BaseTeamAgent to access processTask)
       const baseAgent = team as BaseTeamAgent;
       const result: TaskHandlerResult = await baseAgent.processTask(task);
 
@@ -456,7 +398,7 @@ export class OrchestratorRunner extends EventEmitter {
         teamType: task.metadata.to,
       };
 
-      // TASK_AFTER Hooks (post-execution validation, context optimization)
+      // TASK_AFTER Hooks
       if (this.hookRegistry.count() > 0) {
         await this.hookExecutor.executeHooks(
           HookEvent.TASK_AFTER, { task, result }
@@ -470,18 +412,15 @@ export class OrchestratorRunner extends EventEmitter {
       return workflowResult;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-
-      // Classify error and determine action
       const action = this.errorEscalator.handleError(err, 'executeTask', taskId);
 
-      // TASK_ERROR Hooks (error learning)
+      // TASK_ERROR Hooks
       if (this.hookRegistry.count() > 0) {
         await this.hookExecutor.executeHooks(
           HookEvent.TASK_ERROR, { task, error: err }
         ).catch(() => []);
       }
 
-      // Stop runner on critical errors
       if (action === EscalationAction.STOP_RUNNER) {
         this.stateManager.setStatus(RunnerStatus.ERROR);
         this.emit('error', err);
@@ -502,9 +441,6 @@ export class OrchestratorRunner extends EventEmitter {
     }
   }
 
-  /**
-   * Submit a task directly to a specific team
-   */
   async submitToTeam(
     teamType: TeamType,
     title: string,
@@ -519,7 +455,7 @@ export class OrchestratorRunner extends EventEmitter {
       throw new Error(`Runner is not running (status: ${this.stateManager.getStatus()})`);
     }
 
-    const taskType = this.getTaskTypeForTeam(teamType);
+    const taskType = getTaskTypeForTeam(teamType);
 
     return this.orchestrator.submitTask({
       title,
@@ -533,23 +469,14 @@ export class OrchestratorRunner extends EventEmitter {
     });
   }
 
-  /**
-   * Get task result by ID
-   */
   getTaskResult(taskId: string): WorkflowResult | undefined {
     return this.stateManager.getResult(taskId);
   }
 
-  /**
-   * Get all task results
-   */
   getAllResults(): Map<string, WorkflowResult> {
     return this.stateManager.getAllResults();
   }
 
-  /**
-   * Get runner statistics
-   */
   getStats(): {
     status: RunnerStatus;
     uptime: number;
@@ -561,9 +488,6 @@ export class OrchestratorRunner extends EventEmitter {
     return this.stateManager.getStats(this.orchestrator);
   }
 
-  /**
-   * Destroy and cleanup
-   */
   async destroy(): Promise<void> {
     await this.stop();
     await this.orchestrator.destroy();
@@ -571,7 +495,6 @@ export class OrchestratorRunner extends EventEmitter {
     this.errorEscalator.reset();
     this.removeAllListeners();
 
-    // Clean up integration modules
     try {
       const registry = ServiceRegistry.getInstance();
       if (registry.isInitialized()) await registry.dispose();
@@ -580,184 +503,6 @@ export class OrchestratorRunner extends EventEmitter {
     }
   }
 
-  /**
-   * Initialize team agents
-   */
-  private async initializeAgents(): Promise<void> {
-    // Create Planning Agent
-    this.planningAgent = createPlanningAgent(this.queue, {
-      config: {
-        maxConcurrentTasks: Math.ceil(this.config.maxConcurrentTasks / 3),
-      },
-    });
-
-    if (this.config.enableLLM) {
-      const planningExecutor = createPlanningLLMExecutor({
-        adapter: this.llmAdapter,
-        projectContext: this.config.projectContext,
-      });
-      this.planningAgent.setPlanGenerator(planningExecutor);
-    }
-
-    this.orchestrator.registerTeam(this.planningAgent);
-
-    // Create Development Agent
-    this.developmentAgent = createDevelopmentAgent(this.queue, {
-      config: {
-        maxConcurrentTasks: Math.ceil(this.config.maxConcurrentTasks / 2),
-      },
-    });
-
-    if (this.config.enableLLM) {
-      const devExecutor = createDevelopmentLLMExecutor({
-        adapter: this.llmAdapter,
-        projectContext: this.config.projectContext,
-      });
-      this.developmentAgent.setCodeExecutor(devExecutor);
-    }
-
-    this.orchestrator.registerTeam(this.developmentAgent);
-
-    // Create QA Agent
-    this.qaAgent = createQAAgent(this.queue, {
-      config: {
-        maxConcurrentTasks: Math.ceil(this.config.maxConcurrentTasks / 3),
-      },
-    });
-
-    // Use real quality tools when enabled, otherwise fall back to LLM executor
-    if (this.config.useRealQualityTools) {
-      // Use real CodeQualityHook and TestResultParser
-      const qaExecutor = createQAExecutor({
-        workspaceDir: this.config.workspaceDir,
-      });
-      this.qaAgent.setQAExecutor(qaExecutor);
-    } else if (this.config.enableLLM) {
-      // Use LLM-powered executor
-      const qaExecutor = createQALLMExecutor({
-        adapter: this.llmAdapter,
-        projectContext: this.config.projectContext,
-      });
-      this.qaAgent.setQAExecutor(qaExecutor);
-    }
-
-    this.orchestrator.registerTeam(this.qaAgent);
-
-    // Start all agents
-    await Promise.all([
-      this.planningAgent.start(),
-      this.developmentAgent.start(),
-      this.qaAgent.start(),
-    ]);
-  }
-
-  /**
-   * Get task type for a team type
-   */
-  private getTaskTypeForTeam(teamType: TeamType): TaskType {
-    switch (teamType) {
-      case 'planning':
-        return 'planning';
-      case 'development':
-      case 'frontend':
-      case 'backend':
-        return 'feature';
-      case 'qa':
-        return 'test';
-      case 'code-quality':
-        return 'review';
-      case 'design':
-        return 'design';
-      case 'infrastructure':
-        return 'infrastructure';
-      default:
-        return 'feature';
-    }
-  }
-
-  /**
-   * Initialize integration modules and register hooks.
-   * Only runs when at least one feature flag is enabled.
-   */
-  private async initializeIntegrationModules(): Promise<void> {
-    const needsRegistry =
-      this.config.enableValidation ||
-      this.config.enableLearning ||
-      this.config.enableContextManagement;
-
-    if (!needsRegistry) return;
-
-    const registry = ServiceRegistry.getInstance();
-    if (!registry.isInitialized()) {
-      await registry.initialize({
-        projectRoot: this.config.workspaceDir,
-        enableValidation: this.config.enableValidation,
-        enableLearning: this.config.enableLearning,
-        enableContext: this.config.enableContextManagement,
-      });
-    }
-
-    // Register validation hooks
-    if (this.config.enableValidation) {
-      const checker = registry.getConfidenceChecker();
-      if (checker) this.hookRegistry.register(new ConfidenceCheckHook(checker));
-
-      const protocol = registry.getSelfCheckProtocol();
-      if (protocol) this.hookRegistry.register(new SelfCheckHook(protocol));
-    }
-
-    // Register learning hooks
-    if (this.config.enableLearning) {
-      const reflexion = registry.getReflexionPattern();
-      const cache = registry.getSolutionsCache();
-      if (reflexion) this.hookRegistry.register(new ErrorLearningHook(reflexion, cache));
-
-      this.registerLearningListeners(registry);
-    }
-
-    // Register context hooks
-    if (this.config.enableContextManagement) {
-      const ctxMgr = registry.getContextManager();
-      if (ctxMgr) {
-        this.hookRegistry.register(new ContextOptimizerHook(ctxMgr));
-        this.registerContextListeners(ctxMgr);
-      }
-    }
-  }
-
-  /**
-   * Register listeners for learning module feedback
-   */
-  private registerLearningListeners(registry: ServiceRegistry): void {
-    const instinctStore = registry.getInstinctStore();
-    if (!instinctStore) return;
-
-    this.on('workflow:completed', async (result: WorkflowResult) => {
-      try {
-        const matching = await instinctStore.findMatching(
-          `${result.teamType}:${result.taskId}`
-        );
-        for (const instinct of matching) {
-          if (result.success) {
-            await instinctStore.reinforce(instinct.id);
-          } else {
-            await instinctStore.correct(instinct.id);
-          }
-        }
-      } catch {
-        /* learning error ignored */
-      }
-    });
-  }
-
-  /**
-   * Register listeners for context management events
-   */
-  /**
-   * Run goal-backward verification after all tasks complete.
-   * Collects expected file paths from task metadata and verifies
-   * they exist, are substantive, and are wired into the project.
-   */
   private async verifyGoal(
     goalDescription: string,
     tasks: TaskDocument[],
@@ -766,7 +511,6 @@ export class OrchestratorRunner extends EventEmitter {
     const verifier = registry.getGoalBackwardVerifier();
     if (!verifier) return undefined;
 
-    // Collect expected paths from task file references
     const expectedPaths: string[] = [];
     for (const task of tasks) {
       if (task.metadata.files) {
@@ -778,7 +522,6 @@ export class OrchestratorRunner extends EventEmitter {
       }
     }
 
-    // Skip verification if no file paths to check
     if (expectedPaths.length === 0) return undefined;
 
     return verifier.verify({
@@ -787,16 +530,7 @@ export class OrchestratorRunner extends EventEmitter {
     });
   }
 
-  private registerContextListeners(contextManager: ContextManager): void {
-    contextManager.on('usage-warning', (_data) => this.emit('context:warning'));
-    contextManager.on('usage-critical', (_data) => this.emit('context:critical'));
-  }
-
-  /**
-   * Setup event handlers
-   */
   private setupEventHandlers(): void {
-    // Forward orchestrator events
     this.orchestrator.on('task:completed', (task, result) => {
       const workflowResult: WorkflowResult = {
         success: result.success,
@@ -832,6 +566,30 @@ export interface OrchestratorRunner {
 }
 
 /**
+ * Map team type to task type
+ */
+function getTaskTypeForTeam(teamType: TeamType): TaskType {
+  switch (teamType) {
+    case 'planning':
+      return 'planning';
+    case 'development':
+    case 'frontend':
+    case 'backend':
+      return 'feature';
+    case 'qa':
+      return 'test';
+    case 'code-quality':
+      return 'review';
+    case 'design':
+      return 'design';
+    case 'infrastructure':
+      return 'infrastructure';
+    default:
+      return 'feature';
+  }
+}
+
+/**
  * Create an orchestrator runner
  */
 export function createOrchestratorRunner(config: OrchestratorRunnerConfig): OrchestratorRunner {
@@ -840,73 +598,7 @@ export function createOrchestratorRunner(config: OrchestratorRunnerConfig): Orch
 
 /**
  * Create a runner with mock LLM for testing
+ *
+ * @deprecated Use createMockRunner from './mock-runner' instead
  */
-export function createMockRunner(options?: {
-  workspaceDir?: string;
-  projectContext?: string;
-}): OrchestratorRunner {
-  // Create a simple mock LLM client
-  const mockClient: ILLMClient = {
-    getProvider: () => 'mock',
-    getDefaultModel: () => 'mock-model',
-    getMaxContextLength: () => 128000,
-    chat: async (messages) => {
-      const lastMessage = messages[messages.length - 1];
-      const content = typeof lastMessage.content === 'string' ? lastMessage.content : '';
-
-      // Generate mock response based on content
-      let response: string;
-      if (content.includes('planning') || content.includes('plan')) {
-        const planOutput: PlanningOutput = {
-          title: 'Mock Plan',
-          summary: 'Mock planning output',
-          tasks: [
-            {
-              title: 'Task 1',
-              type: 'feature',
-              targetTeam: 'development',
-              description: 'First task',
-            },
-          ],
-        };
-        response = JSON.stringify(planOutput);
-      } else if (content.includes('develop') || content.includes('implement')) {
-        const devOutput: DevelopmentOutput = {
-          summary: 'Mock development output',
-          filesModified: [
-            { path: 'src/test.ts', action: 'created', description: 'Test file' },
-          ],
-        };
-        response = JSON.stringify(devOutput);
-      } else if (content.includes('test') || content.includes('qa')) {
-        const qaOutput: QAOutput = {
-          summary: 'Mock QA output',
-          approved: true,
-          testResults: { total: 1, passed: 1, failed: 0, skipped: 0, tests: [] },
-        };
-        response = JSON.stringify(qaOutput);
-      } else {
-        response = JSON.stringify({ summary: 'Mock response' });
-      }
-
-      return {
-        content: `\`\`\`json\n${response}\n\`\`\``,
-        model: 'mock-model',
-        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
-        finishReason: 'stop',
-      };
-    },
-    chatStream: async (messages, callback) => {
-      const result = await mockClient.chat(messages);
-      await callback({ content: result.content, isComplete: true, usage: result.usage });
-      return result;
-    },
-  };
-
-  return createOrchestratorRunner({
-    llmClient: mockClient,
-    workspaceDir: options?.workspaceDir,
-    projectContext: options?.projectContext,
-    enableLLM: true,
-  });
-}
+export { createMockRunner } from './mock-runner.js';

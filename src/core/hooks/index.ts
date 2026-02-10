@@ -32,3 +32,4 @@ export * from './confidence-check/index.js';
 export * from './self-check/index.js';
 export * from './error-learning/index.js';
 export * from './context-optimizer/index.js';
+export * from './sandbox-escalation/index.js';

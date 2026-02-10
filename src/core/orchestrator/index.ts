@@ -175,6 +175,23 @@ export {
 } from './orchestrator-runner';
 
 export {
+  // Agent Factory
+  createAndRegisterAgents,
+
+  // Types
+  type AgentFactoryConfig,
+  type CreatedAgents,
+} from './agent-factory';
+
+export {
+  // Integration Setup
+  initializeIntegrations,
+
+  // Types
+  type IntegrationFlags,
+} from './integration-setup';
+
+export {
   // Runner Config Factory
   createRunnerFromEnv,
   createRunnerFromConfig,
