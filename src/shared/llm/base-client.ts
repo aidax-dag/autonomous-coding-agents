@@ -50,9 +50,9 @@ export type LLMStreamCallback = (chunk: LLMStreamChunk) => void | Promise<void>;
  * Base LLM Client Interface
  */
 /**
- * @deprecated Use ILLMClient from core/agents/interfaces.ts for new code.
- * This interface uses chat()/chatStream() convention. The canonical interface
- * uses complete()/stream(). Use SharedLLMClientAdapter (core/runner) to bridge.
+ * @deprecated The planned migration to core/agents/interfaces.ts was completed
+ * by consolidating all agents under core/orchestrator/agents/. This shared
+ * ILLMClient (chat/chatStream) remains the active interface used project-wide.
  */
 export interface ILLMClient {
   /**
