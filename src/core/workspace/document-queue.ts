@@ -76,6 +76,7 @@ export class DocumentQueue extends EventEmitter {
   private readonly processingTasks: Set<string> = new Set();
   private pollingIntervals: Map<TeamType, NodeJS.Timeout> = new Map();
   private started: boolean = false;
+  private stopped: boolean = false;
 
   constructor(workspace?: WorkspaceManager) {
     super();
@@ -98,6 +99,7 @@ export class DocumentQueue extends EventEmitter {
     }
 
     await this.initialize();
+    this.stopped = false;
     this.started = true;
   }
 
@@ -120,6 +122,7 @@ export class DocumentQueue extends EventEmitter {
     // Clear subscriptions
     this.subscriptions.clear();
 
+    this.stopped = true;
     this.started = false;
   }
 
@@ -200,9 +203,11 @@ export class DocumentQueue extends EventEmitter {
 
     try {
       const watcher = watch(inboxPath, { persistent: true }, (eventType, filename) => {
+        if (this.stopped) return;
         if (eventType === 'rename' && filename && filename.endsWith('.md')) {
           const filePath = path.join(inboxPath, filename);
           this.handleNewFile(team, filePath, options).catch((error) => {
+            if (this.stopped) return;
             this.emit('error', error);
           });
         }
@@ -265,18 +270,23 @@ export class DocumentQueue extends EventEmitter {
     filePath: string,
     options: SubscriptionOptions
   ): Promise<void> {
+    // Ignore events after queue has been stopped (watcher callbacks may fire after close)
+    if (this.stopped) {
+      return;
+    }
+
     // Check if file exists and is not being processed
     const taskId = path.basename(filePath);
     if (this.processingTasks.has(taskId)) {
       return;
     }
 
-    const exists = await this.workspace.fileExists(filePath);
-    if (!exists) {
-      return;
-    }
-
     try {
+      const exists = await this.workspace.fileExists(filePath);
+      if (!exists) {
+        return;
+      }
+
       const content = await this.workspace.readFile(filePath);
       const task = parseTaskDocument(content, filePath);
 
@@ -288,7 +298,12 @@ export class DocumentQueue extends EventEmitter {
       // Process task
       await this.processTask(team, task, filePath, options);
     } catch (error) {
-      // Handle race condition: file may have been deleted/moved between existence check and read
+      // After stop, silently ignore all errors from stale watcher callbacks
+      if (this.stopped) {
+        return;
+      }
+
+      // Handle race condition: file/directory may have been deleted/moved
       // This is expected behavior in file watching systems, not an error
       const isFileNotFoundError =
         error instanceof Error &&
@@ -297,7 +312,6 @@ export class DocumentQueue extends EventEmitter {
           error.message.includes('no such file'));
 
       if (isFileNotFoundError) {
-        // File was deleted/moved between existence check and read - this is normal
         return;
       }
 
