@@ -141,6 +141,8 @@ Security Module             →     Permission Manager + Audit System
 
 ### 4.1 Core Agents
 
+> **Note**: Agent architecture has been refactored. All agents are now in `src/core/orchestrator/agents/` (Planning, Development, QA, CodeQuality).
+
 | Agent | Role | Recommended Model |
 |-------|------|-------------------|
 | **Coder** | 코드 구현, 리팩토링 | Claude Sonnet |
@@ -179,7 +181,7 @@ Security Module             →     Permission Manager + Audit System
 - **Language**: TypeScript 5.x (Strict Mode)
 - **Runtime**: Bun / Node.js
 - **Architecture**: SOLID + Clean Architecture + DDD
-- **Testing**: Jest (5,492 tests, 77.5% coverage)
+- **Testing**: Jest (2,374 tests, 97 suites)
 - **CI/CD**: GitHub Actions
 
 ### 5.2 AI/LLM Integration

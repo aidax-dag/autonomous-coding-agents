@@ -308,4 +308,6 @@ export type BuiltinHookType =
   | 'confidence-check'
   | 'self-check'
   | 'error-learning'
-  | 'context-optimizer';
+  | 'context-optimizer'
+  | 'code-quality'
+  | 'sandbox-escalation';

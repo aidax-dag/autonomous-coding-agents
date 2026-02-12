@@ -33,3 +33,4 @@ export * from './self-check/index';
 export * from './error-learning/index';
 export * from './context-optimizer/index';
 export * from './sandbox-escalation/index';
+export * from './code-quality/index';

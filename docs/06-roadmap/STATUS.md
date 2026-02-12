@@ -26,7 +26,7 @@
 | Services | `core/services/` | - | ServiceRegistry (싱글톤 라이프사이클) |
 | Session | `core/session/` | - | JSONL 영속화, SessionManager, Recovery |
 | Security | `core/security/` | 58 | Progressive Sandbox (4레벨) |
-| Evals | `core/evals/` | 34 | EvalRunner, 3 evaluators |
+| Evals | `core/evals/` | 0 | ⚠️ Not implemented (referenced only) |
 | Skills | `core/skills/` | 47 | SkillRegistry, SkillPipeline, 4 skills |
 | Deep Worker | `core/deep-worker/` | 36 | PreExploration, SelfPlanning, RetryStrategy, TodoEnforcer |
 | Protocols | `core/protocols/` | 22 | ACPMessageBus |

@@ -1,5 +1,9 @@
 # Module Reference
 
+> ⚠️ **PARTIALLY OUTDATED** (2026-02-12): This document predates the architecture refactoring.
+> For current module structure, see [SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md).
+> Key changes: `src/agents/` removed (→ `src/core/orchestrator/agents/`), `AgentType` enum removed (→ `TeamType`).
+
 > 모듈 구조 및 구현된 모듈 레퍼런스
 
 ## 1. Module Structure Template

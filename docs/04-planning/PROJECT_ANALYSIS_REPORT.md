@@ -1,5 +1,8 @@
 # Autonomous Coding Agents - 프로젝트 종합 분석 리포트
 
+> ⚠️ **OUTDATED** (as of 2026-02-12): This report was generated on 2026-01-29.
+> For current project status, see [STATUS.md](../06-roadmap/STATUS.md).
+
 > **작성일**: 2026-01-29
 > **버전**: 1.0
 > **목적**: 현재 진행상황 분석, 남은 작업 정리, 완성 시 기능 평가, 개선점 도출

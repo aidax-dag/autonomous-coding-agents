@@ -48,7 +48,7 @@
 ### 1.4 핵심 목표
 
 0. ~~P0/P1 모듈 파이프라인 연결~~ ✅ 완료
-1. ~~에이전트 품질 객관적 측정 (Behavioral Evals)~~ ✅ 완료 — `core/evals/` (34 tests)
+1. ~~에이전트 품질 객관적 측정 (Behavioral Evals)~~ ⚠️ Referenced but not implemented — `core/evals/` does not exist on disk (0 tests)
 2. ~~30-50% 비용 절감 (Tiered Model Routing)~~ ✅ 완료 — `shared/llm/tiered-router.ts` + `cost-tracker.ts` (37 tests)
 3. 🔴 **세션 안정성** (JSONL Persistence)으로 crash-safe 복구
 4. **오케스트레이터 경량화** (Thin Orchestrator)로 유지보수성 향상

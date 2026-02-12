@@ -15,7 +15,7 @@ import { TaskDocument } from '../../workspace/task-document';
 import { QAOutput, TestResult } from '../agents/qa-agent';
 import {
   CodeQualityHook,
-} from '../../hooks/code-quality/code-quality.hook';
+} from '../../hooks';
 import {
   QualityCheckType,
   QualityCheckResult,
