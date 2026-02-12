@@ -1228,8 +1228,8 @@ src/core/learning/
    - ACP 메시지 버스로 느슨한 결합
    - → 가장 체계적이고 확장 가능한 구조
 
-3. **업계 최고 테스트 커버리지** (2,315+):
-   - 단위 + 통합 + E2E
+3. **업계 최고 테스트 커버리지** (3,214):
+   - 단위 + 통합 + E2E (192 스위트)
    - 70% 커버리지 임계값
    - → 신뢰성 보장
 
@@ -1257,7 +1257,7 @@ src/core/learning/
 | 프로토콜 | ⭐⭐⭐ (ACP만) | ⭐⭐⭐⭐⭐ (ACP+MCP) | 경쟁 수준 |
 | 보안 | ⭐ | ⭐⭐⭐⭐ (OS 샌드박스) | 경쟁 수준 |
 | 관측성 | ⭐⭐ | ⭐⭐⭐⭐ (OTel) | 경쟁 수준 |
-| 테스트 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐+ (~2,765) | **업계 최고** |
+| 테스트 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐+ (3,214) | **업계 최고** |
 
 ---
 
@@ -1284,7 +1284,7 @@ Enhancement 완료 시, ACA는:
 - **가장 효율적인 모델 활용** (지능형 멀티모델 라우팅)
 - **가장 안정적인 품질** (컨텍스트 엔지니어링 + Goal-Backward 검증)
 - **가장 확장 가능한 구조** (MCP + 플러그인 + 10+ 에이전트)
-- **가장 높은 신뢰성** (~2,765+ 테스트)
+- **가장 높은 신뢰성** (3,214 테스트, 192 스위트)
 
 을 갖춘, 현존하는 AI 코딩 에이전트 중 가장 포괄적이고 완성도 높은 시스템이 된다.
 
@@ -1328,11 +1328,11 @@ Enhancement 완료 시, ACA는:
 |---|------|-----------|----------------|-----------|
 | 1 | 코어 모듈 수 | 23개 | 21개 (`src/core/` 하위 디렉토리) | 21개로 수정 |
 | 2 | 스킬 수 | 5개 | 4개 (planning, code-review, refactoring, test-generation) | 4개로 수정 |
-| 3 | cost-tracker.ts | "기존 확장" | 코드베이스에 존재하지 않음 | "신규 구현" 으로 수정 |
-| 4 | tiered-router.ts | MEMORY.md에 기록됨 | 코드베이스에 존재하지 않음 | 별도 확인 필요 (커밋 이력 또는 브랜치 누락 가능) |
+| 3 | cost-tracker.ts | "기존 확장" | ✅ `shared/llm/cost-tracker.ts` 구현 완료 | Enhancement에서 신규 구현 |
+| 4 | tiered-router.ts | MEMORY.md에 기록됨 | `model-router.ts`로 대체 (ModelRouter + 4개 전략) | model-router.ts로 교정 |
 | 5 | 후크 이벤트 수 | 11+ | 27개 (AGENT_*, TASK_*, TOOL_*, WORKFLOW_*, GIT_*, CONTEXT_*, SESSION_*) | 27개로 수정 + 평가 ⭐⭐⭐⭐⭐ 상향 |
 | 6 | 샌드박스 상태 | "스텁" | SandboxEscalation 완전 구현 (4레벨) | "4레벨 에스컬레이션 구현"으로 수정 |
-| 7 | 테스트 파일 수 | 98 | 97 | 본문 "97 파일" 기재 (이미 정확) |
+| 7 | 테스트 파일 수 | 98 | 192 스위트, 3,214 tests | Enhancement 통합 후 대폭 증가 |
 
 ### D.2 코드베이스 확인된 21개 코어 모듈
 
@@ -1351,9 +1351,9 @@ src/core/
 ├── instinct-transfer/  # InstinctTransfer
 ├── interfaces/         # 공통 인터페이스 정의
 ├── learning/           # ReflexionPattern + InstinctStore + SolutionsCache
-├── orchestrator/       # CEO + 4 Team Agents + TaskRouter
+├── orchestrator/       # CEO + 4 Team Agents + TaskRouter + RunnerDataSource
 ├── protocols/          # ACPMessageBus
-├── security/           # SandboxEscalation (4 레벨 완전 구현)
+├── security/           # SandboxEscalation (4레벨) + PermissionGuardHook + PlatformSandbox
 ├── services/           # ServiceRegistry
 ├── session/            # JSONL 영속성 + SessionManager + Recovery
 ├── skills/             # SkillRegistry + Pipeline + 4 스킬
@@ -1361,7 +1361,7 @@ src/core/
 └── workspace/          # WorkspaceManager + DocumentQueue
 ```
 
-> **참고**: `evals/` 모듈은 MEMORY.md에 기록되어 있으나 현 코드베이스에서는 `core/` 하위에 포함되지 않음. `tiered-router.ts`와 `cost-tracker.ts`도 동일하게 코드베이스에서 확인 불가 — 별도 브랜치 또는 이전 리팩토링에서 제거된 것으로 추정.
+> **참고**: `evals/` 모듈은 MEMORY.md에 기록되어 있으나 현 코드베이스에서는 `core/` 하위에 포함되지 않음. `tiered-router.ts`는 `model-router.ts`(ModelRouter + 4개 라우팅 전략)로 대체됨. `cost-tracker.ts`는 `shared/llm/cost-tracker.ts`에 구현 완료. Enhancement Strategy 통합 후 192 스위트, 3,214 tests.
 
 ---
 
