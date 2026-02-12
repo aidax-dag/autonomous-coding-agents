@@ -71,5 +71,5 @@ tmp/
 temp/
 
 # Separate applications (built independently)
-desktop/
-web/
+/desktop/
+/web/
