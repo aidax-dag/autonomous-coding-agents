@@ -1,1 +1,1 @@
-export { ContextOptimizerHook } from './context-optimizer.hook.js';
+export { ContextOptimizerHook } from './context-optimizer.hook';

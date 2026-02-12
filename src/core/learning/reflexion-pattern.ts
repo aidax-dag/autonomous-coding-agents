@@ -15,11 +15,11 @@ import { randomUUID } from 'crypto';
 import type {
   IReflexionPattern,
   LearnedSolution,
-} from './interfaces/learning.interface.js';
+} from './interfaces/learning.interface';
 import {
   generateErrorSignature,
   classifyError,
-} from './index.js';
+} from './learning-utils';
 
 // ============================================================================
 // Constants: Storage Configuration

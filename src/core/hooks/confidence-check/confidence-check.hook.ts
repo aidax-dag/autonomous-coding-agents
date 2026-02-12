@@ -7,19 +7,19 @@
  * @module core/hooks/confidence-check
  */
 
-import { BaseHook } from '../base-hook.js';
+import { BaseHook } from '../base-hook';
 import {
   HookEvent,
   HookContext,
   HookResult,
   HookConfig,
-} from '../../interfaces/hook.interface.js';
-import type { TaskDocument } from '../../workspace/task-document.js';
+} from '../../interfaces/hook.interface';
+import type { TaskDocument } from '../../workspace/task-document';
 import type {
   ConfidenceChecker,
   TaskContext,
   ConfidenceCheckResult,
-} from '../../validation/confidence-checker.js';
+} from '../../validation/confidence-checker';
 
 /**
  * ConfidenceCheckHook

@@ -2,143 +2,107 @@
 
 > 핵심 모듈 및 컴포넌트 설계
 
-**Last Updated**: 2026-01-24
+**Last Updated**: 2026-02-11
 
 ## 1. Directory Structure
 
 ```
 src/
-├── core/                      # 핵심 도메인
-│   ├── agents/               # 에이전트 시스템
-│   │   ├── specialized/      # 특화 에이전트 (Coder, Reviewer, Architect 등)
-│   │   ├── execution/        # 백그라운드 실행
-│   │   └── communication/    # 에이전트 간 통신
-│   ├── config/               # 설정 서비스
-│   ├── daemon/               # 데몬 프로세스
-│   ├── di/                   # 의존성 주입
-│   ├── events/               # 이벤트 시스템
-│   ├── hooks/                # 훅 시스템 (11개 훅)
-│   ├── interfaces/           # 공통 인터페이스
-│   ├── kernel/               # Agent OS 커널
-│   │   ├── scheduler.ts      # 스케줄러
-│   │   ├── process-manager.ts
-│   │   ├── resource-manager.ts
-│   │   └── security-module.ts
-│   ├── knowledge/            # 지식 저장소
-│   ├── logging/              # 구조화된 로깅
-│   ├── memory/               # 프로젝트 메모리
-│   ├── metrics/              # 메트릭 수집
-│   ├── orchestrator/         # 오케스트레이터
-│   │   ├── llm/              # 팀별 LLM 프롬프트
-│   │   ├── agents/           # 팀 에이전트
-│   │   ├── workflow/         # 워크플로우 실행
-│   │   └── quality/          # 품질 실행기
-│   ├── quality/              # 품질 검사 시스템
-│   │   └── checks/           # 5가지 품질 체커
-│   ├── runner/               # 자율 실행기
-│   ├── security/             # 보안 시스템
-│   │   ├── audit/            # 감사 로그
-│   │   ├── permission/       # 권한 관리
-│   │   ├── plugin/           # 플러그인 보안
-│   │   ├── scanning/         # 코드 스캐닝
-│   │   ├── secret/           # 시크릿 관리
-│   │   └── trust/            # 신뢰 관리
-│   ├── session/              # 세션 관리
-│   ├── services/             # 공통 서비스
-│   ├── teams/                # 팀 에이전트 (6개 팀)
-│   ├── tools/                # 도구 시스템 (7개 카테고리)
-│   ├── workflow/             # 워크플로우 엔진
-│   └── workspace/            # 워크스페이스 관리
-│       ├── document-queue.ts # 문서 기반 작업 큐
+├── core/                        # 핵심 도메인
+│   ├── benchmark/               # SWE-bench 스타일 벤치마크 러너
+│   ├── brownfield/              # 브라운필드 프로젝트 분석
+│   ├── checkpoint/              # 체크포인트 프로토콜
+│   ├── context/                 # 컨텍스트 관리 (TokenBudgetManager 등)
+│   ├── deep-worker/             # 딥 워커 (PreExploration, SelfPlanning, RetryStrategy, TodoEnforcer)
+│   ├── di/                      # 의존성 주입
+│   ├── docs-generator/          # 문서 생성기 (HLD/MLD/LLD)
+│   ├── dynamic-prompts/         # 동적 프롬프트 (PromptRegistry, PromptRenderer)
+│   ├── hooks/                   # 훅 시스템 (11개 훅)
+│   │   ├── base-hook.ts
+│   │   ├── hook-registry.ts
+│   │   ├── hook-executor.ts
+│   │   └── ...                  # confidence-check, self-check, error-learning, context-optimizer 등
+│   ├── hud/                     # HUD 대시보드 (MetricsCollector, HUDDashboard)
+│   ├── instinct-transfer/       # 인스턴트 전이 학습
+│   ├── interfaces/              # 공통 인터페이스
+│   ├── learning/                # 학습 시스템 (ReflexionPattern, InstinctStore, SolutionsCache)
+│   ├── orchestrator/            # 오케스트레이터
+│   │   ├── ceo-orchestrator.ts  # CEO 오케스트레이터
+│   │   ├── base-team-agent.ts   # 기본 팀 에이전트
+│   │   ├── task-router.ts       # 태스크 라우팅 (5가지 전략)
+│   │   ├── orchestrator-runner.ts
+│   │   ├── agent-factory.ts     # 에이전트 팩토리
+│   │   ├── integration-setup.ts # 통합 설정
+│   │   ├── agents/              # 팀 에이전트 (4개)
+│   │   │   ├── planning-agent.ts
+│   │   │   ├── development-agent.ts
+│   │   │   ├── qa-agent.ts
+│   │   │   └── code-quality-agent.ts
+│   │   ├── llm/                 # 팀별 LLM 프롬프트
+│   │   ├── workflow/            # 워크플로우 실행
+│   │   └── quality/             # 품질 실행기
+│   ├── protocols/               # ACP 메시지 버스
+│   ├── security/                # 프로그레시브 샌드박스 (4레벨)
+│   ├── services/                # ServiceRegistry (싱글톤 라이프사이클)
+│   ├── session/                 # JSONL 세션 영속화 + 복구
+│   ├── skills/                  # 조합형 스킬 (SkillRegistry, SkillPipeline, 4개 스킬)
+│   ├── validation/              # 검증 (ConfidenceChecker, SelfCheckProtocol, GoalBackwardVerifier)
+│   └── workspace/               # 워크스페이스 관리
+│       ├── workspace-manager.ts
+│       ├── document-queue.ts    # 문서 기반 작업 큐
 │       └── task-document.ts
 │
-├── api/                      # REST/GraphQL API
-│   ├── auth/                 # 인증 (JWT, API Key)
-│   ├── graphql/              # GraphQL 스키마/리졸버
-│   ├── middleware/           # 미들웨어
-│   ├── ratelimit/            # 레이트 리미팅
-│   ├── routes/               # REST 라우트
-│   ├── server/               # API/WebSocket 서버
-│   └── services/             # API 서비스 레이어
+├── api/                         # API Gateway
+│   ├── gateway.ts               # HTTP ↔ ACP 브릿지
+│   └── index.ts
 │
-├── dx/                       # Developer Experience
-│   ├── debug-toolkit/        # 디버그 도구
-│   ├── error-recovery/       # 에러 복구 전략
-│   ├── output-optimizer/     # 출력 최적화
-│   ├── testing/              # Mock LLM 등 테스트 유틸
-│   └── token-budget/         # 토큰 예산 관리
+├── dx/                          # Developer Experience
+│   └── error-recovery/          # 에러 복구 전략 (Retry, CircuitBreaker, Fallback, Timeout)
 │
-├── agents/                   # 독립 에이전트 프로세스
-│   ├── base/                 # 기반 에이전트
-│   ├── coder/                # 코더 에이전트
-│   ├── reviewer/             # 리뷰어 에이전트
-│   ├── repo-manager/         # 저장소 관리자
-│   └── manager/              # 에이전트 매니저
-│
-├── shared/                   # 공유 모듈
-│   ├── llm/                  # LLM 클라이언트
-│   │   ├── cli/              # CLI 클라이언트 (Claude, Codex, Gemini, Ollama)
+├── shared/                      # 공유 모듈
+│   ├── llm/                     # LLM 클라이언트
+│   │   ├── base-client.ts       # ILLMClient 인터페이스
 │   │   ├── claude-client.ts
 │   │   ├── openai-client.ts
 │   │   ├── gemini-client.ts
-│   │   └── resilient-client.ts
-│   ├── analysis/             # 코드 분석
-│   ├── ci/                   # CI 체커
-│   ├── config/               # 공유 설정
-│   ├── errors/               # 커스텀 에러
-│   ├── feedback/             # 피드백 시스템
-│   ├── git/                  # Git 작업
-│   ├── github/               # GitHub API
-│   ├── logging/              # 공유 로거
-│   ├── messaging/            # NATS 메시징
-│   └── notifications/        # 알림 시스템
+│   │   ├── resilient-client.ts  # 장애 복구 래퍼
+│   │   ├── tiered-router.ts     # 티어 기반 모델 라우팅
+│   │   ├── cost-tracker.ts      # 비용 추적
+│   │   └── cli/                 # CLI 클라이언트 (Claude, Codex, Gemini, Ollama)
+│   ├── ci/                      # CI 체커
+│   ├── config/                  # Zod 기반 설정 관리
+│   ├── errors/                  # 커스텀 에러 계층
+│   └── logging/                 # Winston 기반 구조화된 로거
 │
-├── server/                   # 서버
-│   ├── health-server.ts      # 헬스 체크 서버
-│   └── webhook/              # GitHub Webhook 서버
-│
-├── cli/                      # CLI 인터페이스
-│   ├── index.ts              # CLI 진입점
-│   ├── autonomous.ts         # 자율 실행 CLI
-│   └── interactive.ts        # 인터랙티브 모드
-│
-├── bin/                      # 실행 스크립트
-│   ├── start-coder.ts
-│   ├── start-reviewer.ts
-│   ├── start-repo-manager.ts
-│   └── start-health-server.ts
-│
-└── test/                     # E2E 테스트
-    └── e2e/
+└── cli/                         # CLI 인터페이스
+    ├── index.ts
+    ├── autonomous.ts
+    └── interactive.ts
 ```
 
 ---
 
 ## 2. Core Interfaces
 
-### 2.1 Agent Interface
+### 2.1 Team Agent Interface
 ```typescript
-interface IAgent {
-  id: string;
-  type: AgentType;
+// 팀 에이전트는 TeamType('planning' | 'development' | 'qa')으로 구분
+// AgentType enum은 제거됨 — 팀 기반 아키텍처로 전환
+
+interface BaseTeamAgent extends EventEmitter {
+  team: TeamType;
   initialize(): Promise<void>;
-  processTask(task: Task): Promise<TaskResult>;
-  getHealth(): HealthStatus;
+  start(): Promise<void>;
   stop(): Promise<void>;
+  processTask(task: TaskDocument): Promise<TaskResult>;
+  subscribeToInbox(options: SubscriptionOptions): void;
 }
 
-interface IAgentFactory {
-  create(type: AgentType, config: AgentConfig): Promise<IAgent>;
-  createFromSpec(spec: AgentSpec): Promise<IAgent>;
-}
-
-interface IAgentRegistry {
-  register(agent: IAgent): void;
-  unregister(agentId: string): void;
-  get(agentId: string): IAgent | undefined;
-  getByType(type: AgentType): IAgent[];
-  getAll(): IAgent[];
-}
+// 에이전트 팩토리 (agent-factory.ts)
+function createAndRegisterAgents(
+  config: AgentFactoryConfig,
+  orchestrator: CEOOrchestrator
+): Promise<{ planning; development; qa }>;
 ```
 
 ### 2.2 Tool Interface
@@ -371,120 +335,78 @@ src/core/hooks/
 └── mcp-health-monitor/       # MCP 헬스 모니터 훅
 ```
 
-### 3.6 Specialized Agents
-```
-src/core/agents/specialized/
-├── coder-agent.ts            # 코드 생성/수정
-├── reviewer-agent.ts         # 코드 리뷰
-├── architect-agent.ts        # 설계, 모듈 분해
-├── tester-agent.ts           # TDD, 테스트 작성
-├── docwriter-agent.ts        # 문서 생성
-├── explorer-agent.ts         # 코드베이스 탐색
-└── librarian-agent.ts        # 공식 문서 조회
-```
-
-### 3.7 Kernel System (Agent OS)
-```
-src/core/kernel/
-├── scheduler.ts              # 태스크 스케줄링
-├── process-manager.ts        # 프로세스 관리
-├── resource-manager.ts       # 리소스 관리
-└── security-module.ts        # 보안 모듈
-```
-
-### 3.8 Security System
+### 3.6 Security System (Progressive Sandbox)
 ```
 src/core/security/
-├── audit/                    # 감사 로그
-│   ├── audit.manager.ts
-│   └── audit.interface.ts
-├── permission/               # 권한 관리
-│   ├── permission.manager.ts
-│   └── permission.interface.ts
-├── plugin/                   # 플러그인 보안
-│   └── plugin-security.manager.ts
-├── scanning/                 # 코드 스캐닝
-│   ├── code-scanner.ts
-│   ├── dependency-scanner.ts
-│   ├── secret-detector.ts
-│   └── static-analyzer.ts
-├── secret/                   # 시크릿 관리
-│   └── secret.manager.ts
-└── trust/                    # 신뢰 관리
-    └── trust.manager.ts
+├── interfaces/               # 샌드박스 인터페이스
+├── sandbox-escalation.ts     # 4레벨 프로그레시브 샌드박스
+└── index.ts
 ```
 
-### 3.9 Enterprise Features
-```
-src/core/enterprise/
-├── sso/                      # SSO 통합
-│   └── sso.manager.ts
-├── team/                     # 팀 관리
-│   └── team.manager.ts
-├── multi-repo/               # 멀티 레포지토리
-│   └── multi-repo.manager.ts
-├── workflow/                 # 엔터프라이즈 워크플로우
-│   └── workflow.manager.ts
-└── analytics/                # 분석
-    └── analytics.manager.ts
-```
+**Sandbox Levels:**
+- Level 0: Read-only (파일 읽기만 허용)
+- Level 1: Limited write (제한된 쓰기)
+- Level 2: Shell access (셸 실행 허용)
+- Level 3: Full access (전체 접근)
 
-### 3.10 Quality System
+### 3.7 New Modules (P2-P3)
 ```
-src/core/quality/
-├── completion-detector.ts    # 완료 감지
-└── checks/
-    ├── code-quality-checker.ts
-    ├── security-checker.ts
-    ├── test-coverage-checker.ts
-    ├── performance-checker.ts
-    └── documentation-checker.ts
+src/core/skills/              # 조합형 스킬 시스템
+├── skill-registry.ts         # 스킬 레지스트리
+├── skill-pipeline.ts         # 스킬 파이프라인
+└── skills/                   # 4개 내장 스킬
+
+src/core/deep-worker/         # 딥 워커 시스템
+├── pre-exploration.ts        # 사전 탐색
+├── self-planning.ts          # 자기 계획
+├── retry-strategy.ts         # 재시도 전략
+├── todo-enforcer.ts          # TODO 강제
+└── deep-worker.ts            # 통합 딥 워커
+
+src/core/protocols/           # ACP 프로토콜
+├── acp-message-bus.ts        # 에이전트-프론트엔드 통신 버스
+└── index.ts
+
+src/core/hud/                 # HUD 대시보드
+├── metrics-collector.ts      # 메트릭 수집
+└── hud-dashboard.ts          # 대시보드
+
+src/core/benchmark/           # 벤치마크 시스템
+└── benchmark-runner.ts       # SWE-bench 스타일 러너
+
+src/core/docs-generator/      # 문서 생성기
+└── docs-generator.ts         # HLD/MLD/LLD 자동 생성
+
+src/core/brownfield/          # 브라운필드 분석
+└── brownfield-analyzer.ts    # 기존 프로젝트 분석
+
+src/core/instinct-transfer/   # 인스턴트 전이
+└── instinct-transfer.ts      # 프로젝트 간 학습 전이
+
+src/core/dynamic-prompts/     # 동적 프롬프트
+├── prompt-registry.ts        # 프롬프트 레지스트리
+└── prompt-renderer.ts        # 프롬프트 렌더러
+
+src/core/checkpoint/          # 체크포인트
+└── checkpoint-manager.ts     # 단계별 체크포인트 관리
 ```
 
 ---
 
 ## 4. API Layer
 
-### 4.1 REST API
+### 4.1 API Gateway
 ```
-src/api/routes/
-├── base.router.ts            # 기본 라우터
-├── agents.router.ts          # /api/agents
-├── workflows.router.ts       # /api/workflows
-├── tools.router.ts           # /api/tools
-└── hooks.router.ts           # /api/hooks
+src/api/
+├── gateway.ts               # APIGateway: HTTP ↔ ACP 메시지 브릿지
+└── index.ts                 # 공개 API 재export
 ```
 
-### 4.2 GraphQL API
-```
-src/api/graphql/
-├── schema/
-│   └── schema.graphql        # GraphQL 스키마
-├── resolvers/
-│   ├── query.resolver.ts
-│   ├── mutation.resolver.ts
-│   └── subscription.resolver.ts
-└── plugins/
-    └── mercurius.plugin.ts
-```
-
-### 4.3 Authentication
-```
-src/api/auth/
-├── middlewares/
-│   ├── auth.middleware.ts    # JWT 인증
-│   └── rbac.middleware.ts    # RBAC 권한
-└── services/
-    ├── jwt.service.ts
-    └── api-key.service.ts
-```
-
-### 4.4 WebSocket Server
-```
-src/api/server/
-├── api-server.ts             # Fastify REST 서버
-└── ws-server.ts              # WebSocket 서버
-```
+**Gateway 기능:**
+- Task 제출 (correlationId 추적)
+- 시스템 헬스 체크
+- 상태 브로드캐스트
+- 이벤트 구독 관리
 
 ---
 
@@ -517,39 +439,28 @@ class OllamaClient implements ILLMClient { ... }      // ollama
 
 ## 6. DI Container
 
-### 6.1 Core Tokens
+### 6.1 ServiceRegistry (싱글톤 패턴)
 ```typescript
-const TOKENS = {
-  // Infrastructure
-  NatsClient: createToken<INatsClient>('NatsClient'),
-  Database: createToken<IDatabase>('Database'),
-  EventBus: createToken<IEventBus>('EventBus'),
+// ServiceRegistry: 모듈 라이프사이클 관리
+const registry = ServiceRegistry.getInstance();
+await registry.initialize({ workspaceDir, emitter });
 
-  // Agents
-  AgentRegistry: createToken<IAgentRegistry>('AgentRegistry'),
-  AgentFactory: createToken<IAgentFactory>('AgentFactory'),
-  CoderAgent: createToken<IAgent>('CoderAgent'),
-  ReviewerAgent: createToken<IAgent>('ReviewerAgent'),
-  ArchitectAgent: createToken<IAgent>('ArchitectAgent'),
-
-  // Services
-  OrchestratorService: createToken<IOrchestratorService>('OrchestratorService'),
-  WorkflowEngine: createToken<IWorkflowEngine>('WorkflowEngine'),
-  ToolRegistry: createToken<IToolRegistry>('ToolRegistry'),
-  HookRegistry: createToken<IHookRegistry>('HookRegistry'),
-  TeamRegistry: createToken<ITeamRegistry>('TeamRegistry'),
-
-  // LLM
-  LLMClient: createToken<ILLMClient>('LLMClient'),
-};
+// 팩토리 패턴으로 모듈 생성
+const reflexion = createReflexionPattern({ basePath });
+const skillRegistry = createSkillRegistry();
+const checkpoint = createCheckpointManager({ agentId });
 ```
 
-### 6.2 Registration Pattern
+### 6.2 Integration Setup
 ```typescript
-container.registerSingleton(TOKENS.EventBus, EventBus);
-container.registerSingleton(TOKENS.NatsClient, NatsClient);
-container.registerSingleton(TOKENS.AgentRegistry, AgentRegistry);
-container.registerTransient(TOKENS.CoderAgent, CoderAgent);
+// integration-setup.ts: 피처 플래그 기반 통합
+await initializeIntegrations(
+  { enableValidation: true, enableLearning: true, enableContextManagement: true },
+  hookRegistry,
+  workspaceDir,
+  emitter
+);
+// → ConfidenceCheckHook, SelfCheckHook, ErrorLearningHook, ContextOptimizerHook 등록
 ```
 
 ---

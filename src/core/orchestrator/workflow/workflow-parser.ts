@@ -15,7 +15,7 @@ import {
   validateDependencies,
   detectCircularDependencies,
 } from './workflow-schema';
-import { createLogger, ILogger } from '../../services/logger.js';
+import { createLogger, ILogger } from '../../services/logger';
 
 /**
  * Module-level logger

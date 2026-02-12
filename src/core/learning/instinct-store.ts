@@ -24,11 +24,11 @@ import type {
   ImportResult,
   ConfidenceLevel,
   InstinctSource,
-} from './interfaces/learning.interface.js';
+} from './interfaces/learning.interface';
 import {
   CONFIDENCE_LEVELS,
   CONFIDENCE_ADJUSTMENTS,
-} from './interfaces/learning.interface.js';
+} from './interfaces/learning.interface';
 
 // ============================================================================
 // Constants: Storage Configuration

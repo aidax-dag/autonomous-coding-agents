@@ -21,7 +21,7 @@ import {
   type ISandboxEscalation,
   type SandboxEscalationOptions,
   DEFAULT_ESCALATION_THRESHOLDS,
-} from './interfaces/escalation.interface.js';
+} from './interfaces/escalation.interface';
 
 // ============================================================================
 // Default Permission Sets

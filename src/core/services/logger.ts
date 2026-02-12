@@ -80,7 +80,7 @@
  * ```
  */
 
-import { ILogger, LogLevel, LogContext } from './logger.interface.js';
+import { ILogger, LogLevel, LogContext } from './logger.interface';
 
 // Re-export types for convenience
 export type { ILogger, LogLevel, LogContext };

@@ -2,230 +2,117 @@
 
 > 프로젝트 현재 진행 상황
 
-**Last Updated**: 2026-01-24
+**Last Updated**: 2026-02-11
 
 ---
 
 ## 1. Implementation Status
 
-### 1.1 Completed (✅)
+### 1.1 전체 구현 완료 ✅
 
-#### Core Infrastructure
-| Component | Lines | Description |
+모든 우선순위(P0 → P1 → New P0 → P2 → New P1 → P3 → New P2 → New P3) 구현 완료.
+상세: [IMPLEMENTATION_PRIORITY_LIST.md](../04-planning/IMPLEMENTATION_PRIORITY_LIST.md) v3.1
+
+#### Core Modules (구현 완료)
+| Module | Location | Tests | Description |
+|--------|----------|-------|-------------|
+| Orchestrator | `core/orchestrator/` | 51+ | CEO 오케스트레이터, TaskRouter, AgentFactory |
+| Team Agents | `core/orchestrator/agents/` | 4 agents | Planning, Development, QA, CodeQuality |
+| Hooks | `core/hooks/` | 11 hooks | BaseHook → HookRegistry → HookExecutor |
+| Validation | `core/validation/` | 103+ | ConfidenceChecker, SelfCheckProtocol, GoalBackwardVerifier |
+| Learning | `core/learning/` | 165 | ReflexionPattern, InstinctStore, SolutionsCache |
+| Context | `core/context/` | - | ContextManager, TokenBudgetManager, QualityCurve |
+| Workspace | `core/workspace/` | - | WorkspaceManager, DocumentQueue |
+| Services | `core/services/` | - | ServiceRegistry (싱글톤 라이프사이클) |
+| Session | `core/session/` | - | JSONL 영속화, SessionManager, Recovery |
+| Security | `core/security/` | 58 | Progressive Sandbox (4레벨) |
+| Evals | `core/evals/` | 34 | EvalRunner, 3 evaluators |
+| Skills | `core/skills/` | 47 | SkillRegistry, SkillPipeline, 4 skills |
+| Deep Worker | `core/deep-worker/` | 36 | PreExploration, SelfPlanning, RetryStrategy, TodoEnforcer |
+| Protocols | `core/protocols/` | 22 | ACPMessageBus |
+| HUD | `core/hud/` | 18 | MetricsCollector, HUDDashboard |
+| Benchmark | `core/benchmark/` | 12 | BenchmarkRunner (SWE-bench 스타일) |
+| Docs Generator | `core/docs-generator/` | 19 | DocsGenerator (HLD/MLD/LLD) |
+| Brownfield | `core/brownfield/` | 17 | BrownfieldAnalyzer |
+| Instinct Transfer | `core/instinct-transfer/` | 10 | InstinctTransfer |
+| Dynamic Prompts | `core/dynamic-prompts/` | 12 | PromptRegistry, PromptRenderer |
+| Checkpoint | `core/checkpoint/` | 21 | CheckpointManager |
+
+#### Shared Modules
+| Module | Location | Description |
+|--------|----------|-------------|
+| LLM Clients | `shared/llm/` | ILLMClient, Claude/OpenAI/Gemini + CLI clients |
+| Tiered Router | `shared/llm/tiered-router.ts` | 37 tests, 티어 기반 모델 라우팅 |
+| Cost Tracker | `shared/llm/cost-tracker.ts` | 비용 추적 |
+| Resilient Client | `shared/llm/resilient-client.ts` | 장애 복구 래퍼 |
+| Config | `shared/config/` | Zod 스키마 검증 |
+| Errors | `shared/errors/` | 커스텀 에러 계층 |
+| Logging | `shared/logging/` | Winston 기반 구조화된 로거 |
+
+#### API & DX
+| Module | Location | Description |
+|--------|----------|-------------|
+| API Gateway | `api/gateway.ts` | HTTP ↔ ACP 메시지 브릿지 |
+| Error Recovery | `dx/error-recovery/` | Retry, CircuitBreaker, Fallback, Timeout |
+
+#### Integration Tests
+| Test File | Tests | Description |
 |-----------|-------|-------------|
-| Orchestrator Service | ~875 | Task routing, agent selection, queue management |
-| Workflow Engine | ~1333 | Workflow execution engine |
-| State Machine | ~911 | State management |
-| Step Executor | ~717 | Step execution |
-| Progress Tracker | ~1421 | Progress tracking |
-| Rollback Manager | ~1221 | Rollback management |
-| Kernel System | ~1500 | Scheduler, Process, Resource, Security |
-| Session Manager | ~800 | Session lifecycle management |
-
-#### DX (Developer Experience)
-| Component | Status | Tests |
-|-----------|--------|-------|
-| DI Container | ✅ | Passing |
-| Event System | ✅ | Passing |
-| Logger | ✅ | 123 tests |
-| Metrics | ✅ | 93 tests |
-| Error Recovery | ✅ | Passing |
-| Token Budget | ✅ | Passing |
-| Mock LLM Client | ✅ | Passing |
-| Output Optimizer | ✅ | Passing |
-
-#### Tools
-| Tool | Status | Count |
-|------|--------|-------|
-| LSP Tools | ✅ | - |
-| AST-Grep Tools | ✅ | - |
-| Git Tools | ✅ | 5 tools |
-| Shell Tools | ✅ | 7 tools |
-| File Tools | ✅ | 10 tools |
-| MCP Integration | ✅ | 3 transports |
-| Web Search | ✅ | - |
-
-#### Agents & LLM
-| Component | Status |
-|-----------|--------|
-| Base Agent | ✅ |
-| Coder Agent | ✅ |
-| Reviewer Agent | ✅ |
-| Repo Manager Agent | ✅ |
-| Claude API Client | ✅ |
-| OpenAI API Client | ✅ |
-| Gemini API Client | ✅ |
-| Resilient LLM Client | ✅ |
-
-#### CLI LLM Clients
-| CLI | Status | Version |
-|-----|--------|---------|
-| Claude CLI | ✅ | 2.1.4+ |
-| Codex CLI | ✅ | 0.76.0+ |
-| Gemini CLI | ✅ | 0.22.5+ |
-| Ollama CLI | ✅ | 0.13.5+ |
-
-#### Teams
-| Team | Status |
-|------|--------|
-| Base Team | ✅ |
-| Development Team | ✅ |
-| Frontend Team | ✅ Refactored |
-| Backend Team | ✅ |
-| Fullstack Team | ✅ Refactored |
-| QA Team | ✅ Refactored |
-| Planning Team | ✅ |
-| Code Quality Team | ✅ |
-
-#### Hooks (11 hooks)
-| Hook | Status |
-|------|--------|
-| session-recovery | ✅ |
-| token-optimizer | ✅ |
-| context-monitor | ✅ |
-| mcp-health-monitor | ✅ |
-| auto-compaction | ✅ |
-| comment-checker | ✅ |
-| pre-commit | ✅ |
-| post-commit | ✅ |
-| task-completion | ✅ |
-| pr-creation | ✅ |
-| ci-status | ✅ |
-
-#### Security System
-| Component | Status |
-|-----------|--------|
-| Audit Logger | ✅ |
-| Permission Manager | ✅ |
-| Plugin Security | ✅ |
-| Code Scanning | ✅ |
-| Secrets Detection | ✅ |
-
-#### Enterprise Features
-| Feature | Status |
-|---------|--------|
-| SSO Provider | ✅ |
-| Team Management | ✅ |
-| Multi-Repo Manager | ✅ |
-| Analytics Collector | ✅ |
-
-#### API Layer
-| Component | Status |
-|-----------|--------|
-| REST API | ✅ |
-| GraphQL | ✅ |
-| WebSocket | ✅ |
-| Rate Limiting | ✅ |
-| JWT Auth | ✅ |
-| API Key Auth | ✅ |
-
-#### Quality System
-| Component | Status |
-|-----------|--------|
-| Code Quality Checker | ✅ |
-| Security Checker | ✅ |
-| Completion Detector | ✅ |
-| Alert System | ✅ |
-
-### 1.2 In Progress (🔄)
-
-| Feature | Progress | Notes |
-|---------|----------|-------|
-| CLI Integration Testing | 90% | CLI clients 구현 완료, E2E 테스트 진행 중 |
-| Documentation Update | 80% | 문서 현행화 진행 중 |
-| **P5: API Server** | 100% | ✅ Fastify REST + WebSocket 완료 |
-| **P5: Web Dashboard** | 60% | UI 완료, API 연동 필요 |
-| **P5: Desktop App** | 60% | Tauri 스캐폴딩 완료, API 연동 필요 |
-
-### 1.3 Planned (📋)
-
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| Web Dashboard API 연동 | P1 | 실제 데이터 연동 |
-| Desktop App API 연동 | P1 | Rust HTTP 클라이언트 구현 |
-| WebSocket 클라이언트 연동 | P2 | 실시간 이벤트 처리 |
-| 프로덕션 아이콘 디자인 | P3 | 앱 아이콘 제작 |
-| Team Collaboration | P4 | Real-time collaboration features |
-| Multi-Project | P4 | Multi-project management |
-| SaaS Features | P4 | Cloud service capabilities |
+| module-cross-wiring.test.ts | 23 | ServiceRegistry + Hooks + Skills + ACP |
+| e2e-scenarios.test.ts | 20 | 전체 에이전트 워크플로우 |
+| orchestrator-runner.test.ts | 51 | Orchestrator 전체 라이프사이클 |
+| orchestrator-integration.test.ts | 11 | 팀 에이전트 통합 |
 
 ---
 
 ## 2. Test Coverage
 
 ```
-Total Tests: 5,492
-Test Suites: 157
-Coverage: 77.5%  ✅ (목표 70% 달성)
-Target: 70%
+Total Tests: 2,374
+Test Suites: 97
+Type Check: ✅ Clean (npx tsc --noEmit)
+Test Runner: Jest
 ```
-
-### Coverage by Module
-| Module | Coverage |
-|--------|----------|
-| core/di | 90%+ |
-| core/events | 85%+ |
-| dx/error-recovery | 80%+ |
-| dx/token-budget | 80%+ |
-| agents | 75%+ |
-| core/tools | 70%+ |
-| api | 65%+ |
 
 ---
 
 ## 3. Codebase Statistics
 
-```
-Total Lines: 173,363+
-Source Files: 400+
-Test Files: 157 suites
-Directories: 135+
-```
-
-### Directory Structure
 | Directory | Purpose |
 |-----------|---------|
-| src/agents/ | Agent implementations |
-| src/api/ | REST, GraphQL, WebSocket APIs |
-| src/cli/ | CLI commands and entry |
-| src/core/ | Core domain logic |
-| src/dx/ | Developer experience tools |
-| src/shared/ | Shared utilities |
-| tests/ | Test suites |
-| docs/ | Documentation |
+| src/core/ | 핵심 도메인 (21개 모듈) |
+| src/api/ | API Gateway |
+| src/cli/ | CLI 인터페이스 |
+| src/dx/ | 개발자 경험 (에러 복구) |
+| src/shared/ | 공유 유틸리티 (LLM, Config, Errors, Logging) |
+| tests/ | 테스트 스위트 |
+| docs/ | 문서 |
+
+**Note**: `src/agents/` 디렉토리는 삭제됨. 모든 에이전트는 `src/core/orchestrator/agents/`에 통합.
+**Note**: `AgentType` enum은 완전 제거됨. 팀 기반 아키텍처(`TeamType`)로 전환.
 
 ---
 
 ## 4. Recent Changes
 
+### 2026-02-12
+- ✅ F010-F020 모듈 스펙 문서 작성 (11개 신규 모듈)
+- ✅ 스텁 테스트 강화 (+19 tests: pre-exploration, self-planning, hooks)
+- ✅ 미사용 변수 정리 (context-optimizer.hook.test.ts)
+
+### 2026-02-11
+- ✅ **전체 구현 완료** (P0 → New P3)
+- ✅ Integration cross-wiring tests (23 tests)
+- ✅ E2E scenario tests (20 tests)
+- ✅ Flaky ENOENT test fix (document-queue.ts stopped flag)
+- ✅ Learning module circular dependency fix (learning-utils.ts 분리)
+- ✅ Import style 통일 (.js 확장자 제거)
+- ✅ 중복 테스트 통합 (code-quality-agent.test.ts)
+- ✅ SYSTEM_DESIGN.md 현행화
+
 ### 2026-01-24
-- ✅ **P5 Platform 착수**
-- ✅ API 서버 엔트리 포인트 생성 (`start-api-server.ts`)
-- ✅ 웹 대시보드 Vite 프록시 설정 수정
-- ✅ 데스크톱 앱 Tauri 설정 수정 및 아이콘 생성
-- ✅ 웹 대시보드 ↔ API 서버 연동 확인
-- ✅ P5 상세 계획서 작성 (`P5_PLATFORM.md`)
-- ✅ Documentation comprehensive update
-- ✅ SYSTEM_DESIGN.md complete rewrite
-- ✅ OVERVIEW.md architecture update
-- ✅ MODULE_REFERENCE.md full module listing
-
-### 2026-01-19
-- ✅ frontend-team.ts refactoring (modular structure)
-- ✅ fullstack-team.ts refactoring (modular structure)
-- ✅ qa-team.ts refactoring (modular structure)
-- ✅ TypeScript compilation errors fixed
-- ✅ Documentation reorganization
-
-### 2026-01-18
-- ✅ Test coverage improvement (59.73% → 77.5%)
-- ✅ CLI LLM clients implementation
-- ✅ Quality metrics implementation
-
-### 2026-01-17
-- ✅ Enterprise features implementation
-- ✅ Security system implementation
-- ✅ API layer completion
+- ✅ P5 Platform 착수 (API 서버, 대시보드)
+- ✅ Documentation update
 
 ---
 
@@ -233,8 +120,9 @@ Directories: 135+
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| Any types in template strings | Low | Acceptable |
-| Performance.memory API types | Low | Acceptable (Chrome-specific) |
+| Worker leak warning in Jest | Low | Cosmetic (테스트 결과 무영향) |
+| 11개 신규 모듈 스펙 문서 부재 (F010-F020) | Medium | ✅ 문서화 완료 (docs/05-specifications/v2/) |
+| `src/core/evals/` 모듈 미존재 | Low | MEMORY.md 참조만 존재, 코드 미구현 |
 
 ---
 
@@ -242,43 +130,20 @@ Directories: 135+
 
 | Phase | Status | Completion |
 |-------|--------|------------|
-| Phase 0: Foundation | ✅ COMPLETED | 100% |
-| Phase 1: Core Agents | ✅ COMPLETED | 100% |
-| Phase 2: Workflow | ✅ COMPLETED | 100% |
-| Phase 3: Tools & Hooks | ✅ COMPLETED | 100% |
-| Phase 4: Advanced Features | ✅ COMPLETED | 100% |
-| Phase 5: Platform | 🔄 IN PROGRESS | 55% |
-
-### Phase 5 상세 현황
-
-| 컴포넌트 | 진행률 | 상태 |
-|----------|--------|------|
-| API 서버 | 100% | ✅ Fastify REST + WebSocket |
-| 웹 대시보드 | 60% | 🔄 UI 완료, API 연동 필요 |
-| 데스크톱 앱 | 60% | 🔄 Tauri 스캐폴딩 완료 |
-| WebSocket 연동 | 30% | 🔄 서버 완료, 클라이언트 필요 |
-
-→ 상세 계획: [P5_PLATFORM.md](./P5_PLATFORM.md)
+| P0: Foundation (Validation, Learning, Context) | ✅ COMPLETED | 100% |
+| P1: Integration Sprint | ✅ COMPLETED | 100% |
+| New P0: Evals, Tiered Routing | ✅ COMPLETED | 100% |
+| P2: Session, Security, Thin Orchestrator | ✅ COMPLETED | 100% |
+| New P1: Agent Consolidation | ✅ COMPLETED | 100% |
+| P3: Quality Pipeline | ✅ COMPLETED | 100% |
+| New P2: Skills, Deep Worker, ACP + API | ✅ COMPLETED | 100% |
+| New P3: HUD, Benchmark, Docs, Brownfield, Instinct, Prompts, Checkpoint | ✅ COMPLETED | 100% |
 
 ---
 
-## 7. Next Milestones
+## 7. Related Documents
 
-| Milestone | Target | Status |
-|-----------|--------|--------|
-| 70% Test Coverage | Q1 2026 | ✅ Achieved (77.5%) |
-| CLI LLM Integration | Q1 2026 | ✅ Completed |
-| Phase 4 Completion | Q1 2026 | ✅ Completed |
-| v1.0 Release | Q2 2026 | Planned |
-| Desktop App (Phase 5) | Q3 2026 | Planned |
-| Web Dashboard (Phase 5) | Q3 2026 | Planned |
-
----
-
-## 8. Related Documents
-
+- [Implementation Priority List](../04-planning/IMPLEMENTATION_PRIORITY_LIST.md) - 구현 우선순위 (v3.1, 최신)
 - [Next Tasks](./NEXT_TASKS.md) - 다음 작업 리스트
 - [Roadmap](./ROADMAP.md) - 개발 로드맵
-- [P5 Platform](./P5_PLATFORM.md) - Phase 5 상세 계획
-- [Implementation Guide](../03-guides/IMPLEMENTATION_GUIDE.md) - 구현 가이드
 - [Architecture Overview](../02-architecture/OVERVIEW.md) - 아키텍처 개요

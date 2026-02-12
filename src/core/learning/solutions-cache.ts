@@ -12,7 +12,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { createAgentLogger } from '../../shared/logging/logger.js';
+import { createAgentLogger } from '../../shared/logging/logger';
 import type {
   ISolutionsCache,
   CachedSolution,
@@ -23,8 +23,8 @@ import type {
   CacheEventHandler,
   CacheEventData,
   LearnedSolution,
-} from './interfaces/learning.interface.js';
-import { generateErrorSignature } from './index.js';
+} from './interfaces/learning.interface';
+import { generateErrorSignature } from './learning-utils';
 
 // ============================================================================
 // Constants

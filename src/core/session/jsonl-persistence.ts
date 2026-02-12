@@ -14,7 +14,7 @@ import type {
   IJSONLPersistence,
   SessionEntry,
   SessionInfo,
-} from './interfaces/session.interface.js';
+} from './interfaces/session.interface';
 
 export const SESSION_STORAGE_CONFIG = {
   baseDir: 'data/sessions',

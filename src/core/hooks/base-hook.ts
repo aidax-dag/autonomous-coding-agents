@@ -14,7 +14,7 @@ import {
   HookConfig,
   HookAction,
   HookCondition,
-} from '../interfaces/hook.interface.js';
+} from '../interfaces/hook.interface';
 
 /**
  * Abstract base class for hooks

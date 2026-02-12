@@ -12,11 +12,11 @@ import type {
   CompressionResult,
   SummarizationRequest,
   OptimizationOptions,
-} from './interfaces/context.interface.js';
+} from './interfaces/context.interface';
 import {
   DEFAULT_CONTEXT_CONFIG,
   CHARS_PER_TOKEN,
-} from './constants/context.constants.js';
+} from './constants/context.constants';
 
 // ============================================================================
 // Implementation

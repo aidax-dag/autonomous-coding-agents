@@ -10,8 +10,8 @@
 import type {
   ITokenBudgetManager,
   TokenBudgetConfig,
-} from './interfaces/context.interface.js';
-import { DEFAULT_CONTEXT_CONFIG } from './constants/context.constants.js';
+} from './interfaces/context.interface';
+import { DEFAULT_CONTEXT_CONFIG } from './constants/context.constants';
 
 // ============================================================================
 // Implementation

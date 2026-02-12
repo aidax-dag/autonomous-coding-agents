@@ -18,7 +18,7 @@ import {
   HookExecutionOptions,
   HookResultReducer,
   HookExecutionRecord,
-} from '../interfaces/hook.interface.js';
+} from '../interfaces/hook.interface';
 
 /**
  * Default execution options

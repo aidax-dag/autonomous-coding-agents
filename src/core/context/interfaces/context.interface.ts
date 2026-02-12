@@ -12,7 +12,7 @@ import type {
   QualityLevelInfo,
   ContextState,
   CompressionStrategy as QualityCompressionStrategy,
-} from './quality-curve.interface.js';
+} from './quality-curve.interface';
 
 // ============================================================================
 // Token Budget Types

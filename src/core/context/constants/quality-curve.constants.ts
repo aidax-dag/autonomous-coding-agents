@@ -9,8 +9,8 @@
 import type {
   QualityLevelInfo,
   ContextWarning,
-} from '../interfaces/quality-curve.interface.js';
-import { QualityLevel } from '../interfaces/quality-curve.interface.js';
+} from '../interfaces/quality-curve.interface';
+import { QualityLevel } from '../interfaces/quality-curve.interface';
 
 // ============================================================================
 // Quality Thresholds

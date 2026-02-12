@@ -9,7 +9,7 @@
 import type {
   ContextManagerConfig,
   CompressionLevel,
-} from '../interfaces/context.interface.js';
+} from '../interfaces/context.interface';
 
 // ============================================================================
 // Default Configuration

@@ -7,16 +7,16 @@
  * @module core/hooks/error-learning
  */
 
-import { BaseHook } from '../base-hook.js';
+import { BaseHook } from '../base-hook';
 import {
   HookEvent,
   HookContext,
   HookResult,
   HookConfig,
-} from '../../interfaces/hook.interface.js';
-import type { TaskDocument } from '../../workspace/task-document.js';
-import type { ReflexionPattern } from '../../learning/reflexion-pattern.js';
-import type { SolutionsCache } from '../../learning/solutions-cache.js';
+} from '../../interfaces/hook.interface';
+import type { TaskDocument } from '../../workspace/task-document';
+import type { ReflexionPattern } from '../../learning/reflexion-pattern';
+import type { SolutionsCache } from '../../learning/solutions-cache';
 
 /**
  * Context passed to TASK_ERROR hooks

@@ -7,9 +7,9 @@
  */
 
 import { spawn } from 'child_process';
-import { BaseHook } from '../base-hook.js';
-import { HookEvent, HookContext, HookResult } from '../../interfaces/hook.interface.js';
-import { IDisposable } from '../../di/interfaces/container.interface.js';
+import { BaseHook } from '../base-hook';
+import { HookEvent, HookContext, HookResult } from '../../interfaces/hook.interface';
+import { IDisposable } from '../../di/interfaces/container.interface';
 import {
   CodeQualityConfig,
   QualityCheckType,
@@ -30,7 +30,7 @@ import {
   DEFAULT_CODE_QUALITY_CONFIG,
   DEFAULT_TOOL_CONFIGS,
   CHECK_TYPE_TO_TOOLS,
-} from './code-quality.interface.js';
+} from './code-quality.interface';
 
 /**
  * ESLint JSON output format

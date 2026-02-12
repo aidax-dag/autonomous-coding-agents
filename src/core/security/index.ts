@@ -24,7 +24,7 @@ export {
   type EscalationThresholds,
   type ISandboxEscalation,
   type SandboxEscalationOptions,
-} from './interfaces/escalation.interface.js';
+} from './interfaces/escalation.interface';
 
 // ============================================================================
 // Implementation
@@ -33,4 +33,4 @@ export {
 export {
   SandboxEscalation,
   createSandboxEscalation,
-} from './sandbox-escalation.js';
+} from './sandbox-escalation';

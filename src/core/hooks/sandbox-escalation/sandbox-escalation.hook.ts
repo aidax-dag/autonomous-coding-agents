@@ -7,21 +7,21 @@
  * @module core/hooks/sandbox-escalation
  */
 
-import { BaseHook } from '../base-hook.js';
+import { BaseHook } from '../base-hook';
 import {
   HookEvent,
   HookContext,
   HookResult,
   HookConfig,
-} from '../../interfaces/hook.interface.js';
-import type { TaskDocument } from '../../workspace/task-document.js';
-import type { SandboxEscalation } from '../../security/sandbox-escalation.js';
-import type { ConfidenceChecker } from '../../validation/confidence-checker.js';
-import { SandboxLevel } from '../../security/interfaces/escalation.interface.js';
+} from '../../interfaces/hook.interface';
+import type { TaskDocument } from '../../workspace/task-document';
+import type { SandboxEscalation } from '../../security/sandbox-escalation';
+import type { ConfidenceChecker } from '../../validation/confidence-checker';
+import { SandboxLevel } from '../../security/interfaces/escalation.interface';
 import type {
   EscalationContext,
   EscalationResult,
-} from '../../security/interfaces/escalation.interface.js';
+} from '../../security/interfaces/escalation.interface';
 
 /**
  * SandboxEscalationHook

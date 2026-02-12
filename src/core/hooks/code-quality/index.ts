@@ -7,7 +7,7 @@
  */
 
 // Interfaces
-export * from './code-quality.interface.js';
+export * from './code-quality.interface';
 
 // Hook
-export { CodeQualityHook } from './code-quality.hook.js';
+export { CodeQualityHook } from './code-quality.hook';

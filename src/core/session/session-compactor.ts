@@ -13,8 +13,8 @@ import type {
   SessionEntry,
   CompactionResult,
   CompactionPolicy,
-} from './interfaces/session.interface.js';
-import type { JSONLPersistence } from './jsonl-persistence.js';
+} from './interfaces/session.interface';
+import type { JSONLPersistence } from './jsonl-persistence';
 
 export const DEFAULT_COMPACTION_POLICY: CompactionPolicy = {
   maxEntries: 10_000,

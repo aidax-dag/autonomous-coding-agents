@@ -11,27 +11,27 @@
 import {
   ConfidenceChecker,
   createConfidenceChecker,
-} from '../validation/confidence-checker.js';
+} from '../validation/confidence-checker';
 import {
   SelfCheckProtocol,
   createSelfCheckProtocol,
-} from '../validation/self-check-protocol.js';
+} from '../validation/self-check-protocol';
 import {
   GoalBackwardVerifier,
   createGoalBackwardVerifier,
-} from '../validation/goal-backward-verifier.js';
-import { ReflexionPattern, createReflexionPattern } from '../learning/reflexion-pattern.js';
-import { InstinctStore, createInstinctStore } from '../learning/instinct-store.js';
-import { SolutionsCache, createSolutionsCache } from '../learning/solutions-cache.js';
-import { ContextManager, createContextManager } from '../context/context-manager.js';
+} from '../validation/goal-backward-verifier';
+import { ReflexionPattern, createReflexionPattern } from '../learning/reflexion-pattern';
+import { InstinctStore, createInstinctStore } from '../learning/instinct-store';
+import { SolutionsCache, createSolutionsCache } from '../learning/solutions-cache';
+import { ContextManager, createContextManager } from '../context/context-manager';
 import {
   SessionManager,
   createSessionManager,
   createJSONLPersistence,
   createSessionRecovery,
-} from '../session/index.js';
-import { SandboxEscalation, createSandboxEscalation } from '../security/sandbox-escalation.js';
-import type { SandboxEscalationOptions } from '../security/interfaces/escalation.interface.js';
+} from '../session/index';
+import { SandboxEscalation, createSandboxEscalation } from '../security/sandbox-escalation';
+import type { SandboxEscalationOptions } from '../security/interfaces/escalation.interface';
 import { mkdir } from 'fs/promises';
 
 /**

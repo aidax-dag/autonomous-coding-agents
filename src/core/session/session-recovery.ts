@@ -13,8 +13,8 @@ import type {
   IJSONLPersistence,
   RecoveryResult,
   SessionEntry,
-} from './interfaces/session.interface.js';
-import type { JSONLPersistence } from './jsonl-persistence.js';
+} from './interfaces/session.interface';
+import type { JSONLPersistence } from './jsonl-persistence';
 
 export class SessionRecovery implements ISessionRecovery {
   private readonly persistence: IJSONLPersistence & { listSessionIds(): Promise<string[]> };

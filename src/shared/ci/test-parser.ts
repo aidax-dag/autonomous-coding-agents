@@ -6,8 +6,8 @@
  * Feature: F4.1 - CI/CD Integration
  */
 
-import { TestResults, TestFailure } from './types.js';
-import { createAgentLogger } from '../logging/logger.js';
+import { TestResults, TestFailure } from './types';
+import { createAgentLogger } from '../logging/logger';
 
 const logger = createAgentLogger('CI', 'test-parser');
 

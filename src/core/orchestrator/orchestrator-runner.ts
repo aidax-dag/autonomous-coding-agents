@@ -20,15 +20,15 @@ import { ILLMClient } from '@/shared/llm';
 import { RoutingStrategy } from './task-router';
 import { TaskHandlerResult } from './team-agent';
 import { BaseTeamAgent } from './base-team-agent';
-import { RunnerStateManager } from './runner-state-manager.js';
-import { ErrorEscalator, EscalationAction } from './error-escalator.js';
+import { RunnerStateManager } from './runner-state-manager';
+import { ErrorEscalator, EscalationAction } from './error-escalator';
 import { HookRegistry } from '../hooks/hook-registry';
 import { HookExecutor } from '../hooks/hook-executor';
 import { HookEvent, HookAction } from '../interfaces/hook.interface';
 import { ServiceRegistry } from '../services/service-registry';
 import type { GoalBackwardResult } from '../validation/interfaces/validation.interface';
-import { createAndRegisterAgents } from './agent-factory.js';
-import { initializeIntegrations } from './integration-setup.js';
+import { createAndRegisterAgents } from './agent-factory';
+import { initializeIntegrations } from './integration-setup';
 
 /**
  * Runner status
@@ -601,4 +601,4 @@ export function createOrchestratorRunner(config: OrchestratorRunnerConfig): Orch
  *
  * @deprecated Use createMockRunner from './mock-runner' instead
  */
-export { createMockRunner } from './mock-runner.js';
+export { createMockRunner } from './mock-runner';

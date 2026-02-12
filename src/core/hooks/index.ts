@@ -6,9 +6,9 @@
  * @module core/hooks
  */
 
-export { BaseHook } from './base-hook.js';
-export { HookRegistry } from './hook-registry.js';
-export { HookExecutor } from './hook-executor.js';
+export { BaseHook } from './base-hook';
+export { HookRegistry } from './hook-registry';
+export { HookExecutor } from './hook-executor';
 
 // Re-export interfaces for convenience
 export {
@@ -25,11 +25,11 @@ export {
   HookResultReducer,
   HookExecutionRecord,
   BuiltinHookType,
-} from '../interfaces/hook.interface.js';
+} from '../interfaces/hook.interface';
 
 // Active hooks
-export * from './confidence-check/index.js';
-export * from './self-check/index.js';
-export * from './error-learning/index.js';
-export * from './context-optimizer/index.js';
-export * from './sandbox-escalation/index.js';
+export * from './confidence-check/index';
+export * from './self-check/index';
+export * from './error-learning/index';
+export * from './context-optimizer/index';
+export * from './sandbox-escalation/index';

@@ -16,7 +16,7 @@ import {
   type IGoalBackwardVerifier,
   type GoalDefinition,
   type GoalBackwardResult,
-} from './interfaces/validation.interface.js';
+} from './interfaces/validation.interface';
 
 // ============================================================================
 // Constants: Placeholder Detection Patterns

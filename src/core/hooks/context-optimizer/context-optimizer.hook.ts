@@ -7,15 +7,15 @@
  * @module core/hooks/context-optimizer
  */
 
-import { BaseHook } from '../base-hook.js';
+import { BaseHook } from '../base-hook';
 import {
   HookEvent,
   HookContext,
   HookResult,
   HookConfig,
-} from '../../interfaces/hook.interface.js';
-import type { ContextManager } from '../../context/context-manager.js';
-import type { TaskAfterContext } from '../self-check/self-check.hook.js';
+} from '../../interfaces/hook.interface';
+import type { ContextManager } from '../../context/context-manager';
+import type { TaskAfterContext } from '../self-check/self-check.hook';
 
 /**
  * ContextOptimizerHook

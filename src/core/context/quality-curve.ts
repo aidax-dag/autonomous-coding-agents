@@ -10,7 +10,7 @@
  * @module core/context/quality-curve
  */
 
-import { createAgentLogger } from '../../shared/logging/logger.js';
+import { createAgentLogger } from '../../shared/logging/logger';
 import type {
   IQualityCurve,
   QualityLevelInfo,
@@ -19,14 +19,14 @@ import type {
   ContextWarning,
   PlanRecommendation,
   OptimizationSuggestion,
-} from './interfaces/quality-curve.interface.js';
-import { QualityLevel } from './interfaces/quality-curve.interface.js';
+} from './interfaces/quality-curve.interface';
+import { QualityLevel } from './interfaces/quality-curve.interface';
 import {
   QUALITY_THRESHOLDS,
   QUALITY_LEVEL_INFO,
   PLAN_CONFIG,
   WARNING_TEMPLATES,
-} from './constants/quality-curve.constants.js';
+} from './constants/quality-curve.constants';
 
 // ============================================================================
 // Types

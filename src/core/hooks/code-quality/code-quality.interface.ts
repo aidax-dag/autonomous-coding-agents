@@ -6,7 +6,7 @@
  * @module core/hooks/code-quality
  */
 
-import { HookConfig } from '../../interfaces/hook.interface.js';
+import { HookConfig } from '../../interfaces/hook.interface';
 
 /**
  * Quality check type

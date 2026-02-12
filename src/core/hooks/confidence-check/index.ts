@@ -1,1 +1,1 @@
-export { ConfidenceCheckHook } from './confidence-check.hook.js';
+export { ConfidenceCheckHook } from './confidence-check.hook';

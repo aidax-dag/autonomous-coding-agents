@@ -7,20 +7,20 @@
  * @module core/hooks/self-check
  */
 
-import { BaseHook } from '../base-hook.js';
+import { BaseHook } from '../base-hook';
 import {
   HookEvent,
   HookContext,
   HookResult,
   HookConfig,
-} from '../../interfaces/hook.interface.js';
-import type { TaskDocument } from '../../workspace/task-document.js';
-import type { TaskHandlerResult } from '../../orchestrator/team-agent.js';
-import type { SelfCheckProtocol } from '../../validation/self-check-protocol.js';
+} from '../../interfaces/hook.interface';
+import type { TaskDocument } from '../../workspace/task-document';
+import type { TaskHandlerResult } from '../../orchestrator/team-agent';
+import type { SelfCheckProtocol } from '../../validation/self-check-protocol';
 import type {
   SelfCheckResult,
   Evidence,
-} from '../../validation/interfaces/validation.interface.js';
+} from '../../validation/interfaces/validation.interface';
 
 /**
  * Context passed to TASK_AFTER hooks

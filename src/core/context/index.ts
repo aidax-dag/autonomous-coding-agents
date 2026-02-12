@@ -24,7 +24,7 @@ export {
   type PlanRecommendation,
   type OptimizationSuggestion,
   type IQualityCurve,
-} from './interfaces/quality-curve.interface.js';
+} from './interfaces/quality-curve.interface';
 
 // ============================================================================
 // Context Module Interfaces (F008)
@@ -66,7 +66,7 @@ export type {
   IContextMonitor,
   ICompactionStrategy,
   IContextManager,
-} from './interfaces/context.interface.js';
+} from './interfaces/context.interface';
 
 // ============================================================================
 // Quality Curve Constants (F007)
@@ -77,7 +77,7 @@ export {
   QUALITY_LEVEL_INFO,
   PLAN_CONFIG,
   WARNING_TEMPLATES,
-} from './constants/quality-curve.constants.js';
+} from './constants/quality-curve.constants';
 
 // ============================================================================
 // Context Module Constants (F008)
@@ -93,7 +93,7 @@ export {
   EVENT_DEBOUNCE,
   CONTEXT_THRESHOLDS,
   type CompressionLevelConfig,
-} from './constants/context.constants.js';
+} from './constants/context.constants';
 
 // ============================================================================
 // Quality Curve Implementation (F007)
@@ -103,7 +103,7 @@ export {
   QualityCurve,
   createQualityCurve,
   type ContextProvider,
-} from './quality-curve.js';
+} from './quality-curve';
 
 // ============================================================================
 // Token Budget Manager (F008)
@@ -112,7 +112,7 @@ export {
 export {
   TokenBudgetManager,
   createTokenBudgetManager,
-} from './token-budget-manager.js';
+} from './token-budget-manager';
 
 // ============================================================================
 // Output Optimizer (F008)
@@ -121,7 +121,7 @@ export {
 export {
   OutputOptimizer,
   createOutputOptimizer,
-} from './output-optimizer.js';
+} from './output-optimizer';
 
 // ============================================================================
 // Context Monitor (F008)
@@ -130,7 +130,7 @@ export {
 export {
   ContextMonitor,
   createContextMonitor,
-} from './context-monitor.js';
+} from './context-monitor';
 
 // ============================================================================
 // Compaction Strategy (F008)
@@ -139,7 +139,7 @@ export {
 export {
   CompactionStrategy,
   createCompactionStrategy,
-} from './compaction-strategy.js';
+} from './compaction-strategy';
 
 // ============================================================================
 // Context Manager (F008)
@@ -148,7 +148,7 @@ export {
 export {
   ContextManager,
   createContextManager,
-} from './context-manager.js';
+} from './context-manager';
 
 // ============================================================================
 // Legacy Token Budget types (migrated from dx/token-budget)
@@ -158,10 +158,10 @@ export type {
   BudgetStatus,
   BudgetSubscription,
   ILegacyTokenBudgetManager,
-} from './interfaces/context.interface.js';
+} from './interfaces/context.interface';
 
 // ============================================================================
 // Default Export
 // ============================================================================
 
-export { ContextManager as default } from './context-manager.js';
+export { ContextManager as default } from './context-manager';

@@ -16,8 +16,8 @@ import type {
   ISessionRecovery,
   SessionEntry,
   SessionInfo,
-} from './interfaces/session.interface.js';
-import type { JSONLPersistence } from './jsonl-persistence.js';
+} from './interfaces/session.interface';
+import type { JSONLPersistence } from './jsonl-persistence';
 
 export interface SessionManagerEvents {
   'session:start': (sessionId: string) => void;

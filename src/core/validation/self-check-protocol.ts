@@ -17,7 +17,7 @@ import type {
   DangerSignal,
   SelfCheckResult,
   ISelfCheckProtocol,
-} from './interfaces/validation.interface.js';
+} from './interfaces/validation.interface';
 
 // ============================================================================
 // Constants: 4 Essential Self-Check Questions

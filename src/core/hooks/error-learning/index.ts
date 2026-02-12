@@ -1,1 +1,1 @@
-export { ErrorLearningHook, type TaskErrorContext } from './error-learning.hook.js';
+export { ErrorLearningHook, type TaskErrorContext } from './error-learning.hook';

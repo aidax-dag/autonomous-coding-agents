@@ -10,7 +10,7 @@ import {
   IHook,
   IHookRegistry,
   HookEvent,
-} from '../interfaces/hook.interface.js';
+} from '../interfaces/hook.interface';
 
 /**
  * Hook Registry Implementation

@@ -25,7 +25,7 @@ export {
   type ConfidenceCheckResult,
   type IConfidenceChecker,
   type ConfidenceCheckerOptions,
-} from './confidence-checker.js';
+} from './confidence-checker';
 
 // ============================================================================
 // F002: SelfCheckProtocol
@@ -43,7 +43,7 @@ export {
   EXTENDED_DANGER_SIGNALS,
   // Types
   type SelfCheckProtocolOptions,
-} from './self-check-protocol.js';
+} from './self-check-protocol';
 
 // ============================================================================
 // Shared Interfaces (from validation.interface.ts)
@@ -58,9 +58,9 @@ export type {
   GoalDefinition,
   GoalBackwardResult,
   IGoalBackwardVerifier,
-} from './interfaces/validation.interface.js';
+} from './interfaces/validation.interface';
 
-export { VerificationStage } from './interfaces/validation.interface.js';
+export { VerificationStage } from './interfaces/validation.interface';
 
 // ============================================================================
 // F003: GoalBackwardVerifier
@@ -77,4 +77,4 @@ export {
   // Types
   type GoalBackwardVerifierOptions,
   type ComplexityThresholds,
-} from './goal-backward-verifier.js';
+} from './goal-backward-verifier';

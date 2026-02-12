@@ -7,7 +7,7 @@
  * @module core/context/context-manager
  */
 
-import { createAgentLogger } from '../../shared/logging/logger.js';
+import { createAgentLogger } from '../../shared/logging/logger';
 import type {
   IContextManager,
   ContextManagerConfig,
@@ -18,19 +18,19 @@ import type {
   ContextEventHandler,
   ContextEventData,
   CompressionLevel,
-} from './interfaces/context.interface.js';
+} from './interfaces/context.interface';
 import type {
   QualityLevel,
   QualityLevelInfo,
   ContextState,
   CompressionStrategy,
-} from './interfaces/quality-curve.interface.js';
-import { DEFAULT_CONTEXT_CONFIG } from './constants/context.constants.js';
-import { TokenBudgetManager } from './token-budget-manager.js';
-import { OutputOptimizer } from './output-optimizer.js';
-import { ContextMonitor } from './context-monitor.js';
-import { CompactionStrategy } from './compaction-strategy.js';
-import { QualityCurve } from './quality-curve.js';
+} from './interfaces/quality-curve.interface';
+import { DEFAULT_CONTEXT_CONFIG } from './constants/context.constants';
+import { TokenBudgetManager } from './token-budget-manager';
+import { OutputOptimizer } from './output-optimizer';
+import { ContextMonitor } from './context-monitor';
+import { CompactionStrategy } from './compaction-strategy';
+import { QualityCurve } from './quality-curve';
 
 // ============================================================================
 // Implementation

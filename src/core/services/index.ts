@@ -4,7 +4,7 @@
  * @module core/services
  */
 
-export { ILogger, LogLevel, type LogContext } from './logger.interface.js';
+export { ILogger, LogLevel, type LogContext } from './logger.interface';
 export {
   ConsoleLogger,
   configureLogger,
@@ -18,7 +18,7 @@ export {
   type LoggerConfig,
   type StructuredLogEntry,
   type TimerResult,
-} from './logger.js';
+} from './logger';
 
 // Service Registry
-export { ServiceRegistry, type ServiceRegistryConfig } from './service-registry.js';
+export { ServiceRegistry, type ServiceRegistryConfig } from './service-registry';

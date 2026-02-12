@@ -7,7 +7,7 @@
  * @module core/orchestrator
  */
 
-import { createLogger, ILogger } from '../services/logger.js';
+import { createLogger, ILogger } from '../services/logger';
 
 // ============================================================================
 // Types

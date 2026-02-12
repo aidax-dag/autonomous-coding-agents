@@ -14,8 +14,8 @@ import {
   CheckStatus,
   CheckConclusion,
   CICheckConfig,
-} from './types.js';
-import { createAgentLogger } from '../logging/logger.js';
+} from './types';
+import { createAgentLogger } from '../logging/logger';
 
 type OctokitCheckRun = RestEndpointMethodTypes['checks']['listForRef']['response']['data']['check_runs'][number];
 

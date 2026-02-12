@@ -6,9 +6,9 @@
  * @module core/context/compaction-strategy
  */
 
-import type { ICompactionStrategy } from './interfaces/context.interface.js';
-import type { CompressionStrategy, CompressionTechnique } from './interfaces/quality-curve.interface.js';
-import { CHARS_PER_TOKEN } from './constants/context.constants.js';
+import type { ICompactionStrategy } from './interfaces/context.interface';
+import type { CompressionStrategy, CompressionTechnique } from './interfaces/quality-curve.interface';
+import { CHARS_PER_TOKEN } from './constants/context.constants';
 
 // ============================================================================
 // Implementation

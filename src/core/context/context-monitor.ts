@@ -11,12 +11,12 @@ import type {
   ContextMonitorConfig,
   TokenUsageStats,
   MonitorCallbacks,
-} from './interfaces/context.interface.js';
-import { QualityLevel } from './interfaces/quality-curve.interface.js';
+} from './interfaces/context.interface';
+import { QualityLevel } from './interfaces/quality-curve.interface';
 import {
   DEFAULT_CONTEXT_CONFIG,
   CONTEXT_THRESHOLDS,
-} from './constants/context.constants.js';
+} from './constants/context.constants';
 
 // ============================================================================
 // Types
