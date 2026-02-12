@@ -82,8 +82,8 @@ Enhancement Strategy 통합 (Phase A-F, T1-T17) 완료.
 ## 2. Test Coverage
 
 ```
-Total Tests: 3,228
-Test Suites: 193
+Total Tests: 3,241
+Test Suites: 194
 Type Check: ✅ Clean (npx tsc --noEmit)
 Test Runner: Jest
 ```
@@ -120,6 +120,8 @@ Test Runner: Jest
 - ✅ Phase F: Dashboard/Benchmark (T16-T17: RunnerDataSource, OrchestratorTaskExecutor)
 - ✅ 테스트 수: 2,374 → 3,228 (+854 tests), 테스트 스위트: 97 → 193
 - ✅ CLI 실행 경로 테스트 추가 (run/submit/lifecycle, 14 tests)
+- ✅ E2E 전체 파이프라인 테스트 추가 (Runner→ACP→UI, 13 tests)
+- ✅ CI/CD e2e 스테이지 추가, .env.production 환경 설정
 - ✅ STATUS.md 현행화
 
 ### 2026-02-12
