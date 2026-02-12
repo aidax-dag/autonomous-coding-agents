@@ -82,8 +82,8 @@ Enhancement Strategy 통합 (Phase A-F, T1-T17) 완료.
 ## 2. Test Coverage
 
 ```
-Total Tests: 3,241
-Test Suites: 194
+Total Tests: 3,259
+Test Suites: 196
 Type Check: ✅ Clean (npx tsc --noEmit)
 Test Runner: Jest
 ```
@@ -122,6 +122,10 @@ Test Runner: Jest
 - ✅ CLI 실행 경로 테스트 추가 (run/submit/lifecycle, 14 tests)
 - ✅ E2E 전체 파이프라인 테스트 추가 (Runner→ACP→UI, 13 tests)
 - ✅ CI/CD e2e 스테이지 추가, .env.production 환경 설정
+- ✅ P2 에러 핸들링 강화: hook 에러 로깅, GoalResult.error 필드, AgentError 적용
+- ✅ P2 로깅 개선: LLM 클라이언트 에러 로깅, createModuleLogger/createCorrelatedLogger
+- ✅ P2 API 문서화: OpenAPI 3.0 스펙 생성 (docs/api/openapi.yaml)
+- ✅ 테스트 수: 3,241 → 3,259 (+18 tests), 테스트 스위트: 194 → 196
 - ✅ STATUS.md 현행화
 
 ### 2026-02-12
