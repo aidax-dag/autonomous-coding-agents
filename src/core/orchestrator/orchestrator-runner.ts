@@ -29,6 +29,7 @@ import { ServiceRegistry } from '../services/service-registry';
 import type { GoalBackwardResult } from '../validation/interfaces/validation.interface';
 import { createAndRegisterAgents } from './agent-factory';
 import { initializeIntegrations } from './integration-setup';
+import { ParallelExecutor } from './parallel-executor';
 
 /**
  * Runner status
@@ -95,6 +96,10 @@ export interface OrchestratorRunnerConfig {
   enableLearning?: boolean;
   /** Enable context management hooks (default: false) */
   enableContextManagement?: boolean;
+  /** Enable parallel task execution (default: false) */
+  enableParallelExecution?: boolean;
+  /** Max parallel concurrency */
+  parallelConcurrency?: number;
 }
 
 /**
@@ -133,6 +138,7 @@ export class OrchestratorRunner extends EventEmitter {
 
   private readonly stateManager = new RunnerStateManager();
   private readonly errorEscalator = new ErrorEscalator();
+  private readonly parallelExecutor: ParallelExecutor | null;
 
   constructor(config: OrchestratorRunnerConfig) {
     super();
@@ -149,7 +155,13 @@ export class OrchestratorRunner extends EventEmitter {
       enableValidation: config.enableValidation ?? false,
       enableLearning: config.enableLearning ?? false,
       enableContextManagement: config.enableContextManagement ?? false,
+      enableParallelExecution: config.enableParallelExecution ?? false,
+      parallelConcurrency: config.parallelConcurrency ?? 5,
     };
+
+    this.parallelExecutor = this.config.enableParallelExecution
+      ? new ParallelExecutor({ maxConcurrency: this.config.parallelConcurrency })
+      : null;
 
     this.hookRegistry = new HookRegistry();
     this.hookExecutor = new HookExecutor(this.hookRegistry);
@@ -303,9 +315,14 @@ export class OrchestratorRunner extends EventEmitter {
       const results: WorkflowResult[] = [];
 
       if (options?.waitForCompletion !== false) {
-        for (const task of tasks) {
-          const result = await this.executeTask(task);
-          results.push(result);
+        if (this.parallelExecutor && this.config.enableParallelExecution) {
+          const parallelResults = await this.parallelExecutor.execute(tasks, this);
+          results.push(...parallelResults);
+        } else {
+          for (const task of tasks) {
+            const result = await this.executeTask(task);
+            results.push(result);
+          }
         }
       } else {
         for (const task of tasks) {

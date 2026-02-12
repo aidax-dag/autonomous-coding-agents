@@ -91,6 +91,26 @@ const ConfigSchema = z.object({
     directory: z.string().default('./logs'),
   }),
 
+  // Routing Configuration (P0-1: Multi-model routing)
+  routing: z.object({
+    enabled: z.boolean().default(false),
+    defaultProfile: z.string().default('balanced'),
+    budgetLimit: z.number().optional(),
+    agentModelMap: z.record(z.string()).optional(),
+  }).optional(),
+
+  // MCP Configuration (P1-3: MCP protocol integration)
+  mcp: z.object({
+    enabled: z.boolean().default(false),
+    servers: z.array(z.object({
+      name: z.string(),
+      transport: z.enum(['stdio', 'sse']),
+      command: z.string().optional(),
+      args: z.array(z.string()).optional(),
+      url: z.string().optional(),
+    })).default([]),
+  }).optional(),
+
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -144,6 +164,12 @@ function parseEnv(): Config {
       level: (env.LOG_LEVEL || 'info') as LogLevel,
       toFile: parseBoolean(env.LOG_TO_FILE, true),
       directory: env.LOG_DIR || './logs',
+    },
+
+    routing: {
+      enabled: parseBoolean(env.ROUTING_ENABLED, false),
+      defaultProfile: env.ROUTING_DEFAULT_PROFILE || 'balanced',
+      budgetLimit: parseNumber(env.ROUTING_BUDGET_LIMIT),
     },
 
   };

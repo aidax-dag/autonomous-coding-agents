@@ -66,6 +66,39 @@ export { VerificationStage } from './interfaces/validation.interface';
 // F003: GoalBackwardVerifier
 // ============================================================================
 
+// ============================================================================
+// P1-2: Enhanced Verification
+// ============================================================================
+
+export type {
+  StubDetection,
+  FileVerificationReport,
+  StageReport,
+  VerificationReport,
+  VerificationHook,
+  IVerificationPipeline,
+} from './interfaces/verification-report.interface';
+
+export {
+  StubDetector,
+  createStubDetector,
+  STUB_PATTERNS,
+} from './stub-detector';
+
+export {
+  VerificationReportBuilder,
+  createVerificationReportBuilder,
+} from './verification-report';
+
+export {
+  VerificationPipeline,
+  createVerificationPipeline,
+} from './verification-pipeline';
+
+// ============================================================================
+// F003: GoalBackwardVerifier
+// ============================================================================
+
 export {
   // Class
   GoalBackwardVerifier,

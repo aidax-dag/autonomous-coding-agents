@@ -161,6 +161,38 @@ export type {
 } from './interfaces/context.interface';
 
 // ============================================================================
+// Planning Context (P1-1)
+// ============================================================================
+
+export {
+  PlanningDirectory,
+  createPlanningDirectory,
+  StateTracker,
+  createStateTracker,
+  PhaseManager,
+  createPhaseManager,
+  ContextBudget,
+  createContextBudget,
+  ResearchSnapshotManager,
+  createResearchSnapshot,
+} from './planning-context';
+
+export type {
+  PhaseStatus,
+  Phase,
+  Decision,
+  Blocker,
+  PlanningState,
+  ResearchSnapshot,
+  BudgetAllocation,
+  IPlanningDirectory,
+  IStateTracker,
+  IPhaseManager,
+  IContextBudget,
+  IResearchSnapshot,
+} from './planning-context';
+
+// ============================================================================
 // Default Export
 // ============================================================================
 

@@ -56,6 +56,10 @@ export interface ServiceRegistryConfig {
   sessionDir?: string;
   /** Sandbox escalation options */
   sandboxOptions?: SandboxEscalationOptions;
+  /** Enable planning context module (default: false) */
+  enablePlanningContext?: boolean;
+  /** Enable MCP integration (default: false) */
+  enableMCP?: boolean;
 }
 
 /**

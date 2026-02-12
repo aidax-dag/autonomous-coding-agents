@@ -66,6 +66,10 @@ export enum HookEvent {
   LLM_STREAM_START = 'llm:stream:start',
   LLM_STREAM_END = 'llm:stream:end',
 
+  // === Parallel Execution ===
+  PARALLEL_BATCH_START = 'parallel:batch:start',
+  PARALLEL_BATCH_END = 'parallel:batch:end',
+
   // === Custom ===
   CUSTOM = 'custom',
 }

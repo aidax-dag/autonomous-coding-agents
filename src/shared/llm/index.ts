@@ -21,6 +21,34 @@ import { ResilientLLMClient, ResilientClientConfig } from '@/shared/llm/resilien
 
 // Re-export types and utilities
 export * from '@/shared/llm/base-client';
+
+// Re-export routing interfaces
+export type {
+  ModelTier,
+  ModelProfile,
+  RoutingContext,
+  RoutingDecision,
+  CostRecord,
+  IRoutingStrategy,
+  IModelRouter,
+  ICostTracker,
+} from '@/shared/llm/interfaces/routing.interface';
+
+// Re-export model profiles
+export {
+  ModelProfileRegistry,
+  createModelProfileRegistry,
+  DEFAULT_MODEL_PROFILES,
+} from '@/shared/llm/model-profiles';
+
+// Re-export cost tracker
+export { CostTracker, createCostTracker } from '@/shared/llm/cost-tracker';
+
+// Re-export routing strategies
+export * from '@/shared/llm/routing-strategies';
+
+// Re-export model router
+export { ModelRouter, createModelRouter, type ModelRouterConfig } from '@/shared/llm/model-router';
 export { ClaudeClient } from '@/shared/llm/claude-client';
 export { OpenAIClient } from '@/shared/llm/openai-client';
 export { GeminiClient } from '@/shared/llm/gemini-client';

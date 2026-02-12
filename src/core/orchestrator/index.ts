@@ -242,6 +242,37 @@ export {
 } from './agent-workflow';
 
 // ============================================================================
+// Parallel Execution (P0-2)
+// ============================================================================
+
+export {
+  ParallelExecutor,
+  createParallelExecutor,
+} from './parallel-executor';
+
+export {
+  AgentPool,
+  createAgentPool,
+  type AgentPoolConfig,
+} from './agent-pool';
+
+export {
+  BackgroundManager,
+  createBackgroundManager,
+} from './background-manager';
+
+export type {
+  IParallelExecutor,
+  IAgentPool,
+  TaskNode,
+  TaskGroup,
+  ParallelExecutorConfig,
+  TaskExecutorFn,
+  PoolStats,
+  BackgroundTaskHandle,
+} from './interfaces/parallel.interface';
+
+// ============================================================================
 // Quality Measurement Integration
 // ============================================================================
 
