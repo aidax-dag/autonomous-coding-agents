@@ -41,3 +41,48 @@ export {
   type DeepReviewOutput,
   type RefactoringOutput,
 } from './code-quality-agent';
+
+export {
+  ArchitectureAgent,
+  createArchitectureAgent,
+  type ArchitectureOutput,
+  type ArchitectureAgentOptions,
+} from './architecture-agent';
+
+export {
+  SecurityAgent,
+  createSecurityAgent,
+  type SecurityOutput,
+  type SecurityFinding,
+  type SecurityAgentOptions,
+} from './security-agent';
+
+export {
+  DebuggingAgent,
+  createDebuggingAgent,
+  type DebuggingOutput,
+  type DebuggingAgentOptions,
+} from './debugging-agent';
+
+export {
+  DocumentationAgent,
+  createDocumentationAgent,
+  type DocumentationOutput,
+  type DocumentationSection,
+  type DocumentationAgentOptions,
+} from './documentation-agent';
+
+export {
+  ExplorationAgent,
+  createExplorationAgent,
+  type ExplorationOutput,
+  type ExplorationAgentOptions,
+} from './exploration-agent';
+
+export {
+  IntegrationAgent,
+  createIntegrationAgent,
+  type IntegrationOutput,
+  type IntegrationConnection,
+  type IntegrationAgentOptions,
+} from './integration-agent';

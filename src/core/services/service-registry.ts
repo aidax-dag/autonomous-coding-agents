@@ -32,6 +32,8 @@ import {
 } from '../session/index';
 import { SandboxEscalation, createSandboxEscalation } from '../security/sandbox-escalation';
 import type { SandboxEscalationOptions } from '../security/interfaces/escalation.interface';
+import { PermissionManager, createPermissionManager } from '../permission/permission-manager';
+import type { PermissionManagerOptions } from '../permission/permission-manager';
 import { mkdir } from 'fs/promises';
 
 /**
@@ -56,6 +58,10 @@ export interface ServiceRegistryConfig {
   sessionDir?: string;
   /** Sandbox escalation options */
   sandboxOptions?: SandboxEscalationOptions;
+  /** Enable permission module (PermissionManager) (default: false) */
+  enablePermission?: boolean;
+  /** Permission manager options */
+  permissionOptions?: PermissionManagerOptions;
   /** Enable planning context module (default: false) */
   enablePlanningContext?: boolean;
   /** Enable MCP integration (default: false) */
@@ -80,6 +86,7 @@ export class ServiceRegistry {
   private contextManager: ContextManager | null = null;
   private sessionManager: SessionManager | null = null;
   private sandboxEscalation: SandboxEscalation | null = null;
+  private permissionManager: PermissionManager | null = null;
   private _initialized = false;
 
   private constructor() {}
@@ -111,9 +118,11 @@ export class ServiceRegistry {
       enableContext = false,
       enableSession = false,
       enableSecurity = false,
+      enablePermission = false,
       memoryDir = 'docs/memory',
       sessionDir = 'data/sessions',
       sandboxOptions,
+      permissionOptions,
     } = config;
 
     const basePath = `${projectRoot}/${memoryDir}`;
@@ -203,6 +212,15 @@ export class ServiceRegistry {
       }
     }
 
+    // Permission module (synchronous initialization)
+    if (enablePermission) {
+      try {
+        this.permissionManager = createPermissionManager(permissionOptions);
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
     this._initialized = true;
   }
 
@@ -243,6 +261,7 @@ export class ServiceRegistry {
     this.contextManager = null;
     this.sessionManager = null;
     this.sandboxEscalation = null;
+    this.permissionManager = null;
     this._initialized = false;
   }
 
@@ -285,5 +304,9 @@ export class ServiceRegistry {
 
   getSandboxEscalation(): SandboxEscalation | null {
     return this.sandboxEscalation;
+  }
+
+  getPermissionManager(): PermissionManager | null {
+    return this.permissionManager;
   }
 }

@@ -93,6 +93,30 @@ export {
   CodeQualityAgent,
   createCodeQualityAgent,
 
+  // Architecture Agent
+  ArchitectureAgent,
+  createArchitectureAgent,
+
+  // Security Agent
+  SecurityAgent,
+  createSecurityAgent,
+
+  // Debugging Agent
+  DebuggingAgent,
+  createDebuggingAgent,
+
+  // Documentation Agent
+  DocumentationAgent,
+  createDocumentationAgent,
+
+  // Exploration Agent
+  ExplorationAgent,
+  createExplorationAgent,
+
+  // Integration Agent
+  IntegrationAgent,
+  createIntegrationAgent,
+
   // Types
   type PlanningOutput,
   type PlanningAgentOptions,
@@ -108,6 +132,21 @@ export {
   type TestGenerationOutput,
   type DeepReviewOutput,
   type RefactoringOutput,
+  type ArchitectureOutput,
+  type ArchitectureAgentOptions,
+  type SecurityOutput,
+  type SecurityFinding,
+  type SecurityAgentOptions,
+  type DebuggingOutput,
+  type DebuggingAgentOptions,
+  type DocumentationOutput,
+  type DocumentationSection,
+  type DocumentationAgentOptions,
+  type ExplorationOutput,
+  type ExplorationAgentOptions,
+  type IntegrationOutput,
+  type IntegrationConnection,
+  type IntegrationAgentOptions,
 } from './agents';
 
 // ============================================================================
