@@ -7,6 +7,7 @@ import {
   LLMStreamCallback,
 } from '@/shared/llm/base-client';
 import { LLMError, LLMRateLimitError, LLMTimeoutError } from '@/shared/errors/custom-errors';
+import { logger } from '@/shared/logging/logger';
 
 /**
  * Gemini (Google) LLM Client
@@ -230,6 +231,7 @@ export class GeminiClient extends BaseLLMClient {
    * Handle Gemini API errors
    */
   private handleError(error: unknown): Error {
+    logger.warn('Gemini API error', { error: error instanceof Error ? error.message : String(error) });
     if (error instanceof Error) {
       const message = error.message;
 

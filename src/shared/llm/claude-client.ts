@@ -7,6 +7,7 @@ import {
   LLMStreamCallback,
 } from '@/shared/llm/base-client';
 import { LLMError, LLMRateLimitError, LLMTimeoutError } from '@/shared/errors/custom-errors';
+import { logger } from '@/shared/logging/logger';
 
 /**
  * Claude (Anthropic) LLM Client
@@ -189,6 +190,7 @@ export class ClaudeClient extends BaseLLMClient {
    * Handle Anthropic API errors
    */
   private handleError(error: unknown): Error {
+    logger.warn('Claude API error', { error: error instanceof Error ? error.message : String(error) });
     if (error instanceof Anthropic.APIError) {
       const status = error.status;
 

@@ -7,6 +7,7 @@ import {
   LLMStreamCallback,
 } from '@/shared/llm/base-client';
 import { LLMError, LLMRateLimitError, LLMTimeoutError } from '@/shared/errors/custom-errors';
+import { logger } from '@/shared/logging/logger';
 
 /**
  * OpenAI LLM Client
@@ -180,6 +181,7 @@ export class OpenAIClient extends BaseLLMClient {
    * Handle OpenAI API errors
    */
   private handleError(error: unknown): Error {
+    logger.warn('OpenAI API error', { error: error instanceof Error ? error.message : String(error) });
     if (error instanceof OpenAI.APIError) {
       const status = error.status;
 

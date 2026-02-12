@@ -1,0 +1,363 @@
+openapi: 3.0.3
+info:
+  title: Autonomous Coding Agents API
+  description: |
+    REST API for the Autonomous Coding Agents (ACA) system.
+    Provides endpoints for task management, system health monitoring,
+    agent status tracking, and real-time event streaming.
+  version: 1.0.0
+  contact:
+    name: ACA Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://dashboard.example.com
+    description: Production
+
+tags:
+  - name: Health
+    description: System health and status
+  - name: Tasks
+    description: Task submission and management
+  - name: Agents
+    description: Agent monitoring and status
+  - name: SSE
+    description: Server-Sent Events for real-time updates
+  - name: Gateway
+    description: API Gateway (ACP message bridge)
+
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Get system health status
+      description: Returns the current health status of the system including dashboard metrics.
+      operationId: getHealth
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  value:
+                    status: healthy
+                    health: 95
+                degraded:
+                  value:
+                    status: degraded
+                    health: 50
+
+  /api/snapshot:
+    get:
+      tags: [Health]
+      summary: Get full dashboard snapshot
+      description: Returns the complete HUD dashboard snapshot including agents, metrics, and system health.
+      operationId: getSnapshot
+      responses:
+        '200':
+          description: Dashboard snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSnapshot'
+        '503':
+          description: Dashboard not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks:
+    post:
+      tags: [Tasks]
+      summary: Submit a new task
+      description: Submit a task to the orchestrator via the ACP message bus.
+      operationId: submitTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitTaskRequest'
+            examples:
+              feature:
+                value:
+                  name: Implement login form
+                  description: Create a React login form with validation
+              bugfix:
+                value:
+                  name: Fix auth timeout
+                  description: Authentication session expires too early
+      responses:
+        '202':
+          description: Task accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitTaskResponse'
+        '400':
+          description: Invalid request (missing task name)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Task name is required
+        '503':
+          description: Message bus not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/agents:
+    get:
+      tags: [Agents]
+      summary: List all agents
+      description: Returns status of all registered team agents.
+      operationId: listAgents
+      responses:
+        '200':
+          description: Agent list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentListResponse'
+        '503':
+          description: Dashboard not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/agents/{agentId}:
+    get:
+      tags: [Agents]
+      summary: Get agent details
+      description: Returns detailed status for a specific agent.
+      operationId: getAgentById
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Agent identifier
+          example: planning-agent-1
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStatus'
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Dashboard not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/sse/clients:
+    get:
+      tags: [SSE]
+      summary: Get SSE client count
+      description: Returns the number of connected SSE clients.
+      operationId: getSSEClientCount
+      responses:
+        '200':
+          description: SSE client count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSEClientCountResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy, ok]
+          description: Overall system health status
+        health:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Health score (0-100)
+
+    DashboardSnapshot:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentStatus'
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricEntry'
+        systemHealth:
+          type: number
+          description: Overall system health percentage
+
+    SubmitTaskRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: Task name/title
+          example: Implement user authentication
+        description:
+          type: string
+          description: Detailed task description
+          example: Create JWT-based authentication with login and registration endpoints
+
+    SubmitTaskResponse:
+      type: object
+      required: [taskId, status]
+      properties:
+        taskId:
+          type: string
+          description: Generated task identifier
+          example: msg-abc123-1707840000000
+        status:
+          type: string
+          enum: [accepted]
+          description: Submission status
+
+    AgentListResponse:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentStatus'
+
+    AgentStatus:
+      type: object
+      properties:
+        agentId:
+          type: string
+          description: Agent identifier
+          example: planning-agent-1
+        state:
+          type: string
+          enum: [idle, working, error, stopped]
+          description: Current agent state
+        currentTask:
+          type: string
+          nullable: true
+          description: Current task being processed
+        tasksCompleted:
+          type: integer
+          description: Number of tasks completed
+        lastActivity:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+
+    MetricEntry:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Metric name
+        value:
+          type: number
+          description: Metric value
+        unit:
+          type: string
+          description: Measurement unit
+        timestamp:
+          type: number
+          description: Unix timestamp in milliseconds
+
+    SSEClientCountResponse:
+      type: object
+      required: [clients]
+      properties:
+        clients:
+          type: integer
+          minimum: 0
+          description: Number of connected SSE clients
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Error message
+
+    # Gateway API schemas (ACP bridge)
+    GatewaySubmitRequest:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+          description: Task description
+        type:
+          type: string
+          description: Task type
+        targetTeam:
+          type: string
+          description: Target team for the task
+        projectContext:
+          type: string
+          description: Project context information
+        config:
+          type: object
+          additionalProperties: true
+          description: Additional configuration
+
+    GatewaySubmitResponse:
+      type: object
+      required: [taskId, status, message]
+      properties:
+        taskId:
+          type: string
+        status:
+          type: string
+          enum: [accepted]
+        message:
+          type: string
+
+    SystemHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        activeAgents:
+          type: integer
+        pendingTasks:
+          type: integer
+        uptime:
+          type: number
+          description: Uptime in seconds
+        components:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+              latency:
+                type: number

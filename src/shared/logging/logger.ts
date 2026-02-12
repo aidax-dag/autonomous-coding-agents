@@ -256,6 +256,23 @@ export function createAgentLogger(agentType: string, agentId?: string): AgentLog
 }
 
 /**
+ * Create a module-scoped logger with consistent naming
+ */
+export function createModuleLogger(moduleName: string): AgentLogger {
+  return new AgentLogger(moduleName, moduleName);
+}
+
+/**
+ * Create a correlation-aware logger for request tracing
+ */
+export function createCorrelatedLogger(
+  base: AgentLogger,
+  correlationId: string,
+): AgentLogger {
+  return base.child({ correlationId });
+}
+
+/**
  * Performance timing helper
  */
 export class PerformanceTimer {

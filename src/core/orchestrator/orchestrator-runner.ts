@@ -32,6 +32,8 @@ import { createAndRegisterAgents } from './agent-factory';
 import { initializeIntegrations } from './integration-setup';
 import { ParallelExecutor } from './parallel-executor';
 import { OTelProvider, createOTelProvider } from '@/shared/telemetry';
+import { logger } from '@/shared/logging/logger';
+import { AgentError, ErrorCode, wrapError } from '@/shared/errors/custom-errors';
 
 /**
  * Runner status
@@ -68,6 +70,8 @@ export interface GoalResult {
   totalDuration: number;
   completedTasks: number;
   failedTasks: number;
+  /** Error message when goal execution fails */
+  error?: string;
   /** Goal-backward verification result (when enableValidation is true) */
   verification?: GoalBackwardResult;
 }
@@ -407,7 +411,10 @@ export class OrchestratorRunner extends EventEmitter {
 
       let verification: GoalBackwardResult | undefined;
       if (this.config.enableValidation && results.every((r) => r.success)) {
-        verification = await this.verifyGoal(description, tasks).catch(() => undefined);
+        verification = await this.verifyGoal(description, tasks).catch((e) => {
+          logger.warn('Goal verification failed', { goalId, error: e instanceof Error ? e.message : String(e) });
+          return undefined;
+        });
         if (verification) {
           this.emit('goal:verification', goalId, verification);
         }
@@ -427,7 +434,8 @@ export class OrchestratorRunner extends EventEmitter {
       this.emit('goal:completed', goalResult);
       return goalResult;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+      const err = wrapError(error, undefined, ErrorCode.WORKFLOW_ERROR);
+      logger.error('Goal execution failed', { goalId, error: err.message, code: err.code });
       const goalResult: GoalResult = {
         success: false,
         goalId,
@@ -435,6 +443,7 @@ export class OrchestratorRunner extends EventEmitter {
         totalDuration: Date.now() - startTime,
         completedTasks: 0,
         failedTasks: 1,
+        error: err.message,
       };
       if (goalSpan) this.telemetry!.getTraceManager().endSpan(goalSpan, 'error');
       this.emit('error', err);
@@ -459,7 +468,10 @@ export class OrchestratorRunner extends EventEmitter {
       if (this.hookRegistry.count() > 0) {
         const beforeResults = await this.hookExecutor.executeHooks(
           HookEvent.TASK_BEFORE, task, { stopOnAction: [HookAction.ABORT] }
-        ).catch(() => []);
+        ).catch((e) => {
+          logger.warn('TASK_BEFORE hook failed', { taskId, error: e instanceof Error ? e.message : String(e) });
+          return [];
+        });
 
         const aborted = beforeResults.find(r => r.action === HookAction.ABORT);
         if (aborted) {
@@ -478,7 +490,12 @@ export class OrchestratorRunner extends EventEmitter {
 
       const team = this.orchestrator.teams.get(task.metadata.to);
       if (!team) {
-        throw new Error(`No team registered for type: ${task.metadata.to}`);
+        throw new AgentError(
+          `No team registered for type: ${task.metadata.to}`,
+          ErrorCode.AGENT_STATE_ERROR,
+          false,
+          { teamType: task.metadata.to, taskId },
+        );
       }
 
       const baseAgent = team as BaseTeamAgent;
@@ -497,7 +514,9 @@ export class OrchestratorRunner extends EventEmitter {
       if (this.hookRegistry.count() > 0) {
         await this.hookExecutor.executeHooks(
           HookEvent.TASK_AFTER, { task, result }
-        ).catch(() => []);
+        ).catch((e) => {
+          logger.warn('TASK_AFTER hook failed', { taskId, error: e instanceof Error ? e.message : String(e) });
+        });
       }
 
       if (taskSpan) this.telemetry!.getTraceManager().endSpan(taskSpan, workflowResult.success ? 'ok' : 'error');
@@ -515,7 +534,9 @@ export class OrchestratorRunner extends EventEmitter {
       if (this.hookRegistry.count() > 0) {
         await this.hookExecutor.executeHooks(
           HookEvent.TASK_ERROR, { task, error: err, classification }
-        ).catch(() => []);
+        ).catch((e) => {
+          logger.warn('TASK_ERROR hook failed', { taskId, error: e instanceof Error ? e.message : String(e) });
+        });
       }
 
       if (action === EscalationAction.STOP_RUNNER) {

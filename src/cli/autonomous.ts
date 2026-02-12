@@ -13,6 +13,7 @@ import {
   type RunnerConfig,
 } from '@/core/orchestrator/runner-config';
 import type { OrchestratorRunner, GoalResult, WorkflowResult } from '@/core/orchestrator/orchestrator-runner';
+import { logger } from '@/shared/logging/logger';
 import type { TeamType } from '@/core/workspace/task-document';
 
 function formatDuration(ms: number): string {
@@ -65,7 +66,9 @@ async function withRunner(
     await fn(runner);
   } finally {
     if (runner) {
-      await runner.destroy().catch(() => {});
+      await runner.destroy().catch((e) => {
+        logger.warn('Runner cleanup failed', { error: e instanceof Error ? e.message : String(e) });
+      });
     }
   }
 }

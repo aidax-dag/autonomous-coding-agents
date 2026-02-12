@@ -15,6 +15,7 @@ import type {
   SystemHealthPayload,
 } from '../core/protocols';
 import { createACPMessage } from '../core/protocols';
+import { logger } from '../shared/logging/logger';
 
 /**
  * Gateway event handler
@@ -137,8 +138,11 @@ export class APIGateway {
         this.healthTimeout,
       );
       return response.payload;
-    } catch {
-      // If no system component responds, return degraded status
+    } catch (error) {
+      logger.warn('Health check failed, returning degraded status', {
+        gatewayId: this.gatewayId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         status: 'degraded',
         activeAgents: 0,
