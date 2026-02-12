@@ -82,8 +82,8 @@ Enhancement Strategy 통합 (Phase A-F, T1-T17) 완료.
 ## 2. Test Coverage
 
 ```
-Total Tests: 3,214
-Test Suites: 192
+Total Tests: 3,228
+Test Suites: 193
 Type Check: ✅ Clean (npx tsc --noEmit)
 Test Runner: Jest
 ```
@@ -118,7 +118,8 @@ Test Runner: Jest
 - ✅ Phase D: Security Hooks (T10-T12: PermissionGuardHook, PlatformSandbox, SecurityHookChain)
 - ✅ Phase E: Telemetry/Learning (T13-T15: OTelExporter, LearningFeedbackLoop, XMLReportFormatter)
 - ✅ Phase F: Dashboard/Benchmark (T16-T17: RunnerDataSource, OrchestratorTaskExecutor)
-- ✅ 테스트 수: 2,374 → 3,214 (+840 tests), 테스트 스위트: 97 → 192
+- ✅ 테스트 수: 2,374 → 3,228 (+854 tests), 테스트 스위트: 97 → 193
+- ✅ CLI 실행 경로 테스트 추가 (run/submit/lifecycle, 14 tests)
 - ✅ STATUS.md 현행화
 
 ### 2026-02-12
