@@ -127,6 +127,37 @@ describe('loadRunnerConfig', () => {
     const config = loadRunnerConfig();
     expect(config.enableValidation).toBe(false);
   });
+
+  it('should read ENABLE_EXPANDED_AGENTS', () => {
+    process.env.ENABLE_EXPANDED_AGENTS = 'true';
+    const config = loadRunnerConfig();
+    expect(config.enableExpandedAgents).toBe(true);
+  });
+
+  it('should read ENABLE_PARALLEL_EXECUTION and PARALLEL_CONCURRENCY', () => {
+    process.env.ENABLE_PARALLEL_EXECUTION = 'true';
+    process.env.PARALLEL_CONCURRENCY = '8';
+    const config = loadRunnerConfig();
+    expect(config.enableParallelExecution).toBe(true);
+    expect(config.parallelConcurrency).toBe(8);
+  });
+
+  it('should default enableParallelExecution to false and parallelConcurrency to 5', () => {
+    const config = loadRunnerConfig();
+    expect(config.enableParallelExecution).toBe(false);
+    expect(config.parallelConcurrency).toBe(5);
+  });
+
+  it('should read ENABLE_TELEMETRY', () => {
+    process.env.ENABLE_TELEMETRY = 'true';
+    const config = loadRunnerConfig();
+    expect(config.enableTelemetry).toBe(true);
+  });
+
+  it('should default enableTelemetry to false', () => {
+    const config = loadRunnerConfig();
+    expect(config.enableTelemetry).toBe(false);
+  });
 });
 
 // ==========================================================================

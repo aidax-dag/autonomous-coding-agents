@@ -18,3 +18,8 @@ export {
   type TaskExecutor,
   type SuiteLoader,
 } from './benchmark-runner';
+
+export {
+  createOrchestratorTaskExecutor,
+  type OrchestratorTaskExecutorConfig,
+} from './orchestrator-task-executor';

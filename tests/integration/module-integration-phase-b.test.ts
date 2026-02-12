@@ -446,4 +446,322 @@ describe('Phase B Module Integration', () => {
       expect(registry.getPluginLoader()).not.toBeNull();
     });
   });
+
+  // ==========================================================================
+  // T8: Skill auto-registration
+  // ==========================================================================
+
+  describe('Skill auto-registration (T8)', () => {
+    it('should auto-register all 14 skills when SkillRegistry is available via MCP', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableMCP: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      const registry = ServiceRegistry.getInstance();
+      const skillRegistry = registry.getSkillRegistry();
+      expect(skillRegistry).not.toBeNull();
+      expect(skillRegistry!.count()).toBe(14);
+    });
+
+    it('should auto-register all 14 skills when SkillRegistry is available via LSP', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableLSP: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      const registry = ServiceRegistry.getInstance();
+      const skillRegistry = registry.getSkillRegistry();
+      expect(skillRegistry).not.toBeNull();
+      expect(skillRegistry!.count()).toBe(14);
+    });
+
+    it('should include core skills (planning, code-review, test-generation, refactoring)', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableMCP: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      const skillRegistry = ServiceRegistry.getInstance().getSkillRegistry()!;
+      expect(skillRegistry.get('planning')).toBeDefined();
+      expect(skillRegistry.get('code-review')).toBeDefined();
+      expect(skillRegistry.get('test-generation')).toBeDefined();
+      expect(skillRegistry.get('refactoring')).toBeDefined();
+    });
+
+    it('should include expanded skills (security-scan, git-workflow, etc.)', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableMCP: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      const skillRegistry = ServiceRegistry.getInstance().getSkillRegistry()!;
+      expect(skillRegistry.get('security-scan')).toBeDefined();
+      expect(skillRegistry.get('git-workflow')).toBeDefined();
+      expect(skillRegistry.get('documentation')).toBeDefined();
+      expect(skillRegistry.get('debugging')).toBeDefined();
+      expect(skillRegistry.get('performance')).toBeDefined();
+      expect(skillRegistry.get('migration')).toBeDefined();
+      expect(skillRegistry.get('api-design')).toBeDefined();
+      expect(skillRegistry.get('tdd-workflow')).toBeDefined();
+      expect(skillRegistry.get('database')).toBeDefined();
+      expect(skillRegistry.get('cicd')).toBeDefined();
+    });
+
+    it('should find skills by tag', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableMCP: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      const skillRegistry = ServiceRegistry.getInstance().getSkillRegistry()!;
+      const securitySkills = skillRegistry.findByTag('security');
+      expect(securitySkills.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should not register skills when no SkillRegistry is available', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableValidation: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      const registry = ServiceRegistry.getInstance();
+      expect(registry.getSkillRegistry()).toBeNull();
+    });
+  });
+
+  // ==========================================================================
+  // T10: GoalVerificationHook registration
+  // ==========================================================================
+
+  describe('GoalVerificationHook registration (T10)', () => {
+    it('should register goal-verification hook when enableValidation is true', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableValidation: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      expect(hookRegistry.has('goal-verification')).toBe(true);
+    });
+
+    it('should not register goal-verification hook when enableValidation is false', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableSecurity: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      expect(hookRegistry.has('goal-verification')).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // T11: PermissionGuardHook registration
+  // ==========================================================================
+
+  describe('PermissionGuardHook registration (T11)', () => {
+    it('should register permission-guard hook when enableSecurity is true', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableSecurity: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      expect(hookRegistry.has('permission-guard')).toBe(true);
+    });
+
+    it('should not register permission-guard hook when enableSecurity is false', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableValidation: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      expect(hookRegistry.has('permission-guard')).toBe(false);
+    });
+
+    it('should register both permission-guard and sandbox-escalation when security+validation', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableSecurity: true, enableValidation: true };
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      expect(hookRegistry.has('permission-guard')).toBe(true);
+      expect(hookRegistry.has('sandbox-escalation')).toBe(true);
+      expect(hookRegistry.has('goal-verification')).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // T13: Telemetry integration via OrchestratorRunner
+  // ==========================================================================
+
+  describe('Telemetry integration (T13)', () => {
+    it('should enable telemetry when enableTelemetry is true', () => {
+      const client = makeMockClient();
+      const runner = createOrchestratorRunner({
+        llmClient: client,
+        workspaceDir: tmpDir,
+        enableTelemetry: true,
+      });
+
+      expect(runner.getTelemetry()).not.toBeNull();
+      expect(runner.getTelemetry()!.isEnabled()).toBe(true);
+    });
+
+    it('should not enable telemetry by default', () => {
+      const client = makeMockClient();
+      const runner = createOrchestratorRunner({
+        llmClient: client,
+        workspaceDir: tmpDir,
+      });
+
+      expect(runner.getTelemetry()).toBeNull();
+    });
+  });
+
+  // ==========================================================================
+  // T14: Instinct sharing (TeamLearningHub) integration
+  // ==========================================================================
+
+  describe('Instinct sharing integration (T14)', () => {
+    it('should emit learning:hub-ready when enableLearning is true', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableLearning: true };
+
+      let hubReady = false;
+      emitter.on('learning:hub-ready', () => { hubReady = true; });
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      expect(hubReady).toBe(true);
+    });
+
+    it('should not emit learning:hub-ready when enableLearning is false', async () => {
+      const hookRegistry = new HookRegistry();
+      const emitter = new EventEmitter();
+      const flags = { ...makeBaseFlags(), enableValidation: true };
+
+      let hubReady = false;
+      emitter.on('learning:hub-ready', () => { hubReady = true; });
+
+      await initializeIntegrations(flags, hookRegistry, tmpDir, emitter);
+
+      expect(hubReady).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // T16: RunnerDataSource — Runner → ACP bridge
+  // ==========================================================================
+
+  describe('RunnerDataSource integration (T16)', () => {
+    it('should bridge runner events to ACP messages end-to-end', async () => {
+      const client = makeMockClient();
+      const runner = createOrchestratorRunner({
+        llmClient: client,
+        workspaceDir: tmpDir,
+        enableLLM: true,
+      });
+
+      const { createACPMessageBus } = await import('../../src/core/protocols');
+      const { createRunnerDataSource } = await import('../../src/core/orchestrator/runner-data-source');
+
+      const bus = createACPMessageBus();
+      const source = createRunnerDataSource({ runner, messageBus: bus });
+
+      const received: any[] = [];
+      bus.on('system:health', async (msg) => { received.push(msg); });
+
+      source.connect();
+      await runner.start();
+
+      // Runner emits 'started' which RunnerDataSource bridges to system:health
+      expect(received.length).toBeGreaterThanOrEqual(1);
+      expect(received[0].type).toBe('system:health');
+      expect(received[0].payload.status).toBe('healthy');
+
+      source.disconnect();
+      await runner.destroy();
+    });
+
+    it('should bridge workflow events to task:status messages', async () => {
+      const client = makeMockClient();
+      const runner = createOrchestratorRunner({
+        llmClient: client,
+        workspaceDir: tmpDir,
+        enableLLM: true,
+      });
+
+      const { createACPMessageBus } = await import('../../src/core/protocols');
+      const { createRunnerDataSource } = await import('../../src/core/orchestrator/runner-data-source');
+
+      const bus = createACPMessageBus();
+      const source = createRunnerDataSource({ runner, messageBus: bus });
+
+      const taskMessages: any[] = [];
+      bus.on('task:status', async (msg) => { taskMessages.push(msg); });
+
+      source.connect();
+      await runner.start();
+
+      // Submit and execute a task to trigger workflow events
+      const task = await runner.submitToTeam('planning', 'Test task', 'content');
+      await runner.executeTask(task);
+
+      // Should have received task:status (running) then task:status (completed/failed)
+      expect(taskMessages.length).toBeGreaterThanOrEqual(1);
+      expect(taskMessages[0].payload.taskId).toBe(task.metadata.id);
+
+      source.disconnect();
+      await runner.destroy();
+    });
+  });
+
+  // ==========================================================================
+  // T17: OrchestratorTaskExecutor — Benchmark bridge
+  // ==========================================================================
+
+  describe('OrchestratorTaskExecutor integration (T17)', () => {
+    it('should create a valid TaskExecutor from runner', async () => {
+      const { createOrchestratorTaskExecutor } = await import('../../src/core/benchmark/orchestrator-task-executor');
+      const { createBenchmarkRunner } = await import('../../src/core/benchmark');
+
+      const client = makeMockClient();
+      const runner = createOrchestratorRunner({
+        llmClient: client,
+        workspaceDir: tmpDir,
+        enableLLM: true,
+      });
+
+      const executor = createOrchestratorTaskExecutor({ runner });
+
+      // Plug into BenchmarkRunner
+      const benchRunner = createBenchmarkRunner({ executor });
+      expect(benchRunner).toBeDefined();
+
+      // Without starting the runner, executing will fail gracefully
+      const result = await benchRunner.runTask({
+        id: 'test-1',
+        repo: 'test/repo',
+        description: 'Test',
+        testCommands: ['npm test'],
+        difficulty: 'easy',
+        tags: [],
+      });
+
+      // Should fail because runner isn't started
+      expect(result.passed).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+  });
 });

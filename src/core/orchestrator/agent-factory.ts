@@ -14,6 +14,27 @@ import {
   createDevelopmentAgent,
 } from './agents/development-agent';
 import { QAAgent, createQAAgent } from './agents/qa-agent';
+import {
+  ArchitectureAgent,
+  createArchitectureAgent,
+} from './agents/architecture-agent';
+import { SecurityAgent, createSecurityAgent } from './agents/security-agent';
+import {
+  DebuggingAgent,
+  createDebuggingAgent,
+} from './agents/debugging-agent';
+import {
+  DocumentationAgent,
+  createDocumentationAgent,
+} from './agents/documentation-agent';
+import {
+  ExplorationAgent,
+  createExplorationAgent,
+} from './agents/exploration-agent';
+import {
+  IntegrationAgent,
+  createIntegrationAgent,
+} from './agents/integration-agent';
 import { TeamAgentLLMAdapter, createTeamAgentLLMAdapter } from './llm/team-agent-llm';
 import type { ILLMClient } from '@/shared/llm';
 import type { TeamType } from '../workspace/task-document';
@@ -48,15 +69,29 @@ export interface AgentFactoryConfig {
   useRealQualityTools: boolean;
   /** Workspace directory for quality tools */
   workspaceDir: string;
+  /** Enable expanded agent set (architecture, security, debugging, docs, exploration, integration) */
+  enableExpandedAgents?: boolean;
 }
 
 /**
- * Created agents bundle
+ * Created agents bundle — core agents
  */
 export interface CreatedAgents {
   planning: PlanningAgent;
   development: DevelopmentAgent;
   qa: QAAgent;
+}
+
+/**
+ * Created agents bundle — includes expanded agents
+ */
+export interface CreatedExpandedAgents extends CreatedAgents {
+  architecture: ArchitectureAgent;
+  security: SecurityAgent;
+  debugging: DebuggingAgent;
+  documentation: DocumentationAgent;
+  exploration: ExplorationAgent;
+  integration: IntegrationAgent;
 }
 
 /**
@@ -91,7 +126,7 @@ function getAdapterForAgent(
 export async function createAndRegisterAgents(
   config: AgentFactoryConfig,
   orchestrator: CEOOrchestrator,
-): Promise<CreatedAgents> {
+): Promise<CreatedAgents | CreatedExpandedAgents> {
   const { queue, maxConcurrentTasks, enableLLM, projectContext } = config;
 
   // Create Planning Agent
@@ -144,7 +179,73 @@ export async function createAndRegisterAgents(
 
   orchestrator.registerTeam(qa);
 
-  // Start all agents
+  // Expanded agents (optional, enabled by config flag)
+  if (config.enableExpandedAgents) {
+    const expandedConcurrency = Math.ceil(maxConcurrentTasks / 4);
+
+    // Architecture Agent (teamType: 'design')
+    const architecture = createArchitectureAgent(queue, {
+      config: { maxConcurrentTasks: expandedConcurrency },
+    });
+    orchestrator.registerTeam(architecture);
+
+    // Security Agent (teamType: 'security')
+    const security = createSecurityAgent(queue, {
+      config: { maxConcurrentTasks: expandedConcurrency },
+    });
+    orchestrator.registerTeam(security);
+
+    // Debugging Agent (teamType: 'issue-response')
+    const debugging = createDebuggingAgent(queue, {
+      config: { maxConcurrentTasks: expandedConcurrency },
+    });
+    orchestrator.registerTeam(debugging);
+
+    // Documentation Agent (teamType: 'documentation')
+    const documentation = createDocumentationAgent(queue, {
+      config: { maxConcurrentTasks: expandedConcurrency },
+    });
+    orchestrator.registerTeam(documentation);
+
+    // Exploration Agent (teamType: 'operations')
+    const exploration = createExplorationAgent(queue, {
+      config: { maxConcurrentTasks: expandedConcurrency },
+    });
+    orchestrator.registerTeam(exploration);
+
+    // Integration Agent (teamType: 'testing')
+    const integration = createIntegrationAgent(queue, {
+      config: { maxConcurrentTasks: expandedConcurrency },
+    });
+    orchestrator.registerTeam(integration);
+
+    // Start all agents (core + expanded)
+    await Promise.all([
+      planning.start(),
+      development.start(),
+      qa.start(),
+      architecture.start(),
+      security.start(),
+      debugging.start(),
+      documentation.start(),
+      exploration.start(),
+      integration.start(),
+    ]);
+
+    return {
+      planning,
+      development,
+      qa,
+      architecture,
+      security,
+      debugging,
+      documentation,
+      exploration,
+      integration,
+    };
+  }
+
+  // Start core agents only
   await Promise.all([planning.start(), development.start(), qa.start()]);
 
   return { planning, development, qa };

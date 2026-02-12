@@ -70,7 +70,7 @@ export class ExplorationAgent extends BaseTeamAgent {
   constructor(options: ExplorationAgentOptions) {
     super({
       ...options,
-      teamType: 'development',
+      teamType: 'operations',
       config: {
         ...options.config,
         name: options.config?.name || 'Exploration Team',

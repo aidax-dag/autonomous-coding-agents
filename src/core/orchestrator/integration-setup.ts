@@ -19,8 +19,30 @@ import { ErrorLearningHook } from '../hooks/error-learning/error-learning.hook';
 import { ContextOptimizerHook } from '../hooks/context-optimizer/context-optimizer.hook';
 import { CodeQualityHook } from '../hooks/code-quality/code-quality.hook';
 import { SandboxEscalationHook } from '../hooks/sandbox-escalation/sandbox-escalation.hook';
+import { GoalVerificationHook } from '../hooks/goal-verification/goal-verification.hook';
+import { PermissionGuardHook } from '../hooks/permission-guard/permission-guard.hook';
+import { createPlatformSandbox } from '../security/platform-sandbox';
+import type { IOSSandbox } from '../security/interfaces/os-sandbox.interface';
+import { createTeamLearningHub } from '../learning/team-learning-hub';
 import type { ContextManager } from '../context/context-manager';
 import type { WorkflowResult } from './orchestrator-runner';
+import type { SkillRegistry } from '../skills/skill-registry';
+import {
+  createPlanningSkill,
+  createCodeReviewSkill,
+  createTestGenerationSkill,
+  createRefactoringSkill,
+  createSecurityScanSkill,
+  createGitWorkflowSkill,
+  createDocumentationSkill,
+  createDebuggingSkill,
+  createPerformanceSkill,
+  createMigrationSkill,
+  createApiDesignSkill,
+  createTddWorkflowSkill,
+  createDatabaseSkill,
+  createCicdSkill,
+} from '../skills/skills';
 
 /**
  * Integration feature flags
@@ -67,6 +89,7 @@ export async function initializeIntegrations(
       enableContext: flags.enableContextManagement,
       enableSecurity: flags.enableSecurity,
       enableSession: flags.enableSession,
+      enablePermission: flags.enableSecurity,
       enableMCP: flags.enableMCP,
       enableLSP: flags.enableLSP,
       enablePlugins: flags.enablePlugins,
@@ -82,15 +105,31 @@ export async function initializeIntegrations(
 
     const protocol = registry.getSelfCheckProtocol();
     if (protocol) hookRegistry.register(new SelfCheckHook(protocol));
+
+    const verifier = registry.getGoalBackwardVerifier();
+    if (verifier) hookRegistry.register(new GoalVerificationHook(verifier));
   }
 
-  // Register learning hooks
+  // Register permission guard hook
+  if (flags.enableSecurity) {
+    const permManager = registry.getPermissionManager();
+    if (permManager) hookRegistry.register(new PermissionGuardHook(permManager));
+  }
+
+  // Register learning hooks + instinct sharing
   if (flags.enableLearning) {
     const reflexion = registry.getReflexionPattern();
     const cache = registry.getSolutionsCache();
     if (reflexion) hookRegistry.register(new ErrorLearningHook(reflexion, cache));
 
     registerLearningListeners(registry, emitter);
+
+    // Initialize TeamLearningHub for cross-agent instinct sharing
+    const instinctStore = registry.getInstinctStore();
+    if (instinctStore) {
+      const hub = createTeamLearningHub();
+      emitter.emit('learning:hub-ready', hub);
+    }
   }
 
   // Register context hooks
@@ -114,6 +153,14 @@ export async function initializeIntegrations(
   // Register code quality hook
   if (flags.useRealQualityTools) {
     hookRegistry.register(new CodeQualityHook());
+  }
+
+  // Auto-register skills when SkillRegistry is available
+  if (needsRegistry) {
+    const skillRegistry = registry.getSkillRegistry();
+    if (skillRegistry) {
+      registerDefaultSkills(skillRegistry);
+    }
   }
 }
 
@@ -154,4 +201,47 @@ function registerContextListeners(
 ): void {
   contextManager.on('usage-warning', (_data) => emitter.emit('context:warning'));
   contextManager.on('usage-critical', (_data) => emitter.emit('context:critical'));
+}
+
+/**
+ * Create and return the platform-appropriate OS sandbox.
+ * Returns SeatbeltSandbox on macOS, LandlockSandbox on Linux, null otherwise.
+ * This is a convenience wrapper for callers that need direct sandbox access
+ * outside of the hook pipeline.
+ */
+export function initializePlatformSandbox(): IOSSandbox | null {
+  return createPlatformSandbox();
+}
+
+/**
+ * Register all built-in skills into the SkillRegistry.
+ * Includes 4 core skills + 10 expanded skills.
+ */
+function registerDefaultSkills(skillRegistry: SkillRegistry): void {
+  const skills = [
+    // Core skills
+    createPlanningSkill(),
+    createCodeReviewSkill(),
+    createTestGenerationSkill(),
+    createRefactoringSkill(),
+    // Expanded skills
+    createSecurityScanSkill(),
+    createGitWorkflowSkill(),
+    createDocumentationSkill(),
+    createDebuggingSkill(),
+    createPerformanceSkill(),
+    createMigrationSkill(),
+    createApiDesignSkill(),
+    createTddWorkflowSkill(),
+    createDatabaseSkill(),
+    createCicdSkill(),
+  ];
+
+  for (const skill of skills) {
+    try {
+      skillRegistry.register(skill);
+    } catch {
+      /* skill already registered or init error — continue */
+    }
+  }
 }

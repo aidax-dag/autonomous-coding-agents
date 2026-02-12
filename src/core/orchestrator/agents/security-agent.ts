@@ -67,7 +67,7 @@ export interface SecurityAgentOptions extends Omit<BaseTeamAgentOptions, 'teamTy
  * Security Agent
  *
  * Provides security analysis and vulnerability detection capabilities.
- * Uses 'code-quality' team type as security is quality-adjacent.
+ * Uses 'security' team type for security analysis.
  */
 export class SecurityAgent extends BaseTeamAgent {
   private scanFunction?: (task: TaskDocument) => Promise<SecurityOutput>;
@@ -75,7 +75,7 @@ export class SecurityAgent extends BaseTeamAgent {
   constructor(options: SecurityAgentOptions) {
     super({
       ...options,
-      teamType: 'code-quality',
+      teamType: 'security',
       config: {
         ...options.config,
         name: options.config?.name || 'Security Team',

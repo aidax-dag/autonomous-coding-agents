@@ -78,7 +78,7 @@ export class IntegrationAgent extends BaseTeamAgent {
   constructor(options: IntegrationAgentOptions) {
     super({
       ...options,
-      teamType: 'code-quality',
+      teamType: 'testing',
       config: {
         ...options.config,
         name: options.config?.name || 'Integration Team',

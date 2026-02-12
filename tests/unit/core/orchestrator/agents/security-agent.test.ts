@@ -68,7 +68,7 @@ describe('SecurityAgent', () => {
   describe('constructor', () => {
     it('should create with default config', () => {
       const agent = new SecurityAgent({ queue });
-      expect(agent.teamType).toBe('code-quality');
+      expect(agent.teamType).toBe('security');
       expect(agent.config.name).toBe('Security Team');
       expect(agent.config.description).toBe('Security analysis and vulnerability detection');
     });
@@ -226,6 +226,6 @@ describe('createSecurityAgent', () => {
     const queue = makeMockQueue();
     const agent = createSecurityAgent(queue);
     expect(agent).toBeInstanceOf(SecurityAgent);
-    expect(agent.teamType).toBe('code-quality');
+    expect(agent.teamType).toBe('security');
   });
 });

@@ -300,6 +300,12 @@ export {
   createBackgroundManager,
 } from './background-manager';
 
+export {
+  RunnerDataSource,
+  createRunnerDataSource,
+  type RunnerDataSourceConfig,
+} from './runner-data-source';
+
 export type {
   IParallelExecutor,
   IAgentPool,

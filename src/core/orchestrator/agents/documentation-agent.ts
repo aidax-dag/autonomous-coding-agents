@@ -70,7 +70,7 @@ export class DocumentationAgent extends BaseTeamAgent {
   constructor(options: DocumentationAgentOptions) {
     super({
       ...options,
-      teamType: 'planning',
+      teamType: 'documentation',
       config: {
         ...options.config,
         name: options.config?.name || 'Documentation Team',

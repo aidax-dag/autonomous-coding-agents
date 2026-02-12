@@ -70,7 +70,7 @@ describe('DocumentationAgent', () => {
   describe('constructor', () => {
     it('should create with default config', () => {
       const agent = new DocumentationAgent({ queue });
-      expect(agent.teamType).toBe('planning');
+      expect(agent.teamType).toBe('documentation');
       expect(agent.config.name).toBe('Documentation Team');
       expect(agent.config.description).toBe('Documentation generation and maintenance');
     });
@@ -248,6 +248,6 @@ describe('createDocumentationAgent', () => {
     const queue = makeMockQueue();
     const agent = createDocumentationAgent(queue);
     expect(agent).toBeInstanceOf(DocumentationAgent);
-    expect(agent.teamType).toBe('planning');
+    expect(agent.teamType).toBe('documentation');
   });
 });

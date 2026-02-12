@@ -70,7 +70,7 @@ describe('ArchitectureAgent', () => {
   describe('constructor', () => {
     it('should create with default config', () => {
       const agent = new ArchitectureAgent({ queue });
-      expect(agent.teamType).toBe('planning');
+      expect(agent.teamType).toBe('design');
       expect(agent.config.name).toBe('Architecture Team');
       expect(agent.config.description).toBe('System design and architectural analysis');
     });
@@ -216,6 +216,6 @@ describe('createArchitectureAgent', () => {
     const queue = makeMockQueue();
     const agent = createArchitectureAgent(queue);
     expect(agent).toBeInstanceOf(ArchitectureAgent);
-    expect(agent.teamType).toBe('planning');
+    expect(agent.teamType).toBe('design');
   });
 });

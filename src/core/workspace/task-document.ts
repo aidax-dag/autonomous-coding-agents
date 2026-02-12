@@ -34,15 +34,19 @@ export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export const TeamTypeSchema = z.enum([
   'orchestrator', // CEO Agent / Main orchestrator
   'planning', // Planning team
-  'design', // Design team
+  'design', // Design / Architecture team
   'development', // Development team (general)
   'frontend', // Frontend development
   'backend', // Backend development
   'qa', // QA team
   'code-quality', // Code quality team
+  'security', // Security analysis team
+  'documentation', // Documentation team
+  'operations', // Operations / Exploration team
+  'testing', // Testing / Integration verification team
   'infrastructure', // Infrastructure team
   'pm', // Project management
-  'issue-response', // Issue response team
+  'issue-response', // Issue response / Debugging team
 ]);
 export type TeamType = z.infer<typeof TeamTypeSchema>;
 

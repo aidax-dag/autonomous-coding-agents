@@ -70,7 +70,7 @@ describe('ExplorationAgent', () => {
   describe('constructor', () => {
     it('should create with default config', () => {
       const agent = new ExplorationAgent({ queue });
-      expect(agent.teamType).toBe('development');
+      expect(agent.teamType).toBe('operations');
       expect(agent.config.name).toBe('Exploration Team');
       expect(agent.config.description).toBe('Codebase exploration and pattern discovery');
     });
@@ -266,6 +266,6 @@ describe('createExplorationAgent', () => {
     const queue = makeMockQueue();
     const agent = createExplorationAgent(queue);
     expect(agent).toBeInstanceOf(ExplorationAgent);
-    expect(agent.teamType).toBe('development');
+    expect(agent.teamType).toBe('operations');
   });
 });

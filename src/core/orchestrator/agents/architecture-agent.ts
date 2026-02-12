@@ -55,7 +55,7 @@ export interface ArchitectureAgentOptions extends Omit<BaseTeamAgentOptions, 'te
  * Architecture Agent
  *
  * Provides system design and architectural analysis capabilities.
- * Uses 'planning' team type as architecture is planning-adjacent.
+ * Uses 'design' team type for system design and architecture.
  */
 export class ArchitectureAgent extends BaseTeamAgent {
   private analyzeFunction?: (task: TaskDocument) => Promise<ArchitectureOutput>;
@@ -63,7 +63,7 @@ export class ArchitectureAgent extends BaseTeamAgent {
   constructor(options: ArchitectureAgentOptions) {
     super({
       ...options,
-      teamType: 'planning',
+      teamType: 'design',
       config: {
         ...options.config,
         name: options.config?.name || 'Architecture Team',

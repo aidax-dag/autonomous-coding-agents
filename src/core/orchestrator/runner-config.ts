@@ -77,6 +77,18 @@ export const RunnerConfigSchema = z.object({
 
   /** Enable planning context module */
   enablePlanningContext: z.boolean().default(false),
+
+  /** Enable expanded agent set (architecture, security, debugging, docs, exploration, integration) */
+  enableExpandedAgents: z.boolean().default(false),
+
+  /** Enable parallel task execution */
+  enableParallelExecution: z.boolean().default(false),
+
+  /** Max parallel concurrency */
+  parallelConcurrency: z.number().int().positive().default(5),
+
+  /** Enable OpenTelemetry tracing */
+  enableTelemetry: z.boolean().default(false),
 });
 
 export type RunnerConfig = z.infer<typeof RunnerConfigSchema>;
@@ -146,6 +158,18 @@ export function loadRunnerConfig(): RunnerConfig {
 
   const planningContext = parseBoolean(env.ENABLE_PLANNING_CONTEXT);
   if (planningContext !== undefined) raw.enablePlanningContext = planningContext;
+
+  const expandedAgents = parseBoolean(env.ENABLE_EXPANDED_AGENTS);
+  if (expandedAgents !== undefined) raw.enableExpandedAgents = expandedAgents;
+
+  const parallelExecution = parseBoolean(env.ENABLE_PARALLEL_EXECUTION);
+  if (parallelExecution !== undefined) raw.enableParallelExecution = parallelExecution;
+
+  const parallelConcurrency = parseNumber(env.PARALLEL_CONCURRENCY);
+  if (parallelConcurrency !== undefined) raw.parallelConcurrency = parallelConcurrency;
+
+  const telemetry = parseBoolean(env.ENABLE_TELEMETRY);
+  if (telemetry !== undefined) raw.enableTelemetry = telemetry;
 
   return RunnerConfigSchema.parse(raw);
 }

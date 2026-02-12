@@ -84,3 +84,12 @@ export {
   ResourceLimiter,
   createResourceLimiter,
 } from './resource-limiter';
+
+// ============================================================================
+// Platform Sandbox Factory
+// ============================================================================
+
+export {
+  detectPlatform,
+  createPlatformSandbox,
+} from './platform-sandbox';

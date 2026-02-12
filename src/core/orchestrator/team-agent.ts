@@ -322,6 +322,58 @@ export const DEFAULT_TEAM_CONFIGS: Record<TeamType, Partial<TeamAgentConfig>> = 
     ],
     maxConcurrentTasks: 4,
   },
+  security: {
+    name: 'Security Team',
+    description: 'Security analysis and vulnerability detection',
+    capabilities: [
+      {
+        name: 'vulnerability-analysis',
+        description: 'Detect security vulnerabilities and recommend fixes',
+        taskTypes: ['review', 'analysis'],
+        priority: 92,
+      },
+    ],
+    maxConcurrentTasks: 3,
+  },
+  documentation: {
+    name: 'Documentation Team',
+    description: 'Documentation generation and maintenance',
+    capabilities: [
+      {
+        name: 'doc-generation',
+        description: 'Generate and maintain documentation',
+        taskTypes: ['documentation'],
+        priority: 70,
+      },
+    ],
+    maxConcurrentTasks: 3,
+  },
+  operations: {
+    name: 'Operations Team',
+    description: 'Codebase exploration and operational analysis',
+    capabilities: [
+      {
+        name: 'codebase-exploration',
+        description: 'Explore codebases and discover patterns',
+        taskTypes: ['analysis'],
+        priority: 65,
+      },
+    ],
+    maxConcurrentTasks: 3,
+  },
+  testing: {
+    name: 'Testing Team',
+    description: 'Integration testing and verification',
+    capabilities: [
+      {
+        name: 'integration-testing',
+        description: 'Verify integration and cross-module compatibility',
+        taskTypes: ['test', 'review'],
+        priority: 80,
+      },
+    ],
+    maxConcurrentTasks: 3,
+  },
   infrastructure: {
     name: 'Infrastructure Team',
     description: 'DevOps and infrastructure management',

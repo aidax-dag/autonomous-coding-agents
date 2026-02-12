@@ -24,6 +24,7 @@ import {
   CreateTaskInput,
   TaskStatus,
 } from '../workspace/task-document';
+import { parseXMLPlan, validateXMLPlan } from '../workspace/xml-plan-format';
 import { DocumentQueue } from '../workspace/document-queue';
 import { WorkspaceManager } from '../workspace/workspace-manager';
 import { TeamRegistry, ITeamRegistry } from './team-registry';
@@ -380,6 +381,49 @@ export class CEOOrchestrator extends EventEmitter {
   }
 
   /**
+   * Execute a structured XML plan by parsing steps and creating tasks.
+   *
+   * @returns Array of tasks created from the plan, or empty if invalid XML
+   */
+  async executeXMLPlan(
+    xml: string,
+    options?: {
+      priority?: TaskPriority;
+      projectId?: string;
+      tags?: string[];
+    }
+  ): Promise<TaskDocument[]> {
+    const validation = validateXMLPlan(xml);
+    if (!validation.valid) {
+      this.emit('error', new Error(`Invalid XML plan: ${validation.errors.join(', ')}`));
+      return [];
+    }
+
+    const plan = parseXMLPlan(xml);
+    const tasks: TaskDocument[] = [];
+
+    for (const step of plan.steps) {
+      const taskType = mapActionToTaskType(step.action);
+      const targetTeam = this.router.getSuggestedTeam(taskType) || 'development';
+
+      const task = await this.submitTask({
+        title: `[${plan.title}] Step ${step.id}: ${step.description || step.action}`,
+        type: taskType,
+        from: 'orchestrator',
+        to: targetTeam,
+        priority: options?.priority || 'medium',
+        projectId: options?.projectId,
+        tags: [...(options?.tags || []), 'xml-plan', `step-${step.id}`],
+        content: `Action: ${step.action}\nTarget: ${step.target}\n${step.description || ''}`,
+      });
+
+      tasks.push(task);
+    }
+
+    return tasks;
+  }
+
+  /**
    * Get orchestrator statistics
    */
   getStats(): CEOStats {
@@ -539,4 +583,29 @@ export interface CEOOrchestrator {
  */
 export function createOrchestrator(config?: Partial<CEOOrchestratorConfig>): CEOOrchestrator {
   return new CEOOrchestrator(config);
+}
+
+/**
+ * Map XML plan step action to a TaskType.
+ */
+function mapActionToTaskType(action: string): TaskType {
+  switch (action) {
+    case 'create':
+    case 'modify':
+    case 'refactor':
+      return 'feature';
+    case 'test':
+      return 'test';
+    case 'review':
+      return 'review';
+    case 'plan':
+      return 'planning';
+    case 'design':
+      return 'design';
+    case 'deploy':
+    case 'configure':
+      return 'infrastructure';
+    default:
+      return 'feature';
+  }
 }

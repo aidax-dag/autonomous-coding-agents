@@ -31,6 +31,7 @@ import type { GoalBackwardResult } from '../validation/interfaces/validation.int
 import { createAndRegisterAgents } from './agent-factory';
 import { initializeIntegrations } from './integration-setup';
 import { ParallelExecutor } from './parallel-executor';
+import { OTelProvider, createOTelProvider } from '@/shared/telemetry';
 
 /**
  * Runner status
@@ -113,10 +114,14 @@ export interface OrchestratorRunnerConfig {
   pluginsDir?: string;
   /** Enable planning context module (default: false) */
   enablePlanningContext?: boolean;
+  /** Enable expanded agent set (architecture, security, debugging, docs, exploration, integration) */
+  enableExpandedAgents?: boolean;
   /** Enable parallel task execution (default: false) */
   enableParallelExecution?: boolean;
   /** Max parallel concurrency */
   parallelConcurrency?: number;
+  /** Enable OpenTelemetry tracing (default: false) */
+  enableTelemetry?: boolean;
 }
 
 /**
@@ -156,6 +161,7 @@ export class OrchestratorRunner extends EventEmitter {
   private readonly stateManager = new RunnerStateManager();
   private readonly errorEscalator = new ErrorEscalator();
   private readonly parallelExecutor: ParallelExecutor | null;
+  private readonly telemetry: OTelProvider | null;
 
   constructor(config: OrchestratorRunnerConfig) {
     super();
@@ -180,9 +186,16 @@ export class OrchestratorRunner extends EventEmitter {
       enablePlugins: config.enablePlugins ?? false,
       pluginsDir: config.pluginsDir ?? 'plugins',
       enablePlanningContext: config.enablePlanningContext ?? false,
+      enableExpandedAgents: config.enableExpandedAgents ?? false,
       enableParallelExecution: config.enableParallelExecution ?? false,
       parallelConcurrency: config.parallelConcurrency ?? 5,
+      enableTelemetry: config.enableTelemetry ?? false,
     };
+
+    this.telemetry = this.config.enableTelemetry
+      ? createOTelProvider({ enabled: true, serviceName: 'aca-runner' })
+      : null;
+    if (this.telemetry) this.telemetry.initialize();
 
     this.parallelExecutor = this.config.enableParallelExecution
       ? new ParallelExecutor({ maxConcurrency: this.config.parallelConcurrency })
@@ -236,6 +249,13 @@ export class OrchestratorRunner extends EventEmitter {
     return null;
   }
 
+  /**
+   * Get the telemetry provider (when enableTelemetry is true).
+   */
+  getTelemetry(): OTelProvider | null {
+    return this.telemetry;
+  }
+
   async start(): Promise<void> {
     if (this.stateManager.getStatus() === RunnerStatus.RUNNING) {
       return;
@@ -258,6 +278,7 @@ export class OrchestratorRunner extends EventEmitter {
           projectContext: this.config.projectContext,
           useRealQualityTools: this.config.useRealQualityTools,
           workspaceDir: this.config.workspaceDir,
+          enableExpandedAgents: this.config.enableExpandedAgents,
         },
         this.orchestrator,
       );
@@ -346,6 +367,11 @@ export class OrchestratorRunner extends EventEmitter {
 
     const goalId = `goal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const startTime = Date.now();
+    const goalSpan = this.telemetry?.getTraceManager().startSpan('executeGoal');
+    if (goalSpan) {
+      goalSpan.attributes['goal.id'] = goalId;
+      goalSpan.attributes['goal.title'] = title;
+    }
 
     this.emit('goal:started', goalId);
 
@@ -397,6 +423,7 @@ export class OrchestratorRunner extends EventEmitter {
         verification,
       };
 
+      if (goalSpan) this.telemetry!.getTraceManager().endSpan(goalSpan, goalResult.success ? 'ok' : 'error');
       this.emit('goal:completed', goalResult);
       return goalResult;
     } catch (error) {
@@ -409,6 +436,7 @@ export class OrchestratorRunner extends EventEmitter {
         completedTasks: 0,
         failedTasks: 1,
       };
+      if (goalSpan) this.telemetry!.getTraceManager().endSpan(goalSpan, 'error');
       this.emit('error', err);
       return goalResult;
     }
@@ -417,6 +445,12 @@ export class OrchestratorRunner extends EventEmitter {
   async executeTask(task: TaskDocument): Promise<WorkflowResult> {
     const startTime = Date.now();
     const taskId = task.metadata.id;
+    const taskSpan = this.telemetry?.getTraceManager().startSpan('executeTask');
+    if (taskSpan) {
+      taskSpan.attributes['task.id'] = taskId;
+      taskSpan.attributes['task.team'] = task.metadata.to;
+      taskSpan.attributes['task.type'] = task.metadata.type;
+    }
 
     this.emit('workflow:started', taskId);
 
@@ -466,6 +500,7 @@ export class OrchestratorRunner extends EventEmitter {
         ).catch(() => []);
       }
 
+      if (taskSpan) this.telemetry!.getTraceManager().endSpan(taskSpan, workflowResult.success ? 'ok' : 'error');
       this.stateManager.recordResult(taskId, workflowResult);
       this.errorEscalator.recordSuccess(taskId);
       this.emit('workflow:completed', workflowResult);
@@ -496,6 +531,7 @@ export class OrchestratorRunner extends EventEmitter {
         teamType: task.metadata.to,
       };
 
+      if (taskSpan) this.telemetry!.getTraceManager().endSpan(taskSpan, 'error');
       this.stateManager.recordResult(taskId, workflowResult);
       this.emit('workflow:failed', taskId, err);
 
@@ -531,6 +567,54 @@ export class OrchestratorRunner extends EventEmitter {
     });
   }
 
+  /**
+   * Execute a structured XML plan through the orchestrator.
+   * Parses the XML into steps and creates tasks for each step.
+   */
+  async executeXMLPlan(
+    xml: string,
+    options?: { priority?: TaskPriority; projectId?: string; tags?: string[] },
+  ): Promise<GoalResult> {
+    if (!this.stateManager.isRunning()) {
+      throw new Error(`Runner is not running (status: ${this.stateManager.getStatus()})`);
+    }
+
+    const goalId = `xmlplan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+
+    this.emit('goal:started', goalId);
+
+    const tasks = await this.orchestrator.executeXMLPlan(xml, options);
+    if (tasks.length === 0) {
+      return {
+        success: false,
+        goalId,
+        tasks: [],
+        totalDuration: Date.now() - startTime,
+        completedTasks: 0,
+        failedTasks: 0,
+      };
+    }
+
+    const results: WorkflowResult[] = [];
+    for (const task of tasks) {
+      const result = await this.executeTask(task);
+      results.push(result);
+    }
+
+    const goalResult: GoalResult = {
+      success: results.every((r) => r.success),
+      goalId,
+      tasks: results,
+      totalDuration: Date.now() - startTime,
+      completedTasks: results.filter((r) => r.success).length,
+      failedTasks: results.filter((r) => !r.success).length,
+    };
+
+    this.emit('goal:completed', goalResult);
+    return goalResult;
+  }
+
   getTaskResult(taskId: string): WorkflowResult | undefined {
     return this.stateManager.getResult(taskId);
   }
@@ -553,6 +637,7 @@ export class OrchestratorRunner extends EventEmitter {
   async destroy(): Promise<void> {
     await this.stop();
     await this.orchestrator.destroy();
+    if (this.telemetry) this.telemetry.shutdown();
     this.stateManager.clearResults();
     this.errorEscalator.reset();
     this.removeAllListeners();

@@ -314,4 +314,6 @@ export type BuiltinHookType =
   | 'error-learning'
   | 'context-optimizer'
   | 'code-quality'
-  | 'sandbox-escalation';
+  | 'sandbox-escalation'
+  | 'goal-verification'
+  | 'permission-guard';

@@ -68,7 +68,7 @@ describe('IntegrationAgent', () => {
   describe('constructor', () => {
     it('should create with default config', () => {
       const agent = new IntegrationAgent({ queue });
-      expect(agent.teamType).toBe('code-quality');
+      expect(agent.teamType).toBe('testing');
       expect(agent.config.name).toBe('Integration Team');
       expect(agent.config.description).toBe('Integration verification and connection testing');
     });
@@ -268,6 +268,6 @@ describe('createIntegrationAgent', () => {
     const queue = makeMockQueue();
     const agent = createIntegrationAgent(queue);
     expect(agent).toBeInstanceOf(IntegrationAgent);
-    expect(agent.teamType).toBe('code-quality');
+    expect(agent.teamType).toBe('testing');
   });
 });
