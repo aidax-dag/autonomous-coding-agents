@@ -18,6 +18,14 @@ import { CodexCLIClient } from '@/shared/llm/cli/codex-cli-client';
 import { GeminiCLIClient } from '@/shared/llm/cli/gemini-cli-client';
 import { OllamaClient } from '@/shared/llm/cli/ollama-client';
 import { ResilientLLMClient, ResilientClientConfig } from '@/shared/llm/resilient-client';
+import { ModelRouter } from '@/shared/llm/model-router';
+import { ModelProfileRegistry } from '@/shared/llm/model-profiles';
+import {
+  createCapabilityBasedStrategy,
+  createComplexityBasedStrategy,
+  createCostOptimizedStrategy,
+  createCompositeStrategy,
+} from '@/shared/llm/routing-strategies';
 
 // Re-export types and utilities
 export * from '@/shared/llm/base-client';
@@ -190,4 +198,55 @@ export function resetResilientLLMClient(): void {
     resilientClientInstance.dispose();
     resilientClientInstance = null;
   }
+}
+
+/**
+ * Create a ModelRouter from the application Config.
+ *
+ * Assembles clients from available API keys, builds a composite routing strategy,
+ * and applies budget limits from the routing configuration.
+ */
+export function createModelRouterFromConfig(config: Config): ModelRouter {
+  const { provider, defaultModel, ollamaHost } = config.llm;
+  const clients = new Map<string, ILLMClient>();
+
+  // Create primary provider client
+  if (isCLIProvider(provider)) {
+    clients.set(provider, createCLILLMClient(provider, defaultModel, ollamaHost));
+  } else {
+    const apiKey = getLLMApiKey(config);
+    clients.set(provider, createLLMClient(provider, apiKey, defaultModel));
+  }
+
+  // Add additional API-based providers if keys are available
+  if (config.llm.anthropicApiKey && provider !== 'claude') {
+    clients.set('claude', new ClaudeClient(config.llm.anthropicApiKey));
+  }
+  if (config.llm.openaiApiKey && provider !== 'openai') {
+    clients.set('openai', new OpenAIClient(config.llm.openaiApiKey));
+  }
+  if (config.llm.geminiApiKey && provider !== 'gemini') {
+    clients.set('gemini', new GeminiClient(config.llm.geminiApiKey));
+  }
+
+  // Build composite strategy
+  const budgetLimit = config.routing?.budgetLimit;
+  const strategies: Array<{ strategy: import('./interfaces/routing.interface').IRoutingStrategy; weight: number }> = [
+    { strategy: createCapabilityBasedStrategy(), weight: 0.4 },
+    { strategy: createComplexityBasedStrategy(), weight: 0.3 },
+  ];
+
+  if (budgetLimit !== undefined) {
+    strategies.push({ strategy: createCostOptimizedStrategy(budgetLimit), weight: 0.3 });
+  }
+
+  const strategy = createCompositeStrategy(strategies);
+
+  return new ModelRouter({
+    clients,
+    strategy,
+    profileRegistry: new ModelProfileRegistry(),
+    budgetLimit,
+    defaultProvider: provider,
+  });
 }

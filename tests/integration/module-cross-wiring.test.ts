@@ -144,6 +144,13 @@ describe('Integration: ServiceRegistry + Hook Pipeline', () => {
       enableValidation: true,
       enableLearning: true,
       enableContextManagement: true,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);
@@ -177,6 +184,13 @@ describe('Integration: ServiceRegistry + Hook Pipeline', () => {
       enableValidation: true,
       enableLearning: true,
       enableContextManagement: false,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     // Should not throw — graceful degradation
@@ -197,6 +211,13 @@ describe('Integration: ServiceRegistry + Hook Pipeline', () => {
       enableValidation: false,
       enableLearning: true,
       enableContextManagement: false,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);

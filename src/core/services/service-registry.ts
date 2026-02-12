@@ -34,6 +34,17 @@ import { SandboxEscalation, createSandboxEscalation } from '../security/sandbox-
 import type { SandboxEscalationOptions } from '../security/interfaces/escalation.interface';
 import { PermissionManager, createPermissionManager } from '../permission/permission-manager';
 import type { PermissionManagerOptions } from '../permission/permission-manager';
+import { MCPClient, createMCPClient } from '../mcp/mcp-client';
+import { MCPToolRegistry, createMCPToolRegistry } from '../mcp/mcp-tool-registry';
+import { LSPClient, createLSPClient } from '../lsp/lsp-client';
+import { DiagnosticsCollector, createDiagnosticsCollector } from '../lsp/diagnostics-collector';
+import { SkillRegistry, createSkillRegistry } from '../skills/skill-registry';
+import { PluginLoader, createPluginLoader } from '../plugins/plugin-loader';
+import { PluginRegistry, createPluginRegistry } from '../plugins/plugin-registry';
+import { PluginLifecycle, createPluginLifecycle } from '../plugins/plugin-lifecycle';
+import { StateTracker, createStateTracker } from '../context/planning-context/state-tracker';
+import { PhaseManager, createPhaseManager } from '../context/planning-context/phase-manager';
+import { ContextBudget, createContextBudget } from '../context/planning-context/context-budget';
 import { mkdir } from 'fs/promises';
 
 /**
@@ -64,8 +75,18 @@ export interface ServiceRegistryConfig {
   permissionOptions?: PermissionManagerOptions;
   /** Enable planning context module (default: false) */
   enablePlanningContext?: boolean;
+  /** Directory for planning state persistence (default: 'data/planning') */
+  planningDir?: string;
   /** Enable MCP integration (default: false) */
   enableMCP?: boolean;
+  /** Enable LSP integration (default: false) */
+  enableLSP?: boolean;
+  /** Enable skills registry (default: false, auto-enabled with enableMCP or enableLSP) */
+  enableSkills?: boolean;
+  /** Enable plugin system (default: false) */
+  enablePlugins?: boolean;
+  /** Directory for plugin discovery (default: 'plugins') */
+  pluginsDir?: string;
 }
 
 /**
@@ -87,6 +108,17 @@ export class ServiceRegistry {
   private sessionManager: SessionManager | null = null;
   private sandboxEscalation: SandboxEscalation | null = null;
   private permissionManager: PermissionManager | null = null;
+  private mcpClient: MCPClient | null = null;
+  private mcpToolRegistry: MCPToolRegistry | null = null;
+  private lspClient: LSPClient | null = null;
+  private diagnosticsCollector: DiagnosticsCollector | null = null;
+  private skillRegistry: SkillRegistry | null = null;
+  private pluginLoader: PluginLoader | null = null;
+  private pluginRegistry: PluginRegistry | null = null;
+  private pluginLifecycle: PluginLifecycle | null = null;
+  private stateTracker: StateTracker | null = null;
+  private phaseManager: PhaseManager | null = null;
+  private contextBudget: ContextBudget | null = null;
   private _initialized = false;
 
   private constructor() {}
@@ -221,6 +253,63 @@ export class ServiceRegistry {
       }
     }
 
+    // MCP module (synchronous initialization — connection is deferred)
+    if (config.enableMCP) {
+      try {
+        this.mcpClient = createMCPClient();
+        this.mcpToolRegistry = createMCPToolRegistry();
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
+    // LSP module (synchronous initialization — connection is deferred)
+    if (config.enableLSP) {
+      try {
+        this.lspClient = createLSPClient();
+        this.diagnosticsCollector = createDiagnosticsCollector();
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
+    // Skills module (auto-enabled with MCP or LSP, or explicitly)
+    if (config.enableSkills || config.enableMCP || config.enableLSP) {
+      try {
+        this.skillRegistry = createSkillRegistry();
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
+    // Planning context module (async initialization)
+    if (config.enablePlanningContext) {
+      const planningBasePath = `${projectRoot}/${config.planningDir || 'data/planning'}`;
+      try {
+        await mkdir(planningBasePath, { recursive: true });
+      } catch {
+        /* directory creation failed - modules will handle individually */
+      }
+      try {
+        this.stateTracker = createStateTracker(`${planningBasePath}/state.md`);
+        this.phaseManager = createPhaseManager();
+        this.contextBudget = createContextBudget();
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
+    // Plugin module (synchronous initialization — discovery is deferred)
+    if (config.enablePlugins) {
+      try {
+        this.pluginLoader = createPluginLoader();
+        this.pluginRegistry = createPluginRegistry();
+        this.pluginLifecycle = createPluginLifecycle();
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
     this._initialized = true;
   }
 
@@ -252,6 +341,14 @@ export class ServiceRegistry {
       /* dispose error ignored */
     }
 
+    try {
+      if (this.mcpClient?.isConnected()) {
+        await this.mcpClient.disconnect();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
     this.confidenceChecker = null;
     this.selfCheckProtocol = null;
     this.goalBackwardVerifier = null;
@@ -262,6 +359,17 @@ export class ServiceRegistry {
     this.sessionManager = null;
     this.sandboxEscalation = null;
     this.permissionManager = null;
+    this.mcpClient = null;
+    this.mcpToolRegistry = null;
+    this.lspClient = null;
+    this.diagnosticsCollector = null;
+    this.skillRegistry = null;
+    this.pluginLoader = null;
+    this.pluginRegistry = null;
+    this.pluginLifecycle = null;
+    this.stateTracker = null;
+    this.phaseManager = null;
+    this.contextBudget = null;
     this._initialized = false;
   }
 
@@ -308,5 +416,49 @@ export class ServiceRegistry {
 
   getPermissionManager(): PermissionManager | null {
     return this.permissionManager;
+  }
+
+  getMCPClient(): MCPClient | null {
+    return this.mcpClient;
+  }
+
+  getMCPToolRegistry(): MCPToolRegistry | null {
+    return this.mcpToolRegistry;
+  }
+
+  getLSPClient(): LSPClient | null {
+    return this.lspClient;
+  }
+
+  getDiagnosticsCollector(): DiagnosticsCollector | null {
+    return this.diagnosticsCollector;
+  }
+
+  getSkillRegistry(): SkillRegistry | null {
+    return this.skillRegistry;
+  }
+
+  getPluginLoader(): PluginLoader | null {
+    return this.pluginLoader;
+  }
+
+  getPluginRegistry(): PluginRegistry | null {
+    return this.pluginRegistry;
+  }
+
+  getPluginLifecycle(): PluginLifecycle | null {
+    return this.pluginLifecycle;
+  }
+
+  getStateTracker(): StateTracker | null {
+    return this.stateTracker;
+  }
+
+  getPhaseManager(): PhaseManager | null {
+    return this.phaseManager;
+  }
+
+  getContextBudget(): ContextBudget | null {
+    return this.contextBudget;
   }
 }

@@ -16,7 +16,15 @@ import {
   createSystemMessage,
   createUserMessage,
 } from '@/shared/llm';
-import { TaskDocument } from '../../workspace/task-document';
+import type { IModelRouter, RoutingContext } from '@/shared/llm/interfaces/routing.interface';
+import { TaskDocument, TeamType } from '../../workspace/task-document';
+
+/**
+ * Type guard to check if an LLM client is a ModelRouter
+ */
+export function isModelRouter(client: ILLMClient): client is IModelRouter {
+  return 'chatWithContext' in client && typeof (client as IModelRouter).chatWithContext === 'function';
+}
 
 /**
  * LLM response with parsed output
@@ -44,6 +52,8 @@ export interface TeamAgentLLMConfig {
   client: ILLMClient;
   /** Default model to use */
   model?: string;
+  /** Agent role for routing context */
+  agentRole?: TeamType;
   /** Temperature for generation */
   temperature?: number;
   /** Max tokens for response */
@@ -75,10 +85,12 @@ export interface PromptContext {
  */
 export class TeamAgentLLMAdapter {
   private client: ILLMClient;
-  private config: Required<Omit<TeamAgentLLMConfig, 'client'>>;
+  private config: Required<Omit<TeamAgentLLMConfig, 'client' | 'agentRole'>>;
+  private agentRole?: TeamType;
 
   constructor(config: TeamAgentLLMConfig) {
     this.client = config.client;
+    this.agentRole = config.agentRole;
     this.config = {
       model: config.model || config.client.getDefaultModel(),
       temperature: config.temperature ?? 0.7,
@@ -93,6 +105,13 @@ export class TeamAgentLLMAdapter {
    */
   getClient(): ILLMClient {
     return this.client;
+  }
+
+  /**
+   * Get the agent role for routing context
+   */
+  getAgentRole(): TeamType | undefined {
+    return this.agentRole;
   }
 
   /**
@@ -172,12 +191,23 @@ export class TeamAgentLLMAdapter {
 
     for (let attempt = 0; attempt < this.config.retryAttempts; attempt++) {
       try {
-        return await this.client.chat(messages, {
+        const mergedOptions: LLMCompletionOptions = {
           model: this.config.model,
           temperature: this.config.temperature,
           maxTokens: this.config.maxTokens,
           ...options,
-        });
+        };
+
+        // Use routing-aware path when client is a ModelRouter and agentRole is set
+        if (isModelRouter(this.client) && this.agentRole) {
+          const routingContext: RoutingContext = {
+            messages,
+            agentRole: this.agentRole,
+          };
+          return await this.client.chatWithContext(messages, routingContext, mergedOptions);
+        }
+
+        return await this.client.chat(messages, mergedOptions);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 

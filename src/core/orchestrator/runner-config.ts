@@ -11,7 +11,7 @@
 import { z } from 'zod';
 import type { Config } from '@/shared/config';
 import { loadConfig, isCLIProvider, getLLMApiKey } from '@/shared/config';
-import { createLLMClient, createCLILLMClient } from '@/shared/llm';
+import { createLLMClient, createCLILLMClient, createModelRouterFromConfig } from '@/shared/llm';
 import type { ILLMClient } from '@/shared/llm';
 import { RoutingStrategy } from './task-router';
 import {
@@ -56,6 +56,27 @@ export const RunnerConfigSchema = z.object({
 
   /** Enable context management hooks */
   enableContextManagement: z.boolean().default(false),
+
+  /** Enable security module (SandboxEscalation) */
+  enableSecurity: z.boolean().default(false),
+
+  /** Enable session persistence module */
+  enableSession: z.boolean().default(false),
+
+  /** Enable MCP protocol integration */
+  enableMCP: z.boolean().default(false),
+
+  /** Enable LSP integration */
+  enableLSP: z.boolean().default(false),
+
+  /** Enable plugin system */
+  enablePlugins: z.boolean().default(false),
+
+  /** Plugin discovery directory */
+  pluginsDir: z.string().optional(),
+
+  /** Enable planning context module */
+  enablePlanningContext: z.boolean().default(false),
 });
 
 export type RunnerConfig = z.infer<typeof RunnerConfigSchema>;
@@ -106,6 +127,26 @@ export function loadRunnerConfig(): RunnerConfig {
   const context = parseBoolean(env.ENABLE_CONTEXT_MANAGEMENT);
   if (context !== undefined) raw.enableContextManagement = context;
 
+  const security = parseBoolean(env.ENABLE_SECURITY);
+  if (security !== undefined) raw.enableSecurity = security;
+
+  const session = parseBoolean(env.ENABLE_SESSION);
+  if (session !== undefined) raw.enableSession = session;
+
+  const mcp = parseBoolean(env.ENABLE_MCP);
+  if (mcp !== undefined) raw.enableMCP = mcp;
+
+  const lsp = parseBoolean(env.ENABLE_LSP);
+  if (lsp !== undefined) raw.enableLSP = lsp;
+
+  const plugins = parseBoolean(env.ENABLE_PLUGINS);
+  if (plugins !== undefined) raw.enablePlugins = plugins;
+
+  if (env.PLUGINS_DIR) raw.pluginsDir = env.PLUGINS_DIR;
+
+  const planningContext = parseBoolean(env.ENABLE_PLANNING_CONTEXT);
+  if (planningContext !== undefined) raw.enablePlanningContext = planningContext;
+
   return RunnerConfigSchema.parse(raw);
 }
 
@@ -124,6 +165,17 @@ function createLLMClientFromSharedConfig(config: Config): ILLMClient {
 }
 
 /**
+ * Create an LLM client or ModelRouter based on routing configuration.
+ * When routing is enabled, returns a ModelRouter; otherwise a plain ILLMClient.
+ */
+function createLLMClientOrRouter(config: Config): ILLMClient {
+  if (config.routing?.enabled) {
+    return createModelRouterFromConfig(config);
+  }
+  return createLLMClientFromSharedConfig(config);
+}
+
+/**
  * Create an OrchestratorRunner from a shared/config Config object.
  *
  * Uses Config for LLM client creation and merges with runner-specific
@@ -135,10 +187,11 @@ export function createRunnerFromConfig(
 ): OrchestratorRunner {
   const runnerConfig = loadRunnerConfig();
   const merged = { ...runnerConfig, ...overrides };
-  const llmClient = createLLMClientFromSharedConfig(config);
+  const llmClient = createLLMClientOrRouter(config);
 
   const fullConfig: OrchestratorRunnerConfig = {
     llmClient,
+    agentModelMap: config.routing?.agentModelMap,
     ...merged,
   };
 
@@ -172,10 +225,11 @@ export function buildRunnerConfig(
 ): OrchestratorRunnerConfig {
   const runnerConfig = loadRunnerConfig();
   const merged = { ...runnerConfig, ...overrides };
-  const llmClient = createLLMClientFromSharedConfig(config);
+  const llmClient = createLLMClientOrRouter(config);
 
   return {
     llmClient,
+    agentModelMap: config.routing?.agentModelMap,
     ...merged,
   };
 }

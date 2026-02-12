@@ -35,6 +35,13 @@ describe('IntegrationSetup', () => {
       enableValidation: false,
       enableLearning: false,
       enableContextManagement: false,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);
@@ -47,6 +54,13 @@ describe('IntegrationSetup', () => {
       enableValidation: true,
       enableLearning: false,
       enableContextManagement: false,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);
@@ -60,6 +74,13 @@ describe('IntegrationSetup', () => {
       enableValidation: false,
       enableLearning: true,
       enableContextManagement: false,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);
@@ -73,6 +94,13 @@ describe('IntegrationSetup', () => {
       enableValidation: false,
       enableLearning: false,
       enableContextManagement: true,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);
@@ -86,6 +114,13 @@ describe('IntegrationSetup', () => {
       enableValidation: true,
       enableLearning: true,
       enableContextManagement: true,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);
@@ -99,6 +134,13 @@ describe('IntegrationSetup', () => {
       enableValidation: true,
       enableLearning: false,
       enableContextManagement: false,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);
@@ -118,6 +160,13 @@ describe('IntegrationSetup', () => {
       enableValidation: false,
       enableLearning: false,
       enableContextManagement: false,
+      enableSecurity: false,
+      enableSession: false,
+      useRealQualityTools: false,
+      enableMCP: false,
+      enableLSP: false,
+      enablePlugins: false,
+      enablePlanningContext: false,
     };
 
     await initializeIntegrations(flags, hookRegistry, workspaceDir, emitter);

@@ -12,7 +12,8 @@
 
 import { EventEmitter } from 'events';
 import { CEOOrchestrator, CEOStatus } from './ceo-orchestrator';
-import { createTeamAgentLLMAdapter } from './llm/team-agent-llm';
+import { isModelRouter } from './llm/team-agent-llm';
+import type { IModelRouter, ICostTracker } from '@/shared/llm/interfaces/routing.interface';
 import { TaskDocument, TeamType, TaskPriority, TaskType } from '../workspace/task-document';
 import { DocumentQueue } from '../workspace/document-queue';
 import { WorkspaceManager } from '../workspace/workspace-manager';
@@ -76,6 +77,8 @@ export interface GoalResult {
 export interface OrchestratorRunnerConfig {
   /** LLM client for agent execution */
   llmClient: ILLMClient;
+  /** Per-agent model overrides (e.g. { planning: 'claude-opus-4-6' }) */
+  agentModelMap?: Record<string, string>;
   /** Optional workspace directory */
   workspaceDir?: string;
   /** Routing strategy */
@@ -96,6 +99,20 @@ export interface OrchestratorRunnerConfig {
   enableLearning?: boolean;
   /** Enable context management hooks (default: false) */
   enableContextManagement?: boolean;
+  /** Enable security module - SandboxEscalation (default: false) */
+  enableSecurity?: boolean;
+  /** Enable session persistence module (default: false) */
+  enableSession?: boolean;
+  /** Enable MCP protocol integration (default: false) */
+  enableMCP?: boolean;
+  /** Enable LSP integration (default: false) */
+  enableLSP?: boolean;
+  /** Enable plugin system (default: false) */
+  enablePlugins?: boolean;
+  /** Plugin discovery directory (default: 'plugins') */
+  pluginsDir?: string;
+  /** Enable planning context module (default: false) */
+  enablePlanningContext?: boolean;
   /** Enable parallel task execution (default: false) */
   enableParallelExecution?: boolean;
   /** Max parallel concurrency */
@@ -145,6 +162,7 @@ export class OrchestratorRunner extends EventEmitter {
 
     this.config = {
       llmClient: config.llmClient,
+      agentModelMap: config.agentModelMap ?? {},
       workspaceDir: config.workspaceDir || process.cwd(),
       routingStrategy: config.routingStrategy || RoutingStrategy.LOAD_BALANCED,
       maxConcurrentTasks: config.maxConcurrentTasks || 10,
@@ -155,6 +173,13 @@ export class OrchestratorRunner extends EventEmitter {
       enableValidation: config.enableValidation ?? false,
       enableLearning: config.enableLearning ?? false,
       enableContextManagement: config.enableContextManagement ?? false,
+      enableSecurity: config.enableSecurity ?? false,
+      enableSession: config.enableSession ?? false,
+      enableMCP: config.enableMCP ?? false,
+      enableLSP: config.enableLSP ?? false,
+      enablePlugins: config.enablePlugins ?? false,
+      pluginsDir: config.pluginsDir ?? 'plugins',
+      enablePlanningContext: config.enablePlanningContext ?? false,
       enableParallelExecution: config.enableParallelExecution ?? false,
       parallelConcurrency: config.parallelConcurrency ?? 5,
     };
@@ -200,6 +225,17 @@ export class OrchestratorRunner extends EventEmitter {
     return this.stateManager.getUptime();
   }
 
+  /**
+   * Get the cost tracker if the LLM client is a ModelRouter.
+   * Returns null when routing is not enabled.
+   */
+  getCostTracker(): ICostTracker | null {
+    if (isModelRouter(this.config.llmClient)) {
+      return (this.config.llmClient as IModelRouter).getCostTracker();
+    }
+    return null;
+  }
+
   async start(): Promise<void> {
     if (this.stateManager.getStatus() === RunnerStatus.RUNNING) {
       return;
@@ -211,11 +247,11 @@ export class OrchestratorRunner extends EventEmitter {
       await this.workspace.initialize();
       await this.queue.initialize();
 
-      // Delegate agent creation to factory
-      const llmAdapter = createTeamAgentLLMAdapter({ client: this.config.llmClient });
+      // Delegate agent creation to factory (passes llmClient for per-agent routing)
       await createAndRegisterAgents(
         {
-          llmAdapter,
+          llmClient: this.config.llmClient,
+          agentModelMap: this.config.agentModelMap,
           queue: this.queue,
           maxConcurrentTasks: this.config.maxConcurrentTasks,
           enableLLM: this.config.enableLLM,
@@ -231,6 +267,14 @@ export class OrchestratorRunner extends EventEmitter {
           enableValidation: this.config.enableValidation,
           enableLearning: this.config.enableLearning,
           enableContextManagement: this.config.enableContextManagement,
+          enableSecurity: this.config.enableSecurity,
+          enableSession: this.config.enableSession,
+          enableMCP: this.config.enableMCP,
+          enableLSP: this.config.enableLSP,
+          enablePlugins: this.config.enablePlugins,
+          pluginsDir: this.config.pluginsDir,
+          enablePlanningContext: this.config.enablePlanningContext,
+          useRealQualityTools: this.config.useRealQualityTools,
         },
         this.hookRegistry,
         this.config.workspaceDir,
@@ -429,12 +473,13 @@ export class OrchestratorRunner extends EventEmitter {
       return workflowResult;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
+      const classification = this.errorEscalator.classify(err, 'executeTask');
       const action = this.errorEscalator.handleError(err, 'executeTask', taskId);
 
-      // TASK_ERROR Hooks
+      // TASK_ERROR Hooks (pass classification for learning system)
       if (this.hookRegistry.count() > 0) {
         await this.hookExecutor.executeHooks(
-          HookEvent.TASK_ERROR, { task, error: err }
+          HookEvent.TASK_ERROR, { task, error: err, classification }
         ).catch(() => []);
       }
 

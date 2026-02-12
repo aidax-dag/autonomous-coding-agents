@@ -24,6 +24,12 @@ import type { SolutionsCache } from '../../learning/solutions-cache';
 export interface TaskErrorContext {
   task: TaskDocument;
   error: Error;
+  /** Error classification from ErrorEscalator (when available) */
+  classification?: {
+    severity: string;
+    category: string;
+    retryable: boolean;
+  };
 }
 
 /**
@@ -82,8 +88,8 @@ export class ErrorLearningHook extends BaseHook<TaskErrorContext> {
         );
       }
 
-      // Unknown error - learn from it
-      const rootCause = classifyError(error);
+      // Unknown error - learn from it (prefer ErrorEscalator classification if available)
+      const rootCause = context.data.classification?.category || classifyError(error);
       await this.reflexion.learn(error, 'pending', rootCause);
 
       // Also cache for fast lookup

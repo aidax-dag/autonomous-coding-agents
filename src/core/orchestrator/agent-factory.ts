@@ -14,7 +14,9 @@ import {
   createDevelopmentAgent,
 } from './agents/development-agent';
 import { QAAgent, createQAAgent } from './agents/qa-agent';
-import { TeamAgentLLMAdapter } from './llm/team-agent-llm';
+import { TeamAgentLLMAdapter, createTeamAgentLLMAdapter } from './llm/team-agent-llm';
+import type { ILLMClient } from '@/shared/llm';
+import type { TeamType } from '../workspace/task-document';
 import {
   createPlanningLLMExecutor,
   createDevelopmentLLMExecutor,
@@ -28,8 +30,12 @@ import { createQAExecutor } from './quality';
  * Configuration for agent creation
  */
 export interface AgentFactoryConfig {
-  /** LLM adapter for agent executors */
-  llmAdapter: TeamAgentLLMAdapter;
+  /** LLM adapter for agent executors (legacy single-adapter mode) */
+  llmAdapter?: TeamAgentLLMAdapter;
+  /** LLM client for routing mode (creates per-agent adapters) */
+  llmClient?: ILLMClient;
+  /** Per-agent model overrides (e.g. { planning: 'claude-opus-4-6' }) */
+  agentModelMap?: Record<string, string>;
   /** Document queue for agent communication */
   queue: DocumentQueue;
   /** Maximum concurrent tasks across all teams */
@@ -54,6 +60,30 @@ export interface CreatedAgents {
 }
 
 /**
+ * Get or create an LLM adapter for a specific agent role.
+ *
+ * - If llmAdapter is provided (legacy mode), returns it as-is.
+ * - If llmClient is provided (routing mode), creates a per-agent adapter with agentRole.
+ * - Throws if neither is provided.
+ */
+function getAdapterForAgent(
+  config: AgentFactoryConfig,
+  agentRole: TeamType,
+): TeamAgentLLMAdapter {
+  if (config.llmAdapter) {
+    return config.llmAdapter;
+  }
+  if (config.llmClient) {
+    return createTeamAgentLLMAdapter({
+      client: config.llmClient,
+      agentRole,
+      model: config.agentModelMap?.[agentRole],
+    });
+  }
+  throw new Error('AgentFactoryConfig requires either llmAdapter or llmClient');
+}
+
+/**
  * Create, configure, and register all team agents.
  *
  * @returns The created agents for reference by the runner
@@ -62,7 +92,7 @@ export async function createAndRegisterAgents(
   config: AgentFactoryConfig,
   orchestrator: CEOOrchestrator,
 ): Promise<CreatedAgents> {
-  const { queue, llmAdapter, maxConcurrentTasks, enableLLM, projectContext } = config;
+  const { queue, maxConcurrentTasks, enableLLM, projectContext } = config;
 
   // Create Planning Agent
   const planning = createPlanningAgent(queue, {
@@ -72,8 +102,9 @@ export async function createAndRegisterAgents(
   });
 
   if (enableLLM) {
+    const planningAdapter = getAdapterForAgent(config, 'planning');
     planning.setPlanGenerator(
-      createPlanningLLMExecutor({ adapter: llmAdapter, projectContext }),
+      createPlanningLLMExecutor({ adapter: planningAdapter, projectContext }),
     );
   }
 
@@ -87,8 +118,9 @@ export async function createAndRegisterAgents(
   });
 
   if (enableLLM) {
+    const developmentAdapter = getAdapterForAgent(config, 'development');
     development.setCodeExecutor(
-      createDevelopmentLLMExecutor({ adapter: llmAdapter, projectContext }),
+      createDevelopmentLLMExecutor({ adapter: developmentAdapter, projectContext }),
     );
   }
 
@@ -104,8 +136,9 @@ export async function createAndRegisterAgents(
   if (config.useRealQualityTools) {
     qa.setQAExecutor(createQAExecutor({ workspaceDir: config.workspaceDir }));
   } else if (enableLLM) {
+    const qaAdapter = getAdapterForAgent(config, 'qa');
     qa.setQAExecutor(
-      createQALLMExecutor({ adapter: llmAdapter, projectContext }),
+      createQALLMExecutor({ adapter: qaAdapter, projectContext }),
     );
   }
 

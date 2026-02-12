@@ -17,6 +17,8 @@ import { ConfidenceCheckHook } from '../hooks/confidence-check/confidence-check.
 import { SelfCheckHook } from '../hooks/self-check/self-check.hook';
 import { ErrorLearningHook } from '../hooks/error-learning/error-learning.hook';
 import { ContextOptimizerHook } from '../hooks/context-optimizer/context-optimizer.hook';
+import { CodeQualityHook } from '../hooks/code-quality/code-quality.hook';
+import { SandboxEscalationHook } from '../hooks/sandbox-escalation/sandbox-escalation.hook';
 import type { ContextManager } from '../context/context-manager';
 import type { WorkflowResult } from './orchestrator-runner';
 
@@ -27,6 +29,14 @@ export interface IntegrationFlags {
   enableValidation: boolean;
   enableLearning: boolean;
   enableContextManagement: boolean;
+  enableSecurity: boolean;
+  enableSession: boolean;
+  useRealQualityTools: boolean;
+  enableMCP: boolean;
+  enableLSP: boolean;
+  enablePlugins: boolean;
+  pluginsDir?: string;
+  enablePlanningContext: boolean;
 }
 
 /**
@@ -42,17 +52,26 @@ export async function initializeIntegrations(
   emitter: EventEmitter,
 ): Promise<void> {
   const needsRegistry =
-    flags.enableValidation || flags.enableLearning || flags.enableContextManagement;
+    flags.enableValidation || flags.enableLearning || flags.enableContextManagement ||
+    flags.enableSecurity || flags.enableSession ||
+    flags.enableMCP || flags.enableLSP || flags.enablePlugins || flags.enablePlanningContext;
 
-  if (!needsRegistry) return;
+  if (!needsRegistry && !flags.useRealQualityTools) return;
 
   const registry = ServiceRegistry.getInstance();
-  if (!registry.isInitialized()) {
+  if (!registry.isInitialized() && needsRegistry) {
     await registry.initialize({
       projectRoot: workspaceDir,
       enableValidation: flags.enableValidation,
       enableLearning: flags.enableLearning,
       enableContext: flags.enableContextManagement,
+      enableSecurity: flags.enableSecurity,
+      enableSession: flags.enableSession,
+      enableMCP: flags.enableMCP,
+      enableLSP: flags.enableLSP,
+      enablePlugins: flags.enablePlugins,
+      pluginsDir: flags.pluginsDir,
+      enablePlanningContext: flags.enablePlanningContext,
     });
   }
 
@@ -81,6 +100,20 @@ export async function initializeIntegrations(
       hookRegistry.register(new ContextOptimizerHook(ctxMgr));
       registerContextListeners(ctxMgr, emitter);
     }
+  }
+
+  // Register security hooks (needs both security and validation for ConfidenceChecker)
+  if (flags.enableSecurity) {
+    const sandbox = registry.getSandboxEscalation();
+    const checker = registry.getConfidenceChecker();
+    if (sandbox && checker) {
+      hookRegistry.register(new SandboxEscalationHook(sandbox, checker));
+    }
+  }
+
+  // Register code quality hook
+  if (flags.useRealQualityTools) {
+    hookRegistry.register(new CodeQualityHook());
   }
 }
 
