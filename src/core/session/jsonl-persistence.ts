@@ -62,11 +62,15 @@ export class JSONLPersistence implements IJSONLPersistence {
   }
 
   async readLast(sessionId: string, count: number): Promise<SessionEntry[]> {
-    const entries: SessionEntry[] = [];
+    // Use a sliding window to avoid storing all entries in memory
+    const buffer: SessionEntry[] = [];
     for await (const entry of this.readAll(sessionId)) {
-      entries.push(entry);
+      buffer.push(entry);
+      if (buffer.length > count) {
+        buffer.shift();
+      }
     }
-    return entries.slice(-count);
+    return buffer;
   }
 
   async compact(
@@ -109,31 +113,23 @@ export class JSONLPersistence implements IJSONLPersistence {
     let entryCount = 0;
     let firstTimestamp: string | null = null;
     let lastTimestamp: string | null = null;
-    let lastEntryType: string | null = null;
+    let lastEntry: SessionEntry | null = null;
 
     for await (const entry of this.readAll(sessionId)) {
       entryCount++;
       if (!firstTimestamp) firstTimestamp = entry.timestamp;
       lastTimestamp = entry.timestamp;
-      lastEntryType = entry.type;
+      lastEntry = entry;
     }
 
-    if (entryCount === 0) return null;
+    if (entryCount === 0 || !lastEntry) return null;
 
     let status: SessionInfo['status'] = 'active';
     if (
-      lastEntryType === 'state_change' &&
-      entryCount > 0
+      lastEntry.type === 'state_change' &&
+      (lastEntry.data as Record<string, unknown>)?.action === 'session_end'
     ) {
-      // Check if last entry is a session_end
-      const lastEntries = await this.readLast(sessionId, 1);
-      if (
-        lastEntries.length > 0 &&
-        lastEntries[0].type === 'state_change' &&
-        (lastEntries[0].data as Record<string, unknown>)?.action === 'session_end'
-      ) {
-        status = 'closed';
-      }
+      status = 'closed';
     }
 
     return {

@@ -329,8 +329,11 @@ export class DocumentQueue extends EventEmitter {
     // Sort by priority and creation time
     const sortedFiles = await this.sortFilesByPriority(files);
 
-    for (const file of sortedFiles) {
-      await this.handleNewFile(team, file.path, options);
+    // Process in batches for better throughput
+    const batchSize = 5;
+    for (let i = 0; i < sortedFiles.length; i += batchSize) {
+      const batch = sortedFiles.slice(i, i + batchSize);
+      await Promise.all(batch.map((file) => this.handleNewFile(team, file.path, options)));
     }
   }
 

@@ -90,7 +90,8 @@ export class ParallelExecutor implements IParallelExecutor {
         ready.push(...remaining);
         remaining = [];
       } else {
-        remaining = remaining.filter((n) => !ready.includes(n));
+        const readySet = new Set(ready);
+        remaining = remaining.filter((n) => !readySet.has(n));
       }
 
       // Split ready tasks into chunks respecting maxConcurrency
