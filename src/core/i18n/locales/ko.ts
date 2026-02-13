@@ -1,0 +1,63 @@
+import type { TranslationMap } from '../interfaces/i18n.interface';
+
+export const ko: TranslationMap = {
+  common: {
+    ok: '확인',
+    cancel: '취소',
+    save: '저장',
+    delete: '삭제',
+    loading: '로딩 중...',
+    error: '오류',
+    success: '성공',
+    retry: '재시도',
+    close: '닫기',
+  },
+  agent: {
+    idle: '대기',
+    busy: '실행 중',
+    error: '오류',
+    starting: '시작 중',
+    stopping: '중지 중',
+    registered: '에이전트 "{name}" 등록됨',
+    unregistered: '에이전트 "{name}" 해제됨',
+  },
+  task: {
+    submitted: '작업 제출됨: {taskId}',
+    completed: '작업 완료: {taskId}',
+    failed: '작업 실패: {taskId}',
+    pending: '대기 중',
+    inProgress: '진행 중',
+    timeout: '{minutes}분 후 작업 시간 초과',
+  },
+  workflow: {
+    started: '워크플로우 시작',
+    completed: '워크플로우 완료 ({count}개 작업)',
+    failed: '워크플로우 실패',
+    noActive: '활성 워크플로우 없음',
+  },
+  dashboard: {
+    title: '대시보드',
+    systemHealth: '시스템 상태',
+    activeAgents: '활성 에이전트',
+    tasksCompleted: '완료된 작업',
+    sseClients: 'SSE 클라이언트',
+    agentOverview: '에이전트 개요',
+    noAgents: '등록된 에이전트 없음',
+  },
+  settings: {
+    title: '설정',
+    envVars: '환경 변수',
+    resources: '리소스',
+    theme: '테마',
+    language: '언어',
+    dark: '다크',
+    light: '라이트',
+    system: '시스템',
+  },
+  notification: {
+    taskComplete: '작업 "{name}" 성공적으로 완료',
+    taskFailed: '작업 "{name}" 실패: {error}',
+    agentError: '에이전트 "{name}"에서 오류 발생',
+    systemDegraded: '시스템 상태 저하',
+  },
+};

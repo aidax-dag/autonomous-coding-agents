@@ -1,0 +1,63 @@
+import type { TranslationMap } from '../interfaces/i18n.interface';
+
+export const en: TranslationMap = {
+  common: {
+    ok: 'OK',
+    cancel: 'Cancel',
+    save: 'Save',
+    delete: 'Delete',
+    loading: 'Loading...',
+    error: 'Error',
+    success: 'Success',
+    retry: 'Retry',
+    close: 'Close',
+  },
+  agent: {
+    idle: 'Idle',
+    busy: 'Busy',
+    error: 'Error',
+    starting: 'Starting',
+    stopping: 'Stopping',
+    registered: 'Agent "{name}" registered',
+    unregistered: 'Agent "{name}" unregistered',
+  },
+  task: {
+    submitted: 'Task submitted: {taskId}',
+    completed: 'Task completed: {taskId}',
+    failed: 'Task failed: {taskId}',
+    pending: 'Pending',
+    inProgress: 'In Progress',
+    timeout: 'Task timed out after {minutes} minutes',
+  },
+  workflow: {
+    started: 'Workflow started',
+    completed: 'Workflow completed ({count} tasks)',
+    failed: 'Workflow failed',
+    noActive: 'No active workflows',
+  },
+  dashboard: {
+    title: 'Dashboard',
+    systemHealth: 'System Health',
+    activeAgents: 'Active Agents',
+    tasksCompleted: 'Tasks Completed',
+    sseClients: 'SSE Clients',
+    agentOverview: 'Agent Overview',
+    noAgents: 'No agents registered',
+  },
+  settings: {
+    title: 'Settings',
+    envVars: 'Environment Variables',
+    resources: 'Resources',
+    theme: 'Theme',
+    language: 'Language',
+    dark: 'Dark',
+    light: 'Light',
+    system: 'System',
+  },
+  notification: {
+    taskComplete: 'Task "{name}" completed successfully',
+    taskFailed: 'Task "{name}" failed: {error}',
+    agentError: 'Agent "{name}" encountered an error',
+    systemDegraded: 'System health degraded',
+  },
+};

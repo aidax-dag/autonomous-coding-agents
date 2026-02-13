@@ -82,8 +82,8 @@ Enhancement Strategy 통합 (Phase A-F, T1-T17) 완료.
 ## 2. Test Coverage
 
 ```
-Total Tests: 3,267
-Test Suites: 197
+Total Tests: 3,304
+Test Suites: 200
 Type Check: ✅ Clean (npx tsc --noEmit)
 Test Runner: Jest
 ```
@@ -131,6 +131,11 @@ Test Runner: Jest
 - ✅ 테스트 수: 3,259 → 3,267 (+8 tests), 테스트 스위트: 196 → 197
 - ✅ P1 Web Dashboard: Vite+React+Tailwind+React Query (5 pages, SSE, API client)
 - ✅ P1 Desktop App: Tauri 2 + Rust IPC (health, snapshot, agents, submit_task)
+- ✅ P3 i18n: I18n 모듈 (en/ko), 파라미터 보간, 런타임 로케일 전환
+- ✅ P3 테마: 다크/라이트/시스템 모드, localStorage 영속화, ThemeToggle
+- ✅ P3 단축키: ShortcutRegistry, Alt+1~5 네비게이션, 단축키 모달
+- ✅ P3 알림: NotificationManager, TTL 자동해제, 구독 패턴, NotificationBell
+- ✅ 테스트 수: 3,267 → 3,304 (+37 tests), 테스트 스위트: 197 → 200
 - ✅ STATUS.md 현행화
 
 ### 2026-02-12

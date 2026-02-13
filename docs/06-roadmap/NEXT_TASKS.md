@@ -10,7 +10,7 @@
 | Phase 5 (Platform) | 📋 계획됨 |
 | Enhancement Strategy (Phase A-F, T1-T17) | ✅ 완료 |
 | P0 멀티모델 라우팅 에이전트 연동 | ✅ 완료 |
-| 총 테스트 | 3,267개 (197 스위트) |
+| 총 테스트 | 3,304개 (200 스위트) |
 | TypeScript | ✅ Clean (npx tsc --noEmit) |
 
 ---
@@ -93,13 +93,13 @@ npm run typecheck
 
 ## 🟢 P3: Low (Nice to have)
 
-| # | 작업 | 설명 |
-|---|------|------|
-| 15 | 플러그인 시스템 | 사용자 플러그인 개발 지원 |
-| 16 | 다국어 지원 | i18n 적용 |
-| 17 | 테마 시스템 | 다크/라이트 모드 |
-| 18 | 단축키 시스템 | 키보드 단축키 지원 |
-| 19 | 알림 시스템 | 데스크톱/웹 알림 |
+| # | 작업 | 설명 | 상태 |
+|---|------|------|------|
+| 15 | 플러그인 시스템 | PluginRegistry, PluginLoader, PluginAPI | ✅ 완료 |
+| 16 | 다국어 지원 | i18n (en/ko), 파라미터 보간, 런타임 전환 | ✅ 완료 |
+| 17 | 테마 시스템 | 다크/라이트/시스템, localStorage 영속화 | ✅ 완료 |
+| 18 | 단축키 시스템 | ShortcutRegistry, Alt+1~5 네비게이션 | ✅ 완료 |
+| 19 | 알림 시스템 | NotificationManager, TTL, 구독 패턴 | ✅ 완료 |
 
 ---
 
