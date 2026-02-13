@@ -164,6 +164,8 @@ export interface RefactoringOutput {
  * Code Quality Agent Options
  */
 export interface CodeQualityAgentOptions extends Omit<BaseTeamAgentOptions, 'teamType'> {
+  /** Override team type (defaults to 'qa', use 'code-quality' to avoid collision) */
+  teamType?: 'qa' | 'code-quality';
   /** Test generator function (for LLM integration) */
   testGenerator?: (task: TaskDocument) => Promise<TestGenerationOutput>;
   /** Deep reviewer function (for LLM integration) */
@@ -185,7 +187,7 @@ export class CodeQualityAgent extends BaseTeamAgent {
   constructor(options: CodeQualityAgentOptions) {
     super({
       ...options,
-      teamType: 'qa', // Uses QA team type but with extended capabilities
+      teamType: options.teamType ?? 'qa', // Defaults to 'qa'; use 'code-quality' to avoid collision with QAAgent
       config: {
         ...options.config,
         name: options.config?.name || 'Code Quality Team',

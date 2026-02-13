@@ -1,186 +1,140 @@
 # Development Roadmap
 
-> CodeAvengers 개발 로드맵
+> ACA (Autonomous Coding Agents) 개발 로드맵
 
 ---
 
 ## Phase Overview
 
 ```
-Phase 0: Foundation (기반)        ─── ✅ COMPLETED
+Phase 0: Foundation (기반)           ─── ✅ COMPLETED
     ↓
-Phase 1: Core Agents (핵심)       ─── ✅ COMPLETED
+Phase 1: Core Agents (핵심)          ─── ✅ COMPLETED
     ↓
-Phase 2: Workflow (워크플로우)    ─── ✅ COMPLETED
+Phase 2: Workflow (워크플로우)       ─── ✅ COMPLETED
     ↓
-Phase 3: Tools & Hooks (도구)     ─── ✅ COMPLETED
+Phase 3: Tools & Hooks (도구)        ─── ✅ COMPLETED
     ↓
-Phase 4: Advanced Features        ─── ✅ COMPLETED
+Phase 4: Advanced Features           ─── ✅ COMPLETED
     ↓
-Phase 5: Platform (플랫폼)        ─── 📋 PLANNED
+Phase 5: Platform (플랫폼)           ─── ✅ COMPLETED
+    ↓
+Phase A-F: Enhancement Strategy      ─── ✅ COMPLETED
+    ↓
+Phase B: Production Ready            ─── ✅ COMPLETED
+    ↓
+Phase C: Feature Expansion           ─── ✅ COMPLETED
+    ↓
+Phase D: Platform Expansion          ─── 📋 PLANNED
 ```
 
 ---
 
-## Phase 0: Foundation ✅ COMPLETED
+## Phase 0-4: Core Implementation ✅ COMPLETED
 
-> SOLID 원칙 기반의 확장 가능한 코어 구조
-
-| Feature | Description | Status |
-|---------|-------------|--------|
-| Core Interfaces | IAgent, ITool, IHook 등 | ✅ |
-| DI Container | 의존성 주입 컨테이너 | ✅ |
-| Configuration | 환경별 설정 관리 | ✅ |
-| Logger | 구조화된 로깅 | ✅ |
-| Error Handling | 에러 타입 체계 | ✅ |
-| Event System | 이벤트 버스, pub/sub | ✅ |
-| Metrics | 메트릭 수집 기반 | ✅ |
-| Test Infrastructure | Mock/Stub, 픽스처 | ✅ |
-| Token Budget | 토큰 예산 관리 | ✅ |
-| Error Recovery | Retry, Circuit Breaker | ✅ |
+모든 핵심 모듈 구현 완료:
+- Orchestrator, Team Agents, Hooks, Validation, Learning, Context
+- Session, Security, Skills, Deep Worker, Protocols, HUD, Benchmark
+- LLM Clients (Claude/OpenAI/Gemini/Ollama), Model Router, Cost Tracker
+- CLI (run/submit/serve), Error Recovery, Config, Logging
 
 ---
 
-## Phase 1: Core Agents ✅ COMPLETED
+## Phase 5: Platform ✅ COMPLETED
 
-> 핵심 에이전트 구현
-
-| Feature | Description | Status |
-|---------|-------------|--------|
-| Base Agent | 에이전트 기반 클래스 | ✅ |
-| Coder Agent | 코드 생성/수정 | ✅ |
-| Reviewer Agent | 코드 리뷰 | ✅ |
-| Repo Manager | 저장소 관리 | ✅ |
-| Agent Manager | 에이전트 조율 | ✅ |
-| LLM Integration | Claude, OpenAI, Gemini | ✅ |
+| Feature | Status |
+|---------|--------|
+| API Server (standalone entry point) | ✅ |
+| Web Dashboard (React 19 + Vite + Tailwind) | ✅ |
+| Desktop App (Tauri 2 scaffolding) | ✅ |
+| SSE Real-time Updates | ✅ |
+| i18n, Themes, Shortcuts, Notifications | ✅ |
 
 ---
 
-## Phase 2: Workflow ✅ COMPLETED
+## Enhancement Strategy (Phase A-F) ✅ COMPLETED
 
-> 워크플로우 엔진
-
-| Feature | Description | Status |
-|---------|-------------|--------|
-| Workflow Engine | 워크플로우 실행 | ✅ |
-| State Machine | 상태 관리 | ✅ |
-| Step Executor | 스텝 실행 | ✅ |
-| Progress Tracker | 진행률 추적 | ✅ |
-| Rollback Manager | 롤백 관리 | ✅ |
-| Workflow Templates | 템플릿 정의 | ✅ |
+| Phase | Tasks | Description |
+|-------|-------|-------------|
+| A | T1-T3 | Hook Pipeline (GoalVerificationHook, IntegrationFlags) |
+| B | T4-T6 | MCP/LSP/Skill Bridge |
+| C | T7-T9 | Cross-Module Wiring (HookExecutor↔Orchestrator) |
+| D | T10-T12 | Security Hooks (PermissionGuard, PlatformSandbox) |
+| E | T13-T15 | Telemetry/Learning (OTel, FeedbackLoop) |
+| F | T16-T17 | Dashboard/Benchmark (RunnerDataSource) |
 
 ---
 
-## Phase 3: Tools & Hooks ✅ COMPLETED
+## Phase B: Production Ready ✅ COMPLETED
 
-> 도구 및 훅 시스템
+| # | Task | Status | Description |
+|---|------|--------|-------------|
+| B-1 | API 서버 엔트리포인트 | ✅ | `src/api/server.ts`, 미들웨어, Dockerfile |
+| B-2 | API 보안 | ✅ | JWT, API Key, Rate Limit, CORS, Validation |
+| B-3 | 프론트엔드 인증 | ✅ | LoginPage, AuthContext, ProtectedRoute |
+| B-4 | GitHub 실제 연동 | ✅ | GitHubClient, ServiceRegistry 통합 |
+| B-5 | README + CHANGELOG | ✅ | 공개용 문서 |
+| B-6 | 문서 정리 | ✅ | NEXT_STEPS.md 삭제, 문서 현행화 |
+| B-docker | Docker Compose | ✅ | docker-compose.yml, web Dockerfile, nginx |
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| Tool Registry | 도구 등록/관리 | ✅ |
-| LSP Tools | Language Server Protocol | ✅ |
-| AST-Grep | AST 기반 코드 변환 | ✅ |
-| Git Tools | Git 명령어 | ✅ |
-| Shell Tools | Shell 실행 | ✅ |
-| File Tools | 파일 작업 | ✅ |
-| MCP Integration | Model Context Protocol | ✅ |
-| Hook System | 훅 레지스트리 | ✅ |
-| Session Recovery | 세션 복구 훅 | ✅ |
+### API Endpoints
 
----
-
-## Phase 4: Advanced Features ✅ COMPLETED
-
-> 고급 기능 및 최적화
-
-| Feature | Description | Status | Priority |
-|---------|-------------|--------|----------|
-| Team System | 팀 에이전트 리팩토링 | ✅ | P0 |
-| Test Coverage 70% | 테스트 커버리지 향상 | ✅ 77.5% | P1 |
-| CLI LLM Integration | CLI 기반 LLM 연동 | ✅ | P1 |
-| Document Queue | 문서 기반 작업 큐 | ✅ | P1 |
-| Quality Metrics | 실제 품질 측정 | ✅ | P2 |
-| Output Optimizer | 출력 최적화 | ✅ | P2 |
-| CLAUDE.md Parser | 설정 파일 파서 | ✅ | P2 |
-| MCP Config Schema | .mcp.json 스키마 | ✅ | P2 |
-
-### CLI LLM Integration Details
-
-| CLI | Version | Status |
-|-----|---------|--------|
-| claude | 2.1.4+ | ✅ Implemented |
-| codex | 0.76.0+ | ✅ Implemented |
-| gemini | 0.22.5+ | ✅ Implemented |
-| ollama | 0.13.5+ | ✅ Implemented |
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| /api/health | GET | No | 서버 상태 확인 |
+| /api/login | POST | No | JWT 토큰 발행 |
+| /api/auth/refresh | POST | No | 액세스 토큰 갱신 |
+| /api/snapshot | GET | Yes | 대시보드 스냅샷 |
+| /api/agents | GET | Yes | 에이전트 목록 |
+| /api/agents/:id | GET | Yes | 에이전트 상세 |
+| /api/tasks | POST | Yes | 태스크 제출 |
+| /api/sse/clients | GET | Yes | SSE 클라이언트 수 |
 
 ---
 
-## Phase 5: Platform 📋 PLANNED
+## Phase C: Feature Expansion ✅ COMPLETED
 
-> 멀티 플랫폼 지원
+| # | Task | Status | Description |
+|---|------|--------|-------------|
+| C-1 | MCP 도구 실전 연동 | ✅ | MCPConnectionManager (365줄), presets 5종, config 스키마, ServiceRegistry 통합 |
+| C-2 | 병렬 실행 통합 | ✅ | AgentPool↔ParallelExecutor wiring, BackgroundManager→Runner API, 이벤트, config 확장 |
+| C-3 | Evals 모듈 | ✅ | EvalRunner, EvalReporter, 3 definitions |
+| C-4 | LSP 실전 통합 | ✅ | DocumentSync, SymbolCache, LSPConnectionManager, RefactorEngine LSP 연결, presets 5종 |
 
-| Feature | Description | Status | Priority |
-|---------|-------------|--------|----------|
-| API Server | Fastify REST/WS API | ✅ 구현완료 | P0 |
-| Desktop App | Tauri 기반 데스크톱 | ✅ 스캐폴딩 | P3 |
-| Web Dashboard | Vite+React 웹 인터페이스 | ✅ 스캐폴딩 | P3 |
-| Team Collaboration | 팀 협업 기능 | 📋 Planned | P4 |
-| Multi-Project | 멀티 프로젝트 관리 | 📋 Planned | P4 |
-| SaaS Features | 클라우드 서비스 | 📋 Planned | P4 |
+### Phase C API Endpoints
 
-### API Server Details
-
-| Endpoint | Method | Description | Status |
-|----------|--------|-------------|--------|
-| /api/health | GET | 서버 상태 확인 | ✅ |
-| /api/agents | GET/POST | 에이전트 관리 | ✅ |
-| /api/agents/:id | GET/PATCH/DELETE | 에이전트 상세 | ✅ |
-| /api/workflows | GET/POST | 워크플로우 관리 | ✅ |
-| /api/tools | GET/POST | 도구 관리 | ✅ |
-| /api/hooks | GET/POST | 훅 관리 | ✅ |
-| /api/dashboard/stats | GET | 대시보드 통계 | ✅ |
-| /api/projects | GET/POST | 프로젝트 관리 | ✅ |
-| /api/logs | GET | 로그 조회 | ✅ |
-| ws://localhost:3002 | - | WebSocket 실시간 | ✅ |
-
-### 실행 방법
-
-```bash
-# API 서버 시작 (개발 모드)
-npm run dev:api
-
-# 웹 대시보드 시작
-cd web && npm run dev
-
-# 데스크톱 앱 시작
-cd desktop && npm run tauri:dev
-```
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| /api/mcp/servers | GET | Yes | MCP 서버 목록, 도구 수, 연결 상태 |
+| /api/pool/stats | GET | Yes | AgentPool active/available/queued 슬롯 |
 
 ---
 
-## Priority Legend
+## Phase D: Platform Expansion 📋 PLANNED
 
-| Priority | Label | Description |
-|----------|-------|-------------|
-| P0 | 🔴 Critical | 프로젝트 진행 필수 |
-| P1 | 🟠 High | 핵심 기능, 초기 릴리스 필수 |
-| P2 | 🟡 Medium | 중요하지만 지연 가능 |
-| P3 | 🟢 Low | Nice to have |
-| P4 | 🔵 Future | 향후 고려 |
+| # | Task | Description |
+|---|------|-------------|
+| D-1 | 인스틴트 공유 | 팀 간 학습 전이, import/export |
+| D-2 | 팀 협업 | 실시간 협업, 공유 세션 |
+| D-3 | 멀티 프로젝트 | 여러 프로젝트 동시 관리 |
+| D-4 | SaaS 기능 | 멀티 테넌트, 과금 |
+| D-5 | 사용량 분석 | 비용 리포트, 사용 패턴 대시보드 |
 
 ---
 
 ## Success Metrics
 
 ### Technical
-- 문서 → 코드 자동화율: 90%+
-- 코드 리뷰 자동 통과율: 80%+
 - 테스트 커버리지: 70%+ ✅ (현재 77.5%)
-- 빌드 성공률: 95%+
+- 테스트 수: 3,715 (227 suites)
+- TypeScript strict mode: ✅ Clean
+- 코드 조직: SOLID 원칙 + DI 패턴
 
-### Business
-- 개발 시간 단축: 3-5배
-- 버그 감소율: 60%+
+### Operational
+- Docker Compose 단일 명령 배포
+- JWT 기반 인증 + API 키 (CI/CD)
+- Rate limiting + CORS 보안
+- 실시간 모니터링 (HUD + SSE)
 
 ---
 
@@ -188,5 +142,4 @@ cd desktop && npm run tauri:dev
 
 - [Current Status](./STATUS.md) - 현재 진행 상황
 - [Next Tasks](./NEXT_TASKS.md) - 다음 작업 리스트
-- [Reference Guide](./REFERENCE.md) - 외부 참조 가이드
 - [Architecture Overview](../02-architecture/OVERVIEW.md) - 아키텍처 개요

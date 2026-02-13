@@ -12,6 +12,8 @@
     "build": "tsc && chmod +x dist/cli/index.js",
     "start": "node dist/cli/index.js",
     "cli": "tsx src/cli/index.ts",
+    "start:api": "node dist/cli/index.js runner serve",
+    "dev:api": "tsx src/cli/index.ts runner serve",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

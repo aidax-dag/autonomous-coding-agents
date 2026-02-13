@@ -8,9 +8,11 @@ import {
   Settings,
   Activity,
   Keyboard,
+  LogOut,
 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useNavigationShortcuts } from '../hooks/useShortcuts';
+import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import NotificationBell from './NotificationBell';
 import type { UINotification } from './NotificationBell';
@@ -25,6 +27,7 @@ const nav = [
 
 export default function Layout() {
   const { theme, setTheme } = useTheme();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [notifications, setNotifications] = useState<UINotification[]>([]);
@@ -85,6 +88,13 @@ export default function Layout() {
               <Keyboard className="w-3.5 h-3.5" />
             </button>
           </div>
+          <button
+            onClick={() => { logout(); navigate('/login'); }}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <LogOut className="w-3 h-3" />
+            Sign out
+          </button>
           <div className="text-xs text-gray-400">ACA v0.1.0</div>
         </div>
       </aside>

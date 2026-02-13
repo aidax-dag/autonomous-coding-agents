@@ -3,7 +3,9 @@
  */
 
 import { GitWorkflowSkill, createGitWorkflowSkill } from '../../../../src/core/skills/skills/git-workflow-skill';
+import { createGitHubExecutor } from '../../../../src/core/skills/skills/git-workflow-executor';
 import type { SkillContext } from '../../../../src/core/skills/interfaces/skill.interface';
+import type { GitHubClient } from '../../../../src/shared/github/github-client';
 
 const context: SkillContext = { workspaceDir: '/tmp/test' };
 
@@ -83,5 +85,112 @@ describe('GitWorkflowSkill', () => {
     const skill = createGitWorkflowSkill();
     expect(skill).toBeInstanceOf(GitWorkflowSkill);
     expect(skill.name).toBe('git-workflow');
+  });
+});
+
+describe('GitHubExecutor integration', () => {
+  function makeMockGitHubClient(): jest.Mocked<Pick<GitHubClient, 'createPullRequest' | 'getRepository'>> {
+    return {
+      createPullRequest: jest.fn(),
+      getRepository: jest.fn(),
+    };
+  }
+
+  it('should create a PR via GitHubClient', async () => {
+    const mockClient = makeMockGitHubClient();
+    mockClient.createPullRequest.mockResolvedValue({
+      number: 42,
+      title: 'My PR',
+      body: null,
+      state: 'open',
+      htmlUrl: 'https://github.com/owner/repo/pull/42',
+      head: { ref: 'feature', sha: 'abc' },
+      base: { ref: 'main' },
+      draft: false,
+      merged: false,
+      mergeable: true,
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
+    });
+
+    const executor = createGitHubExecutor({
+      githubClient: mockClient as unknown as GitHubClient,
+      owner: 'owner',
+      repo: 'repo',
+    });
+
+    const skill = new GitWorkflowSkill({ executor });
+    const result = await skill.execute(
+      { operation: 'pr', message: 'My PR', branch: 'feature' },
+      context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.output!.artifacts!.number).toBe('42');
+    expect(result.output!.artifacts!.url).toContain('pull/42');
+    expect(mockClient.createPullRequest).toHaveBeenCalledWith('owner', 'repo', {
+      title: 'My PR',
+      head: 'feature',
+      base: 'main',
+    });
+  });
+
+  it('should fetch repo status via GitHubClient', async () => {
+    const mockClient = makeMockGitHubClient();
+    mockClient.getRepository.mockResolvedValue({
+      name: 'repo',
+      fullName: 'owner/repo',
+      description: null,
+      defaultBranch: 'main',
+      private: false,
+      htmlUrl: 'https://github.com/owner/repo',
+    });
+
+    const executor = createGitHubExecutor({
+      githubClient: mockClient as unknown as GitHubClient,
+      owner: 'owner',
+      repo: 'repo',
+    });
+
+    const skill = new GitWorkflowSkill({ executor });
+    const result = await skill.execute({ operation: 'status' }, context);
+
+    expect(result.success).toBe(true);
+    expect(result.output!.details).toContain('owner/repo');
+    expect(result.output!.artifacts!.defaultBranch).toBe('main');
+  });
+
+  it('should handle commit/branch as local operations', async () => {
+    const mockClient = makeMockGitHubClient();
+    const executor = createGitHubExecutor({
+      githubClient: mockClient as unknown as GitHubClient,
+      owner: 'owner',
+      repo: 'repo',
+    });
+
+    const skill = new GitWorkflowSkill({ executor });
+    const result = await skill.execute({ operation: 'commit', message: 'test' }, context);
+
+    expect(result.success).toBe(true);
+    expect(result.output!.operation).toBe('commit');
+    expect(mockClient.createPullRequest).not.toHaveBeenCalled();
+    expect(mockClient.getRepository).not.toHaveBeenCalled();
+  });
+
+  it('should propagate GitHubClient errors', async () => {
+    const mockClient = makeMockGitHubClient();
+    mockClient.createPullRequest.mockRejectedValue(new Error('GitHub API failed'));
+
+    const executor = createGitHubExecutor({
+      githubClient: mockClient as unknown as GitHubClient,
+      owner: 'owner',
+      repo: 'repo',
+    });
+
+    const skill = new GitWorkflowSkill({ executor });
+    const result = await skill.execute({ operation: 'pr', message: 'Fail' }, context);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('GitHub API failed');
   });
 });

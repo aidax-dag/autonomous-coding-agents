@@ -89,6 +89,15 @@ export const RunnerConfigSchema = z.object({
 
   /** Enable OpenTelemetry tracing */
   enableTelemetry: z.boolean().default(false),
+
+  /** Per-provider concurrency limits (e.g. { claude: 3, openai: 5 }) */
+  providerLimits: z.record(z.number().int().positive()).optional(),
+
+  /** Global concurrency cap across all providers */
+  globalMax: z.number().int().positive().optional(),
+
+  /** Enable fire-and-forget goal execution via BackgroundManager */
+  enableBackgroundGoals: z.boolean().default(false),
 });
 
 export type RunnerConfig = z.infer<typeof RunnerConfigSchema>;
@@ -170,6 +179,20 @@ export function loadRunnerConfig(): RunnerConfig {
 
   const telemetry = parseBoolean(env.ENABLE_TELEMETRY);
   if (telemetry !== undefined) raw.enableTelemetry = telemetry;
+
+  if (env.PROVIDER_LIMITS) {
+    try {
+      raw.providerLimits = JSON.parse(env.PROVIDER_LIMITS);
+    } catch {
+      /* ignore malformed JSON */
+    }
+  }
+
+  const globalMax = parseNumber(env.GLOBAL_MAX);
+  if (globalMax !== undefined) raw.globalMax = globalMax;
+
+  const backgroundGoals = parseBoolean(env.ENABLE_BACKGROUND_GOALS);
+  if (backgroundGoals !== undefined) raw.enableBackgroundGoals = backgroundGoals;
 
   return RunnerConfigSchema.parse(raw);
 }

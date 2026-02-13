@@ -15,6 +15,7 @@ import {
 import type { OrchestratorRunner, GoalResult, WorkflowResult } from '@/core/orchestrator/orchestrator-runner';
 import { logger } from '@/shared/logging/logger';
 import type { TeamType } from '@/core/workspace/task-document';
+import { startAPIServer } from '@/api/server';
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
@@ -179,6 +180,43 @@ export function createAutonomousCLI(): Command {
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(chalk.red(`Error loading config: ${msg}`));
+        process.exitCode = 1;
+      }
+    });
+
+  // ========================================================================
+  // serve — start the API server
+  // ========================================================================
+  program
+    .command('serve')
+    .description('Start the web dashboard API server')
+    .option('--port <port>', 'Port to listen on', '3000')
+    .option('--host <host>', 'Host to bind to', 'localhost')
+    .action(async (opts) => {
+      const port = parseInt(opts.port, 10);
+      const host = opts.host as string;
+
+      let shutdownFn: (() => Promise<void>) | null = null;
+      let shuttingDown = false;
+
+      const handleSignal = async () => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        console.log(chalk.dim('\nShutting down...'));
+        if (shutdownFn) await shutdownFn();
+        process.exit(0);
+      };
+
+      process.on('SIGTERM', handleSignal);
+      process.on('SIGINT', handleSignal);
+
+      try {
+        const { shutdown } = await startAPIServer({ port, host });
+        shutdownFn = shutdown;
+        console.log(chalk.green(`API server listening on http://${host}:${port}`));
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(`Failed to start server: ${msg}`));
         process.exitCode = 1;
       }
     });

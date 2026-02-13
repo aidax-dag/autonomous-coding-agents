@@ -15,7 +15,7 @@ import { PlanningPrompts } from './prompt-templates';
 /**
  * Schema for planning output validation
  */
-const PlanningOutputSchema = z.object({
+export const PlanningOutputSchema = z.object({
   title: z.string(),
   summary: z.string(),
   tasks: z.array(

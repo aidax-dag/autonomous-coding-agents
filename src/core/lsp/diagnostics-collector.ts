@@ -3,7 +3,7 @@
  *
  * Collects and manages LSP diagnostics (errors, warnings, info, hints)
  * per file URI. Supports adding diagnostics directly, collecting from
- * external sources, and computing aggregate counts.
+ * external sources, and subscribing to LSP client notifications.
  *
  * @module core/lsp
  */
@@ -11,6 +11,7 @@
 import type {
   Diagnostic,
   IDiagnosticsCollector,
+  ILSPClient,
 } from './interfaces/lsp.interface';
 
 // ============================================================================
@@ -20,6 +21,8 @@ import type {
 export interface DiagnosticsCollectorOptions {
   /** Custom collector function for a single URI */
   uriCollector?: (uri: string) => Promise<Diagnostic[]>;
+  /** LSP client for automatic notification subscription */
+  client?: ILSPClient;
 }
 
 // ============================================================================
@@ -32,6 +35,10 @@ export class DiagnosticsCollector implements IDiagnosticsCollector {
 
   constructor(options?: DiagnosticsCollectorOptions) {
     this.uriCollector = options?.uriCollector ?? null;
+
+    if (options?.client) {
+      this.subscribeToClient(options.client);
+    }
   }
 
   /**
@@ -99,6 +106,22 @@ export class DiagnosticsCollector implements IDiagnosticsCollector {
    */
   getTrackedUris(): string[] {
     return Array.from(this.diagnosticsByUri.keys());
+  }
+
+  // ============================================================================
+  // LSP Client Integration
+  // ============================================================================
+
+  private subscribeToClient(client: ILSPClient): void {
+    client.onNotification((method, params) => {
+      if (method === 'textDocument/publishDiagnostics') {
+        const { uri, diagnostics } = params as {
+          uri: string;
+          diagnostics: Diagnostic[];
+        };
+        this.diagnosticsByUri.set(uri, diagnostics);
+      }
+    });
   }
 }
 

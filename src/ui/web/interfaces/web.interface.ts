@@ -49,8 +49,8 @@ export interface WebServerConfig {
 
 export interface IWebDashboard {
   getServer(): IWebServer;
-  start(): void;
-  stop(): void;
+  start(): Promise<void>;
+  stop(): Promise<void>;
   isRunning(): boolean;
 }
 

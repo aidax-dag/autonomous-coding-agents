@@ -3,12 +3,13 @@
  *
  * Provides symbol resolution capabilities (definitions, references,
  * document symbols, workspace symbols) by delegating to configurable
- * resolver functions.
+ * resolver functions or an LSP client.
  *
  * @module core/lsp
  */
 
 import type {
+  ILSPClient,
   ISymbolResolver,
   Location,
   Position,
@@ -28,6 +29,8 @@ export interface SymbolResolverOptions {
   documentSymbolsResolver?: (uri: string) => Promise<SymbolInfo[]>;
   /** Custom resolver for getWorkspaceSymbols */
   workspaceSymbolsResolver?: (query: string) => Promise<SymbolInfo[]>;
+  /** LSP client for automatic delegation */
+  client?: ILSPClient;
 }
 
 // ============================================================================
@@ -35,32 +38,72 @@ export interface SymbolResolverOptions {
 // ============================================================================
 
 export class SymbolResolver implements ISymbolResolver {
-  private readonly definitionResolver: (uri: string, position: Position) => Promise<Location | null>;
-  private readonly referencesResolver: (uri: string, position: Position) => Promise<Location[]>;
-  private readonly documentSymbolsResolver: (uri: string) => Promise<SymbolInfo[]>;
-  private readonly workspaceSymbolsResolver: (query: string) => Promise<SymbolInfo[]>;
+  private readonly definitionResolver: ((uri: string, position: Position) => Promise<Location | null>) | null;
+  private readonly referencesResolver: ((uri: string, position: Position) => Promise<Location[]>) | null;
+  private readonly documentSymbolsResolver: ((uri: string) => Promise<SymbolInfo[]>) | null;
+  private readonly workspaceSymbolsResolver: ((query: string) => Promise<SymbolInfo[]>) | null;
+  private readonly client: ILSPClient | null;
 
   constructor(options?: SymbolResolverOptions) {
-    this.definitionResolver = options?.definitionResolver ?? (() => Promise.resolve(null));
-    this.referencesResolver = options?.referencesResolver ?? (() => Promise.resolve([]));
-    this.documentSymbolsResolver = options?.documentSymbolsResolver ?? (() => Promise.resolve([]));
-    this.workspaceSymbolsResolver = options?.workspaceSymbolsResolver ?? (() => Promise.resolve([]));
+    this.definitionResolver = options?.definitionResolver ?? null;
+    this.referencesResolver = options?.referencesResolver ?? null;
+    this.documentSymbolsResolver = options?.documentSymbolsResolver ?? null;
+    this.workspaceSymbolsResolver = options?.workspaceSymbolsResolver ?? null;
+    this.client = options?.client ?? null;
   }
 
   async findDefinition(uri: string, position: Position): Promise<Location | null> {
-    return this.definitionResolver(uri, position);
+    if (this.definitionResolver) {
+      return this.definitionResolver(uri, position);
+    }
+    if (this.client) {
+      return this.client.sendRequest<Location | null>('textDocument/definition', {
+        textDocument: { uri },
+        position,
+      });
+    }
+    return null;
   }
 
   async findReferences(uri: string, position: Position): Promise<Location[]> {
-    return this.referencesResolver(uri, position);
+    if (this.referencesResolver) {
+      return this.referencesResolver(uri, position);
+    }
+    if (this.client) {
+      const result = await this.client.sendRequest<Location[] | null>('textDocument/references', {
+        textDocument: { uri },
+        position,
+        context: { includeDeclaration: true },
+      });
+      return result ?? [];
+    }
+    return [];
   }
 
   async getDocumentSymbols(uri: string): Promise<SymbolInfo[]> {
-    return this.documentSymbolsResolver(uri);
+    if (this.documentSymbolsResolver) {
+      return this.documentSymbolsResolver(uri);
+    }
+    if (this.client) {
+      const result = await this.client.sendRequest<SymbolInfo[] | null>('textDocument/documentSymbol', {
+        textDocument: { uri },
+      });
+      return result ?? [];
+    }
+    return [];
   }
 
   async getWorkspaceSymbols(query: string): Promise<SymbolInfo[]> {
-    return this.workspaceSymbolsResolver(query);
+    if (this.workspaceSymbolsResolver) {
+      return this.workspaceSymbolsResolver(query);
+    }
+    if (this.client) {
+      const result = await this.client.sendRequest<SymbolInfo[] | null>('workspace/symbol', {
+        query,
+      });
+      return result ?? [];
+    }
+    return [];
   }
 }
 

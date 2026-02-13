@@ -50,10 +50,12 @@ export interface MCPToolResult {
  */
 export interface MCPServerConfig {
   name: string;
-  transport: 'stdio' | 'sse';
+  transport: 'stdio' | 'sse' | 'http';
   command?: string;
   args?: string[];
   url?: string;
+  /** Extra headers for HTTP/SSE transports */
+  headers?: Record<string, string>;
 }
 
 /**

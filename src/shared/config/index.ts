@@ -103,11 +103,28 @@ const ConfigSchema = z.object({
   mcp: z.object({
     enabled: z.boolean().default(false),
     servers: z.array(z.object({
-      name: z.string(),
-      transport: z.enum(['stdio', 'sse']),
+      name: z.string().min(1),
+      transport: z.enum(['stdio', 'http', 'sse']),
       command: z.string().optional(),
       args: z.array(z.string()).optional(),
       url: z.string().optional(),
+      headers: z.record(z.string()).optional(),
+      env: z.record(z.string()).optional(),
+      enabled: z.boolean().default(true),
+    })).default([]),
+  }).optional(),
+
+  // LSP Configuration (C-4: LSP real integration)
+  lsp: z.object({
+    enabled: z.boolean().default(false),
+    servers: z.array(z.object({
+      name: z.string().min(1),
+      languages: z.array(z.string().min(1)).min(1),
+      command: z.string().min(1),
+      args: z.array(z.string()).optional(),
+      rootUri: z.string().optional(),
+      initializationOptions: z.record(z.unknown()).optional(),
+      enabled: z.boolean().default(true),
     })).default([]),
   }).optional(),
 

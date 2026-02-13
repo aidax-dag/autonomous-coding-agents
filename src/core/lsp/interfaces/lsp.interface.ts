@@ -3,12 +3,65 @@
  * @module core/lsp/interfaces
  */
 
+// ============================================================================
+// JSON-RPC Types
+// ============================================================================
+
+/** JSON-RPC 2.0 message for LSP protocol */
+export interface LspJsonRpcMessage {
+  jsonrpc: '2.0';
+  id?: string | number;
+  method?: string;
+  params?: unknown;
+  result?: unknown;
+  error?: { code: number; message: string; data?: unknown };
+}
+
+// ============================================================================
+// Transport
+// ============================================================================
+
+/** LSP Transport interface (Content-Length framed stdio) */
+export interface ILSPTransport {
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
+  send(message: LspJsonRpcMessage): Promise<void>;
+  onMessage(handler: (message: LspJsonRpcMessage) => void): void;
+  onNotification(handler: (method: string, params: unknown) => void): void;
+  isConnected(): boolean;
+}
+
+// ============================================================================
+// Server Capabilities
+// ============================================================================
+
+/** Server capabilities received from initialize response */
+export interface LSPServerCapabilities {
+  definitionProvider?: boolean;
+  referencesProvider?: boolean;
+  documentSymbolProvider?: boolean;
+  workspaceSymbolProvider?: boolean;
+  renameProvider?: boolean | { prepareProvider?: boolean };
+  textDocumentSync?: number;
+  completionProvider?: { triggerCharacters?: string[] };
+  hoverProvider?: boolean;
+  [key: string]: unknown;
+}
+
+// ============================================================================
+// Server Config
+// ============================================================================
+
 export interface LSPServerConfig {
   language: string;
   command: string;
   args?: string[];
   rootUri?: string;
 }
+
+// ============================================================================
+// LSP Data Types
+// ============================================================================
 
 export interface SymbolInfo {
   name: string;
@@ -61,10 +114,18 @@ export interface RefactorResult {
   error?: string;
 }
 
+// ============================================================================
+// Module Interfaces
+// ============================================================================
+
 export interface ILSPClient {
   connect(config: LSPServerConfig): Promise<void>;
   disconnect(): Promise<void>;
   isConnected(): boolean;
+  sendRequest<T = unknown>(method: string, params?: unknown): Promise<T>;
+  sendNotification(method: string, params?: unknown): Promise<void>;
+  onNotification(handler: (method: string, params: unknown) => void): void;
+  getCapabilities(): LSPServerCapabilities | null;
 }
 
 export interface ISymbolResolver {

@@ -21,6 +21,7 @@ export type {
 
 export { StdioTransport, createStdioTransport } from './mcp-transport/stdio-transport';
 export { SSETransport, createSSETransport } from './mcp-transport/sse-transport';
+export { HttpTransport, createHttpTransport, type HttpTransportOptions } from './mcp-transport/http-transport';
 
 export { MCPClient, createMCPClient } from './mcp-client';
 export { MCPServer, createMCPServer } from './mcp-server';
@@ -29,3 +30,13 @@ export {
   MCPToolSkill,
   createMCPToolRegistry,
 } from './mcp-tool-registry';
+
+export {
+  MCPConnectionManager,
+  createMCPConnectionManager,
+  type MCPConnectionManagerConfig,
+  type MCPServerEntry,
+  type MCPConnectionStatus,
+} from './mcp-connection-manager';
+
+export { MCP_PRESETS, getMCPPreset, listPresets } from './presets/index';

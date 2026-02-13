@@ -6,9 +6,11 @@
  * @module core/orchestrator/parallel-executor
  */
 
+import type { EventEmitter } from 'events';
 import type { TaskDocument } from '../workspace/task-document';
 import type { WorkflowResult } from './orchestrator-runner';
 import type {
+  IAgentPool,
   IParallelExecutor,
   TaskNode,
   TaskGroup,
@@ -22,14 +24,26 @@ import type {
  * Analyzes task dependencies, groups independent tasks, and executes batches
  * using Promise.allSettled for fault isolation.
  */
+
+/** Internal resolved configuration with required scalar fields */
+interface ResolvedParallelConfig {
+  maxConcurrency: number;
+  taskTimeout: number;
+  failFast: boolean;
+  agentPool?: IAgentPool;
+  emitter?: EventEmitter;
+}
+
 export class ParallelExecutor implements IParallelExecutor {
-  private config: Required<ParallelExecutorConfig>;
+  private config: ResolvedParallelConfig;
 
   constructor(config?: ParallelExecutorConfig) {
     this.config = {
       maxConcurrency: config?.maxConcurrency ?? 5,
       taskTimeout: config?.taskTimeout ?? 300000,
       failFast: config?.failFast ?? false,
+      agentPool: config?.agentPool,
+      emitter: config?.emitter,
     };
   }
 
@@ -49,8 +63,20 @@ export class ParallelExecutor implements IParallelExecutor {
     const allResults: WorkflowResult[] = [];
 
     for (const group of groups) {
+      this.config.emitter?.emit('parallel:batch-start', {
+        groupId: group.groupId,
+        taskCount: group.tasks.length,
+      });
+      const batchStart = Date.now();
+
       const batchResults = await this.executeBatch(group.tasks, executor.executeTask);
       allResults.push(...batchResults);
+
+      this.config.emitter?.emit('parallel:batch-complete', {
+        groupId: group.groupId,
+        results: batchResults.length,
+        duration: Date.now() - batchStart,
+      });
 
       if (this.config.failFast && batchResults.some((r) => !r.success)) {
         // Mark remaining tasks as failed
@@ -116,7 +142,23 @@ export class ParallelExecutor implements IParallelExecutor {
     tasks: TaskDocument[],
     executorFn: TaskExecutorFn,
   ): Promise<WorkflowResult[]> {
-    const promises = tasks.map((task) => this.executeWithTimeout(task, executorFn));
+    const promises = tasks.map(async (task) => {
+      const provider = (task.metadata.extra?.['provider'] as string | undefined) ?? 'default';
+      const taskId = task.metadata.id;
+
+      if (this.config.agentPool) {
+        await this.config.agentPool.acquire(provider);
+        this.config.emitter?.emit('pool:acquired', { provider, taskId });
+      }
+      try {
+        return await this.executeWithTimeout(task, executorFn);
+      } finally {
+        if (this.config.agentPool) {
+          this.config.agentPool.release(provider);
+          this.config.emitter?.emit('pool:released', { provider, taskId });
+        }
+      }
+    });
     const settled = await Promise.allSettled(promises);
 
     return settled.map((result, i) => {

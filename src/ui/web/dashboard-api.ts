@@ -8,12 +8,16 @@ import type { IWebServer, WebRequest, WebResponse, SSEBroker } from './interface
 import type { IHUDDashboard } from '@/core/hud';
 import type { IACPMessageBus } from '@/core/protocols';
 import { createACPMessage } from '@/core/protocols';
+import { ServiceRegistry } from '@/core/services/service-registry';
+import type { OrchestratorRunner } from '@/core/orchestrator/orchestrator-runner';
 
 export interface DashboardAPIOptions {
   server: IWebServer;
   dashboard?: IHUDDashboard;
   messageBus?: IACPMessageBus;
   sseBroker?: SSEBroker;
+  /** Optional runner reference for pool/background stats */
+  runner?: OrchestratorRunner;
 }
 
 export class DashboardAPI {
@@ -21,12 +25,14 @@ export class DashboardAPI {
   private readonly dashboard: IHUDDashboard | null;
   private readonly messageBus: IACPMessageBus | null;
   private readonly sseBroker: SSEBroker | null;
+  private readonly runner: OrchestratorRunner | null;
 
   constructor(options: DashboardAPIOptions) {
     this.server = options.server;
     this.dashboard = options.dashboard ?? null;
     this.messageBus = options.messageBus ?? null;
     this.sseBroker = options.sseBroker ?? null;
+    this.runner = options.runner ?? null;
     this.registerRoutes();
   }
 
@@ -37,6 +43,8 @@ export class DashboardAPI {
     this.server.addRoute('GET', '/api/agents/:agentId', this.handleAgentById.bind(this));
     this.server.addRoute('POST', '/api/tasks', this.handleSubmitTask.bind(this));
     this.server.addRoute('GET', '/api/sse/clients', this.handleSSEClients.bind(this));
+    this.server.addRoute('GET', '/api/mcp/servers', this.handleMCPServers.bind(this));
+    this.server.addRoute('GET', '/api/pool/stats', this.handlePoolStats.bind(this));
   }
 
   private async handleHealth(_req: WebRequest): Promise<WebResponse> {
@@ -105,6 +113,36 @@ export class DashboardAPI {
       return { status: 200, body: { clients: 0 } };
     }
     return { status: 200, body: { clients: this.sseBroker.getClientCount() } };
+  }
+
+  private async handleMCPServers(_req: WebRequest): Promise<WebResponse> {
+    const manager = ServiceRegistry.getInstance().getMCPConnectionManager();
+    if (!manager) {
+      return { status: 200, body: { servers: [], enabled: false, totalTools: 0 } };
+    }
+    return {
+      status: 200,
+      body: {
+        enabled: true,
+        servers: manager.getStatus(),
+        totalTools: manager.getAllTools().length,
+      },
+    };
+  }
+
+  private async handlePoolStats(_req: WebRequest): Promise<WebResponse> {
+    const pool = this.runner?.getAgentPool();
+    if (!pool) {
+      return { status: 200, body: { enabled: false } };
+    }
+    return {
+      status: 200,
+      body: {
+        enabled: true,
+        ...pool.stats(),
+        backgroundTasks: this.runner?.getBackgroundTasks()?.length ?? 0,
+      },
+    };
   }
 
   getServer(): IWebServer {

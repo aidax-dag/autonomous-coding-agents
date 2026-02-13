@@ -25,3 +25,4 @@ export { WebServer, createWebServer } from './web-server';
 export { SSEBrokerImpl, createSSEBroker } from './sse-broker';
 export { DashboardAPI, createDashboardAPI, type DashboardAPIOptions } from './dashboard-api';
 export { WebDashboardApp, createWebDashboard, type WebDashboardOptions } from './web-dashboard';
+export { HttpAdapter, createHttpAdapter } from './http-adapter';

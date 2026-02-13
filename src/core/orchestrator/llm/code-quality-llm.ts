@@ -35,7 +35,7 @@ const GeneratedTestCaseSchema = z.object({
 /**
  * Schema for test generation output
  */
-const TestGenerationOutputSchema = z.object({
+export const TestGenerationOutputSchema = z.object({
   summary: z.string(),
   tests: z.array(GeneratedTestCaseSchema),
   totalGenerated: z.number(),
@@ -66,7 +66,7 @@ const CodeReviewFindingSchema = z.object({
 /**
  * Schema for deep review output
  */
-const DeepReviewOutputSchema = z.object({
+export const DeepReviewOutputSchema = z.object({
   summary: z.string(),
   findings: z.array(CodeReviewFindingSchema),
   metrics: z.object({
@@ -114,7 +114,7 @@ const RefactoringSuggestionSchema = z.object({
 /**
  * Schema for refactoring output
  */
-const RefactoringOutputSchema = z.object({
+export const RefactoringOutputSchema = z.object({
   summary: z.string(),
   suggestions: z.array(RefactoringSuggestionSchema),
   technicalDebtScore: z.number(),

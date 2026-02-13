@@ -30,7 +30,11 @@ import { ServiceRegistry } from '../services/service-registry';
 import type { GoalBackwardResult } from '../validation/interfaces/validation.interface';
 import { createAndRegisterAgents } from './agent-factory';
 import { initializeIntegrations } from './integration-setup';
+import { createTeamAgentLLMAdapter } from './llm/team-agent-llm';
 import { ParallelExecutor } from './parallel-executor';
+import { AgentPool } from './agent-pool';
+import { BackgroundManager } from './background-manager';
+import type { BackgroundTaskHandle } from './interfaces/parallel.interface';
 import { OTelProvider, createOTelProvider } from '@/shared/telemetry';
 import { logger } from '@/shared/logging/logger';
 import { AgentError, ErrorCode, wrapError } from '@/shared/errors/custom-errors';
@@ -126,6 +130,12 @@ export interface OrchestratorRunnerConfig {
   parallelConcurrency?: number;
   /** Enable OpenTelemetry tracing (default: false) */
   enableTelemetry?: boolean;
+  /** Per-provider concurrency limits (e.g. { claude: 3, openai: 5 }) */
+  providerLimits?: Record<string, number>;
+  /** Global concurrency cap across all providers */
+  globalMax?: number;
+  /** Enable fire-and-forget goal execution via BackgroundManager (default: false) */
+  enableBackgroundGoals?: boolean;
 }
 
 /**
@@ -144,6 +154,10 @@ export interface RunnerEvents {
   'goal:verification': (goalId: string, result: GoalBackwardResult) => void;
   'context:warning': () => void;
   'context:critical': () => void;
+  'parallel:batch-start': (info: { groupId: string; taskCount: number }) => void;
+  'parallel:batch-complete': (info: { groupId: string; results: number; duration: number }) => void;
+  'pool:acquired': (info: { provider: string; taskId: string }) => void;
+  'pool:released': (info: { provider: string; taskId: string }) => void;
   error: (error: Error) => void;
 }
 
@@ -165,6 +179,8 @@ export class OrchestratorRunner extends EventEmitter {
   private readonly stateManager = new RunnerStateManager();
   private readonly errorEscalator = new ErrorEscalator();
   private readonly parallelExecutor: ParallelExecutor | null;
+  private readonly agentPool: AgentPool | null;
+  private readonly backgroundManager: BackgroundManager;
   private readonly telemetry: OTelProvider | null;
 
   constructor(config: OrchestratorRunnerConfig) {
@@ -194,6 +210,9 @@ export class OrchestratorRunner extends EventEmitter {
       enableParallelExecution: config.enableParallelExecution ?? false,
       parallelConcurrency: config.parallelConcurrency ?? 5,
       enableTelemetry: config.enableTelemetry ?? false,
+      providerLimits: config.providerLimits ?? {},
+      globalMax: config.globalMax ?? 10,
+      enableBackgroundGoals: config.enableBackgroundGoals ?? false,
     };
 
     this.telemetry = this.config.enableTelemetry
@@ -201,9 +220,26 @@ export class OrchestratorRunner extends EventEmitter {
       : null;
     if (this.telemetry) this.telemetry.initialize();
 
-    this.parallelExecutor = this.config.enableParallelExecution
-      ? new ParallelExecutor({ maxConcurrency: this.config.parallelConcurrency })
-      : null;
+    if (this.config.enableParallelExecution) {
+      this.agentPool = new AgentPool({
+        defaultMaxPerProvider: this.config.parallelConcurrency,
+        providerLimits: Object.keys(this.config.providerLimits).length > 0
+          ? this.config.providerLimits
+          : undefined,
+        globalMax: this.config.globalMax,
+      });
+
+      this.parallelExecutor = new ParallelExecutor({
+        maxConcurrency: this.config.parallelConcurrency,
+        agentPool: this.agentPool,
+        emitter: this,
+      });
+    } else {
+      this.agentPool = null;
+      this.parallelExecutor = null;
+    }
+
+    this.backgroundManager = new BackgroundManager();
 
     this.hookRegistry = new HookRegistry();
     this.hookExecutor = new HookExecutor(this.hookRegistry);
@@ -260,6 +296,27 @@ export class OrchestratorRunner extends EventEmitter {
     return this.telemetry;
   }
 
+  /**
+   * Get the agent pool (when enableParallelExecution is true).
+   */
+  getAgentPool(): AgentPool | null {
+    return this.agentPool;
+  }
+
+  /**
+   * Get the background manager for async goal execution.
+   */
+  getBackgroundManager(): BackgroundManager {
+    return this.backgroundManager;
+  }
+
+  /**
+   * Get currently running background tasks.
+   */
+  getBackgroundTasks(): BackgroundTaskHandle[] {
+    return this.backgroundManager.getRunning();
+  }
+
   async start(): Promise<void> {
     if (this.stateManager.getStatus() === RunnerStatus.RUNNING) {
       return;
@@ -287,6 +344,15 @@ export class OrchestratorRunner extends EventEmitter {
         this.orchestrator,
       );
       // Delegate integration module setup
+      // Create a skill-dedicated LLM adapter when LLM is enabled
+      const skillLLMAdapter = this.config.enableLLM
+        ? createTeamAgentLLMAdapter({
+            client: this.config.llmClient,
+            agentRole: 'code-quality',
+            model: this.config.agentModelMap?.['skill'],
+          })
+        : undefined;
+
       await initializeIntegrations(
         {
           enableValidation: this.config.enableValidation,
@@ -300,6 +366,8 @@ export class OrchestratorRunner extends EventEmitter {
           pluginsDir: this.config.pluginsDir,
           enablePlanningContext: this.config.enablePlanningContext,
           useRealQualityTools: this.config.useRealQualityTools,
+          llmAdapter: skillLLMAdapter,
+          projectContext: this.config.projectContext || undefined,
         },
         this.hookRegistry,
         this.config.workspaceDir,
@@ -449,6 +517,34 @@ export class OrchestratorRunner extends EventEmitter {
       this.emit('error', err);
       return goalResult;
     }
+  }
+
+  /**
+   * Execute a goal asynchronously in the background.
+   * Returns a BackgroundTaskHandle for tracking and cancellation.
+   */
+  executeGoalAsync(
+    title: string,
+    description: string,
+    options?: {
+      priority?: TaskPriority;
+      projectId?: string;
+      tags?: string[];
+    },
+  ): BackgroundTaskHandle {
+    return this.backgroundManager.launch(
+      async () => {
+        const goalResult = await this.executeGoal(title, description, options);
+        return {
+          success: goalResult.success,
+          taskId: goalResult.goalId,
+          duration: goalResult.totalDuration,
+          teamType: 'planning' as TeamType,
+          result: goalResult,
+        };
+      },
+      `goal-${Date.now()}`,
+    );
   }
 
   async executeTask(task: TaskDocument): Promise<WorkflowResult> {
@@ -656,6 +752,7 @@ export class OrchestratorRunner extends EventEmitter {
   }
 
   async destroy(): Promise<void> {
+    this.backgroundManager.cancelAll();
     await this.stop();
     await this.orchestrator.destroy();
     if (this.telemetry) this.telemetry.shutdown();

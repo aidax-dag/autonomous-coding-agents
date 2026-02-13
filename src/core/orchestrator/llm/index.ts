@@ -29,6 +29,7 @@ export {
   createPlanningLLMExecutor,
   validatePlanningOutput,
   PlanningLLMExecutorOptions,
+  PlanningOutputSchema,
 } from './planning-llm';
 
 export {
@@ -53,7 +54,59 @@ export {
   validateTestGenerationOutput,
   validateDeepReviewOutput,
   validateRefactoringOutput,
+  TestGenerationOutputSchema,
+  DeepReviewOutputSchema,
+  RefactoringOutputSchema,
   type TestGenerationLLMExecutorOptions,
   type DeepReviewLLMExecutorOptions,
   type RefactoringLLMExecutorOptions,
 } from './code-quality-llm';
+
+// Expanded agent LLM executors
+export {
+  createArchitectureLLMExecutor,
+  createSecurityLLMExecutor,
+  createDebuggingLLMExecutor,
+  createDocumentationLLMExecutor,
+  createExplorationAgentLLMExecutor,
+  createIntegrationLLMExecutor,
+  validateArchitectureOutput,
+  validateSecurityOutput,
+  validateDebuggingOutput,
+  validateDocumentationOutput,
+  validateExplorationOutput,
+  validateIntegrationOutput,
+  ArchitecturePrompts,
+  SecurityPrompts,
+  DebuggingPrompts,
+  DocumentationPrompts,
+  ExplorationPrompts,
+  IntegrationPrompts,
+  type ExpandedAgentLLMExecutorOptions,
+} from './expanded-agents-llm';
+
+// Deep Worker LLM executors
+export {
+  createExplorationLLMExecutor,
+  createSelfPlanningLLMExecutor,
+  validateExplorationResult,
+  validateSelfPlanResult,
+  type DeepWorkerLLMExecutorOptions,
+} from './deep-worker-llm';
+
+// Skill LLM executors
+export {
+  createPlanningSkillLLMExecutor,
+  createCodeReviewSkillLLMExecutor,
+  createTestGenerationSkillLLMExecutor,
+  createRefactoringSkillLLMExecutor,
+  createSecurityScanSkillLLMExecutor,
+  createDebuggingSkillLLMExecutor,
+  createDocumentationSkillLLMExecutor,
+  createPerformanceSkillLLMExecutor,
+  SecurityScanOutputSchema,
+  DebuggingOutputSchema,
+  DocumentationOutputSchema,
+  PerformanceOutputSchema,
+  type SkillLLMExecutorOptions,
+} from './skill-llm';

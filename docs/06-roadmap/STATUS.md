@@ -12,6 +12,7 @@
 
 모든 우선순위(P0 → P1 → New P0 → P2 → New P1 → P3 → New P2 → New P3) 구현 완료.
 Enhancement Strategy 통합 (Phase A-F, T1-T17) 완료.
+Phase B (프로덕션 준비) 구현 완료.
 상세: [IMPLEMENTATION_PRIORITY_LIST.md](../04-planning/IMPLEMENTATION_PRIORITY_LIST.md) v3.1
 
 #### Core Modules (구현 완료)
@@ -27,8 +28,8 @@ Enhancement Strategy 통합 (Phase A-F, T1-T17) 완료.
 | Services | `core/services/` | - | ServiceRegistry (싱글톤 라이프사이클) |
 | Session | `core/session/` | - | JSONL 영속화, SessionManager, Recovery |
 | Security | `core/security/` | 58 | Progressive Sandbox (4레벨), PermissionGuardHook, PlatformSandbox |
-| Evals | `core/evals/` | 0 | ⚠️ Not implemented (referenced only) |
-| Skills | `core/skills/` | 47 | SkillRegistry, SkillPipeline, 4 skills |
+| Evals | `core/evals/` | 25 | EvalRunner, EvalReporter, 3 predefined definitions |
+| Skills | `core/skills/` | 47 | SkillRegistry, SkillPipeline, 6 skills |
 | Deep Worker | `core/deep-worker/` | 36 | PreExploration, SelfPlanning, RetryStrategy, TodoEnforcer |
 | Protocols | `core/protocols/` | 22 | ACPMessageBus |
 | HUD | `core/hud/` | 18 | MetricsCollector, HUDDashboard |
@@ -38,162 +39,130 @@ Enhancement Strategy 통합 (Phase A-F, T1-T17) 완료.
 | Instinct Transfer | `core/instinct-transfer/` | 10 | InstinctTransfer |
 | Dynamic Prompts | `core/dynamic-prompts/` | 12 | PromptRegistry, PromptRenderer |
 | Checkpoint | `core/checkpoint/` | 21 | CheckpointManager |
+| Permission | `core/permission/` | 30+ | TieredPermission, ApprovalWorkflow |
+| Plugin | `core/plugin/` | 20+ | PluginLoader, PluginSandbox (Deno/Docker) |
+| LSP | `core/lsp/` | 119 | LSP Client, DocumentSync, SymbolCache, ConnectionManager, RefactorEngine |
+| OpenTelemetry | `core/telemetry/` | 10+ | OTelExporter, TracingContext |
 
 #### Shared Modules
 | Module | Location | Description |
 |--------|----------|-------------|
 | LLM Clients | `shared/llm/` | ILLMClient, Claude/OpenAI/Gemini + CLI clients |
-| Model Router | `shared/llm/model-router.ts` | ModelRouter + 4개 라우팅 전략 (Capability, Complexity, Cost, Composite) |
+| Model Router | `shared/llm/model-router.ts` | ModelRouter + 4개 라우팅 전략 |
 | Cost Tracker | `shared/llm/cost-tracker.ts` | 비용 추적 |
 | Resilient Client | `shared/llm/resilient-client.ts` | 장애 복구 래퍼 |
 | Config | `shared/config/` | Zod 스키마 검증 |
 | Errors | `shared/errors/` | 커스텀 에러 계층 |
 | Logging | `shared/logging/` | Winston 기반 구조화된 로거 |
+| GitHub | `shared/github/` | GitHubClient (Octokit 래핑) |
+| CI | `shared/ci/` | CIChecker |
 
-#### API & DX
+#### API & Security
 | Module | Location | Description |
 |--------|----------|-------------|
+| API Server | `api/server.ts` | 독립 실행 엔트리포인트 (OrchestratorRunner + HUD + ACP) |
 | API Gateway | `api/gateway.ts` | HTTP ↔ ACP 메시지 브릿지 |
+| JWT Auth | `api/auth/jwt.ts` | HMAC-SHA256 기반 JWT (Node.js crypto) |
+| API Key | `api/auth/api-key.ts` | timing-safe 비교, CI/CD용 |
+| Login Handler | `api/auth/login-handler.ts` | POST /api/login, refresh token |
+| Auth Middleware | `api/middleware/auth.ts` | Bearer JWT + API key 인증 |
+| Rate Limiter | `api/middleware/rate-limit.ts` | IP 기반, 429 + Retry-After |
+| CORS | `api/middleware/cors.ts` | 환경변수 기반 origin 제어 |
+| Validation | `api/middleware/validate.ts` | Zod 스키마 검증 |
+| Error Handler | `api/middleware/error-handler.ts` | 에러 응답 표준화 |
+| Request Logger | `api/middleware/request-logger.ts` | method/path/status/duration 로깅 |
+
+#### Web Dashboard
+| Module | Location | Description |
+|--------|----------|-------------|
+| Web Server | `ui/web/web-server.ts` | 경량 HTTP 라우팅 추상화 |
+| HTTP Adapter | `ui/web/http-adapter.ts` | Node.js http ↔ WebServer 브릿지 |
+| Dashboard API | `ui/web/dashboard-api.ts` | REST 엔드포인트 (/health, /snapshot, /agents, /tasks, /mcp/servers, /pool/stats) |
+| SSE Broker | `ui/web/sse-broker.ts` | Server-Sent Events 실시간 스트리밍 |
+| React Frontend | `web/src/` | React 19 + Vite + Tailwind + React Query |
+| Auth Context | `web/src/contexts/AuthContext.tsx` | JWT 토큰 관리, 로그인/로그아웃 |
+| Protected Route | `web/src/components/ProtectedRoute.tsx` | 미인증 시 리다이렉트 |
+| Login Page | `web/src/pages/LoginPage.tsx` | 이메일/패스워드 로그인 폼 |
+
+#### DX
+| Module | Location | Description |
+|--------|----------|-------------|
 | Error Recovery | `dx/error-recovery/` | Retry, CircuitBreaker, Fallback, Timeout |
-
-#### Enhancement Strategy Integration (Phase A-F)
-| Module | Location | Tests | Description |
-|--------|----------|-------|-------------|
-| Hook Pipeline | `core/hooks/` | T1-T3 | GoalVerificationHook, IntegrationFlags, integration-setup |
-| MCP/LSP/Skill Bridge | `core/protocols/`, `core/skills/` | T4-T6 | MCPBridge, LSPBridge, SkillPipelineEnhancer |
-| Cross-Module Wiring | `core/orchestrator/` | T7-T9 | HookExecutor↔Orchestrator, Skill↔Agent, ContextOptimizer |
-| Security Hooks | `core/security/` | T10-T12 | PermissionGuardHook, PlatformSandbox, SecurityHookChain |
-| Telemetry/Learning | `core/hud/`, `core/learning/` | T13-T15 | OTelExporter, LearningFeedbackLoop, XMLReportFormatter |
-| Dashboard/Benchmark | `core/orchestrator/`, `core/benchmark/` | T16-T17 | RunnerDataSource, OrchestratorTaskExecutor |
-
-#### Integration Tests
-| Test File | Tests | Description |
-|-----------|-------|-------------|
-| module-cross-wiring.test.ts | 23 | ServiceRegistry + Hooks + Skills + ACP |
-| e2e-scenarios.test.ts | 20 | 전체 에이전트 워크플로우 |
-| orchestrator-runner.test.ts | 51 | Orchestrator 전체 라이프사이클 |
-| orchestrator-integration.test.ts | 11 | 팀 에이전트 통합 |
-| module-integration-phase-a.test.ts | 15 | Hook Pipeline 통합 (Phase A) |
-| module-integration-phase-b.test.ts | 30+ | Phase B-F 모듈 통합 |
-| routing-integration.test.ts | 5 | 멀티모델 라우팅 통합 |
 
 ---
 
 ## 2. Test Coverage
 
 ```
-Total Tests: 3,304
-Test Suites: 200
+Total Tests: 3,715
+Test Suites: 227
 Type Check: ✅ Clean (npx tsc --noEmit)
-Test Runner: Jest
+Test Runner: Jest + ts-jest
 ```
 
 ---
 
-## 3. Codebase Statistics
+## 3. Recent Changes
 
-| Directory | Purpose |
-|-----------|---------|
-| src/core/ | 핵심 도메인 (21개 모듈) + Enhancement Strategy 통합 |
-| src/api/ | API Gateway |
-| src/cli/ | CLI 인터페이스 |
-| src/dx/ | 개발자 경험 (에러 복구) |
-| src/shared/ | 공유 유틸리티 (LLM, Config, Errors, Logging) |
-| tests/ | 테스트 스위트 |
-| docs/ | 문서 |
+### 2026-02-13 (Phase C: 기능 확장)
+- ✅ **C-1**: MCP 도구 실전 연동 — MCPConnectionManager (365줄), presets 5종, config 스키마, ServiceRegistry 통합, Dashboard API (`/api/mcp/servers`)
+- ✅ **C-2**: 병렬 실행 통합 — AgentPool↔ParallelExecutor wiring, BackgroundManager→Runner API (`executeGoalAsync()`), 병렬 이벤트, config 확장 (providerLimits, globalMax, enableBackgroundGoals), Dashboard API (`/api/pool/stats`)
+- ✅ **C-4**: LSP 실전 통합 — DocumentSync (didOpen/didChange/didClose/didSave), SymbolCache (TTL+LRU), LSPConnectionManager (다중 서버), RefactorEngine LSP 실연결, LSP presets 5종, config 스키마, ServiceRegistry 통합
+- 테스트 수: 3,608 → 3,715 (+107 tests), 테스트 스위트: 222 → 227
 
-**Note**: `src/agents/` 디렉토리는 삭제됨. 모든 에이전트는 `src/core/orchestrator/agents/`에 통합.
-**Note**: `AgentType` enum은 완전 제거됨. 팀 기반 아키텍처(`TeamType`)로 전환.
+### 2026-02-13 (Phase B: 프로덕션 준비)
+- ✅ **B-1**: API 서버 엔트리포인트 (`src/api/server.ts`) — OrchestratorRunner+HUD+ACP 전체 스택 초기화
+- ✅ **B-1**: 요청 로깅/에러 핸들러 미들웨어
+- ✅ **B-1**: Dockerfile CMD 수정
+- ✅ **B-2**: JWT 토큰 서비스 (Node.js crypto, HMAC-SHA256)
+- ✅ **B-2**: API 키 인증, 인증 미들웨어, Rate limiter, CORS, 입력 검증
+- ✅ **B-3**: 프론트엔드 인증 (LoginPage, AuthContext, ProtectedRoute, 토큰 주입)
+- ✅ **B-3**: 백엔드 로그인 엔드포인트 (POST /api/login, POST /api/auth/refresh)
+- ✅ **B-4**: GitHub 실제 연동 (GitHubClient, ServiceRegistry 통합, executor)
+- ✅ **C-3**: Evals 모듈 구현 (EvalRunner, EvalReporter, 3 predefined definitions)
+- ✅ **B-docker**: Docker Compose 구성
+- ✅ **B-5**: README + CHANGELOG
+- ✅ **B-6**: 문서 정리 — NEXT_STEPS.md 삭제, STATUS.md/ROADMAP.md 현행화
+- 테스트 수: 3,304 → 3,608 (+304 tests), 테스트 스위트: 200 → 222
 
----
-
-## 4. Recent Changes
-
-### 2026-02-13
-- ✅ **Enhancement Strategy 전체 통합 완료** (Phase A-F, T1-T17)
-- ✅ P0 멀티모델 라우팅 에이전트 연동 (ModelRouter ↔ AgentFactory)
-- ✅ Phase A: Hook Pipeline 통합 (T1-T3: GoalVerificationHook, IntegrationFlags, integration-setup)
-- ✅ Phase B: MCP/LSP/Skill Bridge 통합 (T4-T6)
-- ✅ Phase C: Cross-Module Wiring (T7-T9: HookExecutor↔Orchestrator, Skill↔Agent, ContextOptimizer)
-- ✅ Phase D: Security Hooks (T10-T12: PermissionGuardHook, PlatformSandbox, SecurityHookChain)
-- ✅ Phase E: Telemetry/Learning (T13-T15: OTelExporter, LearningFeedbackLoop, XMLReportFormatter)
-- ✅ Phase F: Dashboard/Benchmark (T16-T17: RunnerDataSource, OrchestratorTaskExecutor)
-- ✅ 테스트 수: 2,374 → 3,228 (+854 tests), 테스트 스위트: 97 → 193
-- ✅ CLI 실행 경로 테스트 추가 (run/submit/lifecycle, 14 tests)
-- ✅ E2E 전체 파이프라인 테스트 추가 (Runner→ACP→UI, 13 tests)
-- ✅ CI/CD e2e 스테이지 추가, .env.production 환경 설정
-- ✅ P2 에러 핸들링 강화: hook 에러 로깅, GoalResult.error 필드, AgentError 적용
-- ✅ P2 로깅 개선: LLM 클라이언트 에러 로깅, createModuleLogger/createCorrelatedLogger
-- ✅ P2 API 문서화: OpenAPI 3.0 스펙 생성 (docs/api/openapi.yaml)
-- ✅ 테스트 수: 3,241 → 3,259 (+18 tests), 테스트 스위트: 194 → 196
-- ✅ P2 성능 최적화: Set기반 필터링, 배치 병렬처리, 슬라이딩 윈도우
-- ✅ P2 사용자 가이드: USER_GUIDE.md (설치/설정/사용 종합)
-- ✅ 테스트 수: 3,259 → 3,267 (+8 tests), 테스트 스위트: 196 → 197
+### 2026-02-13 (이전 세션)
+- ✅ Enhancement Strategy 전체 통합 완료 (Phase A-F, T1-T17)
 - ✅ P1 Web Dashboard: Vite+React+Tailwind+React Query (5 pages, SSE, API client)
-- ✅ P1 Desktop App: Tauri 2 + Rust IPC (health, snapshot, agents, submit_task)
-- ✅ P3 i18n: I18n 모듈 (en/ko), 파라미터 보간, 런타임 로케일 전환
-- ✅ P3 테마: 다크/라이트/시스템 모드, localStorage 영속화, ThemeToggle
-- ✅ P3 단축키: ShortcutRegistry, Alt+1~5 네비게이션, 단축키 모달
-- ✅ P3 알림: NotificationManager, TTL 자동해제, 구독 패턴, NotificationBell
-- ✅ 테스트 수: 3,267 → 3,304 (+37 tests), 테스트 스위트: 197 → 200
-- ✅ STATUS.md 현행화
+- ✅ P1 Desktop App: Tauri 2 + Rust IPC
+- ✅ P3 i18n, 테마, 단축키, 알림
 
 ### 2026-02-12
-- ✅ F010-F020 모듈 스펙 문서 작성 (11개 신규 모듈)
-- ✅ 스텁 테스트 강화 (+19 tests: pre-exploration, self-planning, hooks)
-- ✅ 미사용 변수 정리 (context-optimizer.hook.test.ts)
+- ✅ F010-F020 모듈 스펙 문서 작성
 
 ### 2026-02-11
-- ✅ **전체 구현 완료** (P0 → New P3)
-- ✅ Integration cross-wiring tests (23 tests)
-- ✅ E2E scenario tests (20 tests)
-- ✅ Flaky ENOENT test fix (document-queue.ts stopped flag)
-- ✅ Learning module circular dependency fix (learning-utils.ts 분리)
-- ✅ Import style 통일 (.js 확장자 제거)
-- ✅ 중복 테스트 통합 (code-quality-agent.test.ts)
-- ✅ SYSTEM_DESIGN.md 현행화
-
-### 2026-01-24
-- ✅ P5 Platform 착수 (API 서버, 대시보드)
-- ✅ Documentation update
+- ✅ 전체 구현 완료 (P0 → New P3)
+- ✅ Integration cross-wiring tests
 
 ---
 
-## 5. Known Issues
+## 4. Known Issues
 
 | Issue | Severity | Status |
 |-------|----------|--------|
 | Worker leak warning in Jest | Low | Cosmetic (테스트 결과 무영향) |
-| 11개 신규 모듈 스펙 문서 부재 (F010-F020) | Medium | ✅ 문서화 완료 (docs/05-specifications/v2/) |
-| `src/core/evals/` 모듈 미존재 | Low | MEMORY.md 참조만 존재, 코드 미구현 |
 
 ---
 
-## 6. Phase Status
+## 5. Phase Status
 
 | Phase | Status | Completion |
 |-------|--------|------------|
-| P0: Foundation (Validation, Learning, Context) | ✅ COMPLETED | 100% |
-| P1: Integration Sprint | ✅ COMPLETED | 100% |
-| New P0: Evals, Tiered Routing | ✅ COMPLETED | 100% |
-| P2: Session, Security, Thin Orchestrator | ✅ COMPLETED | 100% |
-| New P1: Agent Consolidation | ✅ COMPLETED | 100% |
-| P3: Quality Pipeline | ✅ COMPLETED | 100% |
-| New P2: Skills, Deep Worker, ACP + API | ✅ COMPLETED | 100% |
-| New P3: HUD, Benchmark, Docs, Brownfield, Instinct, Prompts, Checkpoint | ✅ COMPLETED | 100% |
-| P0 Multi-Model Routing: Agent 연동 | ✅ COMPLETED | 100% |
-| Enhancement Strategy Phase A: Hook Pipeline (T1-T3) | ✅ COMPLETED | 100% |
-| Enhancement Strategy Phase B: MCP/LSP/Skill Bridge (T4-T6) | ✅ COMPLETED | 100% |
-| Enhancement Strategy Phase C: Cross-Module Wiring (T7-T9) | ✅ COMPLETED | 100% |
-| Enhancement Strategy Phase D: Security Hooks (T10-T12) | ✅ COMPLETED | 100% |
-| Enhancement Strategy Phase E: Telemetry/Learning (T13-T15) | ✅ COMPLETED | 100% |
-| Enhancement Strategy Phase F: Dashboard/Benchmark (T16-T17) | ✅ COMPLETED | 100% |
+| P0-P3, New P0-New P3: 핵심 모듈 구현 | ✅ COMPLETED | 100% |
+| Enhancement Strategy Phase A-F (T1-T17) | ✅ COMPLETED | 100% |
+| Phase B: 프로덕션 준비 (B-1 ~ B-6) | ✅ COMPLETED | 100% |
+| Phase C: 기능 확장 (C-1 ~ C-4) | ✅ COMPLETED | 100% |
+| Phase D: 플랫폼 확장 | 📋 PLANNED | 0% |
 
 ---
 
-## 7. Related Documents
+## 6. Related Documents
 
-- [Implementation Priority List](../04-planning/IMPLEMENTATION_PRIORITY_LIST.md) - 구현 우선순위 (v3.1, 최신)
+- [Implementation Priority List](../04-planning/IMPLEMENTATION_PRIORITY_LIST.md) - 구현 우선순위 (v3.1)
 - [Next Tasks](./NEXT_TASKS.md) - 다음 작업 리스트
 - [Roadmap](./ROADMAP.md) - 개발 로드맵
 - [Architecture Overview](../02-architecture/OVERVIEW.md) - 아키텍처 개요

@@ -36,8 +36,18 @@ import { PermissionManager, createPermissionManager } from '../permission/permis
 import type { PermissionManagerOptions } from '../permission/permission-manager';
 import { MCPClient, createMCPClient } from '../mcp/mcp-client';
 import { MCPToolRegistry, createMCPToolRegistry } from '../mcp/mcp-tool-registry';
+import {
+  MCPConnectionManager,
+  createMCPConnectionManager,
+  type MCPServerEntry,
+} from '../mcp/mcp-connection-manager';
 import { LSPClient, createLSPClient } from '../lsp/lsp-client';
 import { DiagnosticsCollector, createDiagnosticsCollector } from '../lsp/diagnostics-collector';
+import {
+  LSPConnectionManager,
+  createLSPConnectionManager,
+  type LSPServerEntry as LSPServerEntryType,
+} from '../lsp/lsp-connection-manager';
 import { SkillRegistry, createSkillRegistry } from '../skills/skill-registry';
 import { PluginLoader, createPluginLoader } from '../plugins/plugin-loader';
 import { PluginRegistry, createPluginRegistry } from '../plugins/plugin-registry';
@@ -45,6 +55,7 @@ import { PluginLifecycle, createPluginLifecycle } from '../plugins/plugin-lifecy
 import { StateTracker, createStateTracker } from '../context/planning-context/state-tracker';
 import { PhaseManager, createPhaseManager } from '../context/planning-context/phase-manager';
 import { ContextBudget, createContextBudget } from '../context/planning-context/context-budget';
+import { GitHubClient, createGitHubClient } from '../../shared/github/github-client';
 import { mkdir } from 'fs/promises';
 
 /**
@@ -79,14 +90,22 @@ export interface ServiceRegistryConfig {
   planningDir?: string;
   /** Enable MCP integration (default: false) */
   enableMCP?: boolean;
+  /** MCP server configurations for multi-server connection management */
+  mcpServers?: MCPServerEntry[];
   /** Enable LSP integration (default: false) */
   enableLSP?: boolean;
+  /** LSP server configurations for multi-server connection management */
+  lspServers?: LSPServerEntryType[];
   /** Enable skills registry (default: false, auto-enabled with enableMCP or enableLSP) */
   enableSkills?: boolean;
   /** Enable plugin system (default: false) */
   enablePlugins?: boolean;
   /** Directory for plugin discovery (default: 'plugins') */
   pluginsDir?: string;
+  /** Enable GitHub integration (default: false) */
+  enableGitHub?: boolean;
+  /** GitHub personal access token */
+  githubToken?: string;
 }
 
 /**
@@ -110,8 +129,10 @@ export class ServiceRegistry {
   private permissionManager: PermissionManager | null = null;
   private mcpClient: MCPClient | null = null;
   private mcpToolRegistry: MCPToolRegistry | null = null;
+  private mcpConnectionManager: MCPConnectionManager | null = null;
   private lspClient: LSPClient | null = null;
   private diagnosticsCollector: DiagnosticsCollector | null = null;
+  private lspConnectionManager: LSPConnectionManager | null = null;
   private skillRegistry: SkillRegistry | null = null;
   private pluginLoader: PluginLoader | null = null;
   private pluginRegistry: PluginRegistry | null = null;
@@ -119,6 +140,7 @@ export class ServiceRegistry {
   private stateTracker: StateTracker | null = null;
   private phaseManager: PhaseManager | null = null;
   private contextBudget: ContextBudget | null = null;
+  private githubClient: GitHubClient | null = null;
   private _initialized = false;
 
   private constructor() {}
@@ -253,21 +275,62 @@ export class ServiceRegistry {
       }
     }
 
-    // MCP module (synchronous initialization — connection is deferred)
+    // MCP module (async initialization — connects to configured servers)
     if (config.enableMCP) {
       try {
-        this.mcpClient = createMCPClient();
         this.mcpToolRegistry = createMCPToolRegistry();
+
+        const servers = config.mcpServers ?? [];
+        if (servers.length > 0) {
+          this.mcpConnectionManager = createMCPConnectionManager({ servers });
+          await this.mcpConnectionManager.connectAll();
+
+          // Register discovered tools as skills via the tool registry
+          for (const entry of servers) {
+            const client = this.mcpConnectionManager.getClient(entry.name);
+            const tools = this.mcpConnectionManager.getServerTools(entry.name);
+            if (client && tools.length > 0 && this.mcpToolRegistry) {
+              this.mcpToolRegistry.registerAsSkills(tools, client);
+            }
+          }
+
+          // Backward compatibility: set mcpClient to the first connected server's client
+          const firstConnected = servers.find(
+            (s) => this.mcpConnectionManager?.getClient(s.name)?.isConnected(),
+          );
+          if (firstConnected) {
+            this.mcpClient = this.mcpConnectionManager.getClient(firstConnected.name);
+          }
+        } else {
+          // No servers configured — create a standalone client for backward compatibility
+          this.mcpClient = createMCPClient();
+        }
       } catch {
         /* module init failed - continue */
       }
     }
 
-    // LSP module (synchronous initialization — connection is deferred)
+    // LSP module (async initialization — connects to configured servers)
     if (config.enableLSP) {
       try {
-        this.lspClient = createLSPClient();
         this.diagnosticsCollector = createDiagnosticsCollector();
+
+        const lspServers = config.lspServers ?? [];
+        if (lspServers.length > 0) {
+          this.lspConnectionManager = createLSPConnectionManager({ servers: lspServers });
+          await this.lspConnectionManager.connectAll();
+
+          // Backward compatibility: set lspClient to the first connected server's client
+          const firstConnected = lspServers.find(
+            (s) => this.lspConnectionManager?.getClient(s.name),
+          );
+          if (firstConnected) {
+            this.lspClient = this.lspConnectionManager.getClient(firstConnected.name);
+          }
+        } else {
+          // No servers configured — create a standalone client for backward compatibility
+          this.lspClient = createLSPClient();
+        }
       } catch {
         /* module init failed - continue */
       }
@@ -310,6 +373,15 @@ export class ServiceRegistry {
       }
     }
 
+    // GitHub module (synchronous initialization)
+    if (config.enableGitHub && config.githubToken) {
+      try {
+        this.githubClient = createGitHubClient(config.githubToken);
+      } catch {
+        /* module init failed - continue */
+      }
+    }
+
     this._initialized = true;
   }
 
@@ -342,8 +414,18 @@ export class ServiceRegistry {
     }
 
     try {
-      if (this.mcpClient?.isConnected()) {
+      if (this.mcpConnectionManager) {
+        await this.mcpConnectionManager.disconnectAll();
+      } else if (this.mcpClient?.isConnected()) {
         await this.mcpClient.disconnect();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
+      if (this.lspConnectionManager) {
+        await this.lspConnectionManager.disconnectAll();
       }
     } catch {
       /* dispose error ignored */
@@ -361,8 +443,10 @@ export class ServiceRegistry {
     this.permissionManager = null;
     this.mcpClient = null;
     this.mcpToolRegistry = null;
+    this.mcpConnectionManager = null;
     this.lspClient = null;
     this.diagnosticsCollector = null;
+    this.lspConnectionManager = null;
     this.skillRegistry = null;
     this.pluginLoader = null;
     this.pluginRegistry = null;
@@ -370,6 +454,7 @@ export class ServiceRegistry {
     this.stateTracker = null;
     this.phaseManager = null;
     this.contextBudget = null;
+    this.githubClient = null;
     this._initialized = false;
   }
 
@@ -426,12 +511,20 @@ export class ServiceRegistry {
     return this.mcpToolRegistry;
   }
 
+  getMCPConnectionManager(): MCPConnectionManager | null {
+    return this.mcpConnectionManager;
+  }
+
   getLSPClient(): LSPClient | null {
     return this.lspClient;
   }
 
   getDiagnosticsCollector(): DiagnosticsCollector | null {
     return this.diagnosticsCollector;
+  }
+
+  getLSPConnectionManager(): LSPConnectionManager | null {
+    return this.lspConnectionManager;
   }
 
   getSkillRegistry(): SkillRegistry | null {
@@ -460,5 +553,9 @@ export class ServiceRegistry {
 
   getContextBudget(): ContextBudget | null {
     return this.contextBudget;
+  }
+
+  getGitHubClient(): GitHubClient | null {
+    return this.githubClient;
   }
 }

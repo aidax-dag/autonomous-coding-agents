@@ -46,12 +46,13 @@ describe('createAutonomousCLI', () => {
       expect(cli.name()).toBe('runner');
     });
 
-    it('should have 3 subcommands: run, submit, config', () => {
+    it('should have 4 subcommands: run, submit, config, serve', () => {
       const commands = cli.commands.map((c) => c.name());
       expect(commands).toContain('run');
       expect(commands).toContain('submit');
       expect(commands).toContain('config');
-      expect(commands).toHaveLength(3);
+      expect(commands).toContain('serve');
+      expect(commands).toHaveLength(4);
     });
   });
 

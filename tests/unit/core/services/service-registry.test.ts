@@ -4,6 +4,25 @@
 
 import { ServiceRegistry } from '../../../../src/core/services/service-registry';
 
+jest.mock('octokit', () => ({
+  Octokit: jest.fn().mockImplementation(() => ({
+    rest: {
+      pulls: {},
+      issues: {},
+      repos: {},
+    },
+  })),
+}));
+
+jest.mock('../../../../src/shared/logging/logger', () => ({
+  createAgentLogger: () => ({
+    info: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  }),
+}));
+
 describe('ServiceRegistry', () => {
   afterEach(async () => {
     try {
@@ -122,6 +141,40 @@ describe('ServiceRegistry', () => {
       expect(registry.getContextManager()).toBeNull();
       // Validation should be present
       expect(registry.getConfidenceChecker()).not.toBeNull();
+    });
+
+    it('should return null for GitHub client before initialization', () => {
+      const registry = ServiceRegistry.getInstance();
+      expect(registry.getGitHubClient()).toBeNull();
+    });
+  });
+
+  describe('GitHub module', () => {
+    it('should initialize GitHub client when enabled with token', async () => {
+      const registry = ServiceRegistry.getInstance();
+      await registry.initialize({ enableGitHub: true, githubToken: 'ghp_test' });
+      expect(registry.getGitHubClient()).not.toBeNull();
+    });
+
+    it('should not initialize GitHub client when enabled without token', async () => {
+      const registry = ServiceRegistry.getInstance();
+      await registry.initialize({ enableGitHub: true });
+      expect(registry.getGitHubClient()).toBeNull();
+    });
+
+    it('should not initialize GitHub client when disabled', async () => {
+      const registry = ServiceRegistry.getInstance();
+      await registry.initialize({ enableGitHub: false, githubToken: 'ghp_test' });
+      expect(registry.getGitHubClient()).toBeNull();
+    });
+
+    it('should clean up GitHub client on dispose', async () => {
+      const registry = ServiceRegistry.getInstance();
+      await registry.initialize({ enableGitHub: true, githubToken: 'ghp_test' });
+      expect(registry.getGitHubClient()).not.toBeNull();
+
+      await registry.dispose();
+      expect(registry.getGitHubClient()).toBeNull();
     });
   });
 });

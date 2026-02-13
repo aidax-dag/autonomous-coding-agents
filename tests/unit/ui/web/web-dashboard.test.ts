@@ -10,6 +10,16 @@ import { WebServer } from '@/ui/web/web-server';
 import { DashboardAPI } from '@/ui/web/dashboard-api';
 import type { IACPMessageBus, ACPMessage, ACPMessageType, ACPHandler, ACPSubscription } from '@/core/protocols';
 
+// Mock HttpAdapter to avoid real port binding in unit tests
+jest.mock('@/ui/web/http-adapter', () => {
+  return {
+    HttpAdapter: jest.fn().mockImplementation(() => ({
+      listen: jest.fn().mockResolvedValue(undefined),
+      close: jest.fn().mockResolvedValue(undefined),
+    })),
+  };
+});
+
 function createMockBus(): IACPMessageBus & { fireAgentStatus: (payload: unknown) => Promise<void> } {
   const handlers = new Map<string, ACPHandler[]>();
 
@@ -54,52 +64,52 @@ function createMockBus(): IACPMessageBus & { fireAgentStatus: (payload: unknown)
 
 describe('WebDashboardApp', () => {
   describe('start / stop lifecycle', () => {
-    it('should create, start, and stop successfully', () => {
+    it('should create, start, and stop successfully', async () => {
       const app = new WebDashboardApp();
       expect(app.isRunning()).toBe(false);
 
-      app.start();
+      await app.start();
       expect(app.isRunning()).toBe(true);
 
-      app.stop();
+      await app.stop();
       expect(app.isRunning()).toBe(false);
     });
 
-    it('should be idempotent for multiple start/stop calls', () => {
+    it('should be idempotent for multiple start/stop calls', async () => {
       const app = new WebDashboardApp();
 
-      app.start();
-      app.start(); // second start should be no-op
+      await app.start();
+      await app.start(); // second start should be no-op
       expect(app.isRunning()).toBe(true);
 
-      app.stop();
-      app.stop(); // second stop should be no-op
+      await app.stop();
+      await app.stop(); // second stop should be no-op
       expect(app.isRunning()).toBe(false);
     });
   });
 
   describe('ACP subscription', () => {
-    it('should subscribe to agent:status on start', () => {
+    it('should subscribe to agent:status on start', async () => {
       const bus = createMockBus();
       const app = new WebDashboardApp({ messageBus: bus });
 
-      app.start();
+      await app.start();
       expect(bus.on).toHaveBeenCalledWith('agent:status', expect.any(Function));
 
-      app.stop();
+      await app.stop();
     });
 
-    it('should unsubscribe on stop', () => {
+    it('should unsubscribe on stop', async () => {
       const bus = createMockBus();
       const app = new WebDashboardApp({ messageBus: bus });
 
-      app.start();
+      await app.start();
 
       // Get the subscription's unsubscribe mock
       const onCall = (bus.on as jest.Mock).mock.results[0];
       const subscription = onCall.value as ACPSubscription;
 
-      app.stop();
+      await app.stop();
       expect(subscription.unsubscribe).toHaveBeenCalled();
     });
 
@@ -111,14 +121,14 @@ describe('WebDashboardApp', () => {
       // Spy on broadcast
       const broadcastSpy = jest.spyOn(sseBroker as any, 'broadcast');
 
-      app.start();
+      await app.start();
 
       // Simulate agent:status event through the message bus
       await bus.fireAgentStatus({ agentId: 'a1', status: 'busy' });
 
       expect(broadcastSpy).toHaveBeenCalledWith('agent:status', { agentId: 'a1', status: 'busy' });
 
-      app.stop();
+      await app.stop();
     });
   });
 

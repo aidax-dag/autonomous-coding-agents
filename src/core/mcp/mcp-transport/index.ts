@@ -6,3 +6,4 @@
 
 export { StdioTransport, createStdioTransport } from './stdio-transport';
 export { SSETransport, createSSETransport } from './sse-transport';
+export { HttpTransport, createHttpTransport, type HttpTransportOptions } from './http-transport';

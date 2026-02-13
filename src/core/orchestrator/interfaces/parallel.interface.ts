@@ -6,6 +6,7 @@
  * @module core/orchestrator/interfaces/parallel
  */
 
+import type { EventEmitter } from 'events';
 import type { TaskDocument } from '../../workspace/task-document';
 import type { WorkflowResult } from '../orchestrator-runner';
 
@@ -37,6 +38,10 @@ export interface ParallelExecutorConfig {
   taskTimeout?: number;
   /** Whether to fail fast on first error */
   failFast?: boolean;
+  /** Optional agent pool for provider-level concurrency control */
+  agentPool?: IAgentPool;
+  /** Optional event emitter for parallel execution monitoring */
+  emitter?: EventEmitter;
 }
 
 /**

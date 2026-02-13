@@ -43,6 +43,17 @@ import {
   createDatabaseSkill,
   createCicdSkill,
 } from '../skills/skills';
+import type { TeamAgentLLMAdapter } from './llm/team-agent-llm';
+import {
+  createPlanningSkillLLMExecutor,
+  createCodeReviewSkillLLMExecutor,
+  createTestGenerationSkillLLMExecutor,
+  createRefactoringSkillLLMExecutor,
+  createSecurityScanSkillLLMExecutor,
+  createDebuggingSkillLLMExecutor,
+  createDocumentationSkillLLMExecutor,
+  createPerformanceSkillLLMExecutor,
+} from './llm/skill-llm';
 
 /**
  * Integration feature flags
@@ -59,6 +70,10 @@ export interface IntegrationFlags {
   enablePlugins: boolean;
   pluginsDir?: string;
   enablePlanningContext: boolean;
+  /** LLM adapter for skill executors */
+  llmAdapter?: TeamAgentLLMAdapter;
+  /** Project context for skill prompts */
+  projectContext?: string;
 }
 
 /**
@@ -159,7 +174,7 @@ export async function initializeIntegrations(
   if (needsRegistry) {
     const skillRegistry = registry.getSkillRegistry();
     if (skillRegistry) {
-      registerDefaultSkills(skillRegistry);
+      registerDefaultSkills(skillRegistry, flags.llmAdapter, flags.projectContext);
     }
   }
 }
@@ -216,20 +231,44 @@ export function initializePlatformSandbox(): IOSSandbox | null {
 /**
  * Register all built-in skills into the SkillRegistry.
  * Includes 4 core skills + 10 expanded skills.
+ * When an llmAdapter is provided, analysis/generation skills get LLM executors.
  */
-function registerDefaultSkills(skillRegistry: SkillRegistry): void {
+function registerDefaultSkills(
+  skillRegistry: SkillRegistry,
+  llmAdapter?: TeamAgentLLMAdapter,
+  projectContext?: string,
+): void {
+  const executorOpts = llmAdapter ? { adapter: llmAdapter, projectContext } : undefined;
+
   const skills = [
-    // Core skills
-    createPlanningSkill(),
-    createCodeReviewSkill(),
-    createTestGenerationSkill(),
-    createRefactoringSkill(),
-    // Expanded skills
-    createSecurityScanSkill(),
+    // Core skills (LLM-backed when adapter provided)
+    createPlanningSkill(executorOpts ? {
+      executor: createPlanningSkillLLMExecutor(executorOpts),
+    } : undefined),
+    createCodeReviewSkill(executorOpts ? {
+      executor: createCodeReviewSkillLLMExecutor(executorOpts),
+    } : undefined),
+    createTestGenerationSkill(executorOpts ? {
+      executor: createTestGenerationSkillLLMExecutor(executorOpts),
+    } : undefined),
+    createRefactoringSkill(executorOpts ? {
+      executor: createRefactoringSkillLLMExecutor(executorOpts),
+    } : undefined),
+    // Expanded skills — analysis/generation (LLM-backed)
+    createSecurityScanSkill(executorOpts ? {
+      executor: createSecurityScanSkillLLMExecutor(executorOpts),
+    } : undefined),
+    createDebuggingSkill(executorOpts ? {
+      executor: createDebuggingSkillLLMExecutor(executorOpts),
+    } : undefined),
+    createDocumentationSkill(executorOpts ? {
+      executor: createDocumentationSkillLLMExecutor(executorOpts),
+    } : undefined),
+    createPerformanceSkill(executorOpts ? {
+      executor: createPerformanceSkillLLMExecutor(executorOpts),
+    } : undefined),
+    // Expanded skills — infrastructure/operational (no LLM executor)
     createGitWorkflowSkill(),
-    createDocumentationSkill(),
-    createDebuggingSkill(),
-    createPerformanceSkill(),
     createMigrationSkill(),
     createApiDesignSkill(),
     createTddWorkflowSkill(),

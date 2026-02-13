@@ -17,6 +17,7 @@ import type {
 } from './interfaces/mcp.interface';
 import { StdioTransport } from './mcp-transport/stdio-transport';
 import { SSETransport } from './mcp-transport/sse-transport';
+import { HttpTransport } from './mcp-transport/http-transport';
 
 /**
  * MCP Client
@@ -35,6 +36,9 @@ export class MCPClient implements IMCPClient {
     if (config.transport === 'stdio') {
       if (!config.command) throw new Error('stdio transport requires command');
       this.transport = new StdioTransport(config.command, config.args);
+    } else if (config.transport === 'http') {
+      if (!config.url) throw new Error('http transport requires url');
+      this.transport = new HttpTransport({ url: config.url, headers: config.headers });
     } else {
       if (!config.url) throw new Error('sse transport requires url');
       this.transport = new SSETransport(config.url);

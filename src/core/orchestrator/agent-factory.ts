@@ -35,6 +35,10 @@ import {
   IntegrationAgent,
   createIntegrationAgent,
 } from './agents/integration-agent';
+import {
+  CodeQualityAgent,
+  createCodeQualityAgent,
+} from './agents/code-quality-agent';
 import { TeamAgentLLMAdapter, createTeamAgentLLMAdapter } from './llm/team-agent-llm';
 import type { ILLMClient } from '@/shared/llm';
 import type { TeamType } from '../workspace/task-document';
@@ -42,7 +46,18 @@ import {
   createPlanningLLMExecutor,
   createDevelopmentLLMExecutor,
   createQALLMExecutor,
+  createTestGenerationLLMExecutor,
+  createDeepReviewLLMExecutor,
+  createRefactoringLLMExecutor,
 } from './llm';
+import {
+  createArchitectureLLMExecutor,
+  createSecurityLLMExecutor,
+  createDebuggingLLMExecutor,
+  createDocumentationLLMExecutor,
+  createExplorationAgentLLMExecutor,
+  createIntegrationLLMExecutor,
+} from './llm/expanded-agents-llm';
 import { DocumentQueue } from '../workspace/document-queue';
 import { CEOOrchestrator } from './ceo-orchestrator';
 import { createQAExecutor } from './quality';
@@ -92,6 +107,7 @@ export interface CreatedExpandedAgents extends CreatedAgents {
   documentation: DocumentationAgent;
   exploration: ExplorationAgent;
   integration: IntegrationAgent;
+  codeQuality: CodeQualityAgent;
 }
 
 /**
@@ -219,6 +235,57 @@ export async function createAndRegisterAgents(
     });
     orchestrator.registerTeam(integration);
 
+    // Code Quality Agent (teamType: 'code-quality')
+    const codeQuality = createCodeQualityAgent(queue, {
+      teamType: 'code-quality',
+      config: { maxConcurrentTasks: expandedConcurrency },
+    });
+    orchestrator.registerTeam(codeQuality);
+
+    // Wire LLM executors for expanded agents
+    if (enableLLM) {
+      const archAdapter = getAdapterForAgent(config, 'design');
+      architecture.setAnalyzeFunction(
+        createArchitectureLLMExecutor({ adapter: archAdapter, projectContext }),
+      );
+
+      const secAdapter = getAdapterForAgent(config, 'security');
+      security.setScanFunction(
+        createSecurityLLMExecutor({ adapter: secAdapter, projectContext }),
+      );
+
+      const debugAdapter = getAdapterForAgent(config, 'issue-response');
+      debugging.setDebugFunction(
+        createDebuggingLLMExecutor({ adapter: debugAdapter, projectContext }),
+      );
+
+      const docAdapter = getAdapterForAgent(config, 'documentation');
+      documentation.setGenerateFunction(
+        createDocumentationLLMExecutor({ adapter: docAdapter, projectContext }),
+      );
+
+      const exploreAdapter = getAdapterForAgent(config, 'operations');
+      exploration.setExploreFunction(
+        createExplorationAgentLLMExecutor({ adapter: exploreAdapter, projectContext }),
+      );
+
+      const integrationAdapter = getAdapterForAgent(config, 'testing');
+      integration.setVerifyFunction(
+        createIntegrationLLMExecutor({ adapter: integrationAdapter, projectContext }),
+      );
+
+      const cqAdapter = getAdapterForAgent(config, 'code-quality');
+      codeQuality.setTestGenerator(
+        createTestGenerationLLMExecutor({ adapter: cqAdapter }),
+      );
+      codeQuality.setDeepReviewer(
+        createDeepReviewLLMExecutor({ adapter: cqAdapter }),
+      );
+      codeQuality.setRefactoringAnalyzer(
+        createRefactoringLLMExecutor({ adapter: cqAdapter }),
+      );
+    }
+
     // Start all agents (core + expanded)
     await Promise.all([
       planning.start(),
@@ -230,6 +297,7 @@ export async function createAndRegisterAgents(
       documentation.start(),
       exploration.start(),
       integration.start(),
+      codeQuality.start(),
     ]);
 
     return {
@@ -242,6 +310,7 @@ export async function createAndRegisterAgents(
       documentation,
       exploration,
       integration,
+      codeQuality,
     };
   }
 

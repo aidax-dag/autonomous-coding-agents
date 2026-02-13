@@ -6,9 +6,12 @@
 
 export type {
   ILSPClient,
+  ILSPTransport,
   ISymbolResolver,
   IRefactorEngine,
   IDiagnosticsCollector,
+  LspJsonRpcMessage,
+  LSPServerCapabilities,
   LSPServerConfig,
   SymbolInfo,
   SymbolKind,
@@ -19,6 +22,11 @@ export type {
   DiagnosticSeverity,
   RefactorResult,
 } from './interfaces/lsp.interface';
+
+export {
+  LspStdioTransport,
+  createLspStdioTransport,
+} from './lsp-transport';
 
 export {
   LSPClient,
@@ -43,3 +51,32 @@ export {
   createDiagnosticsCollector,
   type DiagnosticsCollectorOptions,
 } from './diagnostics-collector';
+
+export {
+  DocumentSync,
+  createDocumentSync,
+  type DocumentSyncConfig,
+  type IDocumentSync,
+  type TextDocumentContentChangeEvent,
+} from './document-sync';
+
+export {
+  SymbolCache,
+  createSymbolCache,
+  type SymbolCacheConfig,
+  type CachedEntry,
+} from './symbol-cache';
+
+export {
+  LSPConnectionManager,
+  createLSPConnectionManager,
+  type LSPServerEntry,
+  type LSPConnectionManagerConfig,
+  type LSPConnectionStatus,
+} from './lsp-connection-manager';
+
+export {
+  LSP_PRESETS,
+  getLSPPreset,
+  listLSPPresets,
+} from './presets/index';
