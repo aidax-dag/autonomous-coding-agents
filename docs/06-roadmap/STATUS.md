@@ -82,8 +82,8 @@ Enhancement Strategy 통합 (Phase A-F, T1-T17) 완료.
 ## 2. Test Coverage
 
 ```
-Total Tests: 3,259
-Test Suites: 196
+Total Tests: 3,267
+Test Suites: 197
 Type Check: ✅ Clean (npx tsc --noEmit)
 Test Runner: Jest
 ```
@@ -126,6 +126,9 @@ Test Runner: Jest
 - ✅ P2 로깅 개선: LLM 클라이언트 에러 로깅, createModuleLogger/createCorrelatedLogger
 - ✅ P2 API 문서화: OpenAPI 3.0 스펙 생성 (docs/api/openapi.yaml)
 - ✅ 테스트 수: 3,241 → 3,259 (+18 tests), 테스트 스위트: 194 → 196
+- ✅ P2 성능 최적화: Set기반 필터링, 배치 병렬처리, 슬라이딩 윈도우
+- ✅ P2 사용자 가이드: USER_GUIDE.md (설치/설정/사용 종합)
+- ✅ 테스트 수: 3,259 → 3,267 (+8 tests), 테스트 스위트: 196 → 197
 - ✅ STATUS.md 현행화
 
 ### 2026-02-12

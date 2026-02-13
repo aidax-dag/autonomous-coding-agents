@@ -6,6 +6,7 @@
 
 | 문서 | 설명 | 대상 |
 |------|------|------|
+| [USER_GUIDE.md](./USER_GUIDE.md) | 설치/설정/사용 종합 가이드 | 사용자 |
 | [CLI_USAGE.md](./CLI_USAGE.md) | CLI 명령어 및 사용법 | 사용자 |
 | [CODE_QUALITY.md](./CODE_QUALITY.md) | 코드 품질 표준 및 베스트 프랙티스 | 개발자 |
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | PM2 배포 및 환경 설정 | 운영자 |
@@ -17,8 +18,9 @@
 ## 읽기 순서
 
 ### 사용자
-1. **[CLI_USAGE.md](./CLI_USAGE.md)** - CLI 기본 사용법 (10분)
-2. **[INTERACTIVE_MODE.md](./INTERACTIVE_MODE.md)** - 인터랙티브 모드 (5분)
+1. **[USER_GUIDE.md](./USER_GUIDE.md)** - 설치부터 사용까지 종합 가이드 (15분)
+2. **[CLI_USAGE.md](./CLI_USAGE.md)** - CLI 명령어 상세 (10분)
+3. **[INTERACTIVE_MODE.md](./INTERACTIVE_MODE.md)** - 인터랙티브 모드 (5분)
 
 ### 개발자
 1. **[CODE_QUALITY.md](./CODE_QUALITY.md)** - 코드 품질 표준 (필독)
