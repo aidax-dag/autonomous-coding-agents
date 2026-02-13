@@ -129,6 +129,8 @@ Test Runner: Jest
 - ✅ P2 성능 최적화: Set기반 필터링, 배치 병렬처리, 슬라이딩 윈도우
 - ✅ P2 사용자 가이드: USER_GUIDE.md (설치/설정/사용 종합)
 - ✅ 테스트 수: 3,259 → 3,267 (+8 tests), 테스트 스위트: 196 → 197
+- ✅ P1 Web Dashboard: Vite+React+Tailwind+React Query (5 pages, SSE, API client)
+- ✅ P1 Desktop App: Tauri 2 + Rust IPC (health, snapshot, agents, submit_task)
 - ✅ STATUS.md 현행화
 
 ### 2026-02-12

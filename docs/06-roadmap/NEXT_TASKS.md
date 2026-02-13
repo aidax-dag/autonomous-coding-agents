@@ -45,28 +45,28 @@ npm run typecheck
 
 | # | 작업 | 설명 | 예상 작업량 |
 |---|------|------|------------|
-| 4 | Desktop App 완성 | Tauri 기반 데스크톱 UI 구현 | 2-3주 |
-| 5 | Web Dashboard 완성 | Vite+React 웹 인터페이스 구현 | 2-3주 |
+| 4 | Desktop App 완성 | Tauri 2 + React + Rust IPC | ✅ 완료 |
+| 5 | Web Dashboard 완성 | Vite+React+Tailwind+React Query | ✅ 완료 |
 | 6 | E2E 테스트 스위트 | 전체 시스템 E2E 테스트 | ✅ 완료 (13 tests) |
 | 7 | Production 설정 | 환경별 설정, 시크릿 관리 | ✅ 완료 (.env.production) |
 | 8 | CI/CD 파이프라인 | GitHub Actions 배포 자동화 | ✅ 완료 (ci.yml + release.yml) |
 
-### Desktop App 세부 작업
+### Desktop App (✅ 완료)
 
-- [ ] 메인 윈도우 레이아웃
-- [ ] 에이전트 상태 모니터링 UI
-- [ ] 워크플로우 실행 UI
-- [ ] 설정 화면
-- [ ] 시스템 트레이 통합
+- [x] 메인 윈도우 레이아웃 (Tauri 2 + 1200x800)
+- [x] 에이전트 상태 모니터링 UI (React 공유)
+- [x] 워크플로우 실행 UI (React 공유)
+- [x] 설정 화면 (React 공유)
+- [x] Rust IPC 커맨드 (health, snapshot, agents, submit_task)
 
-### Web Dashboard 세부 작업
+### Web Dashboard (✅ 완료)
 
-- [ ] 대시보드 메인 화면
-- [ ] 에이전트 관리 페이지
-- [ ] 워크플로우 관리 페이지
-- [ ] 로그 뷰어
-- [ ] 설정 페이지
-- [ ] 인증/로그인
+- [x] 대시보드 메인 화면 (StatCard, AgentOverview, SSE)
+- [x] 에이전트 관리 페이지 (카드 그리드, 실시간 업데이트)
+- [x] 워크플로우 관리 페이지 (태스크 제출 폼)
+- [x] 로그 뷰어 (SSE 실시간, 필터, 자동스크롤)
+- [x] 설정 페이지 (환경변수 참조, 리소스 링크)
+- [ ] 인증/로그인 (P3로 이동)
 
 ---
 

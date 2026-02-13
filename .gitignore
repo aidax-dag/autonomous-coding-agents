@@ -70,6 +70,10 @@ test-prd*.md
 tmp/
 temp/
 
-# Separate applications (built independently)
-/desktop/
-/web/
+# Desktop app build artifacts
+desktop/src-tauri/target/
+desktop/node_modules/
+
+# Web dashboard build artifacts
+web/dist/
+web/node_modules/
