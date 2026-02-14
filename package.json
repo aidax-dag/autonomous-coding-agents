@@ -67,7 +67,7 @@
     "@octokit/rest": "^22.0.1",
     "chalk": "^5.6.2",
     "commander": "^12.1.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.3.1",
     "ink": "^5.0.1",
     "js-yaml": "^4.1.1",
     "octokit": "^4.0.2",
