@@ -6,6 +6,8 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -28,6 +30,6 @@
       "@types/*": ["src/types/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist", "tests"]
 }

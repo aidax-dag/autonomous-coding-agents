@@ -17,6 +17,9 @@ import type { OrchestratorRunner, GoalResult, WorkflowResult } from '@/core/orch
 import { logger } from '@/shared/logging/logger';
 import type { TeamType } from '@/core/workspace/task-document';
 import { startAPIServer } from '@/api/server';
+import { createACPMessageBus } from '@/core/protocols/acp-message-bus';
+import { RunnerDataSource } from '@/core/orchestrator/runner-data-source';
+import { renderTUI } from '@/ui/tui/ink/render';
 import { createHeadlessRunner } from '@/cli/headless/headless-runner';
 import { createOutputFormatter } from '@/cli/headless/output-formatter';
 import { CIDetector } from '@/cli/headless/ci-detector';
@@ -128,6 +131,7 @@ export function createAutonomousCLI(): Command {
     .option('--workspace <dir>', 'Override workspace directory')
     .option('--validation', 'Enable validation hooks')
     .option('--learning', 'Enable learning hooks')
+    .option('--tui', 'Enable live terminal UI dashboard')
     .action(async (goal: string, opts) => {
       try {
         const overrides: Partial<RunnerConfig> = {};
@@ -138,18 +142,39 @@ export function createAutonomousCLI(): Command {
         console.log(chalk.cyan('Starting runner...'));
 
         await withRunner(overrides, async (runner) => {
-          console.log(chalk.green('Runner started.'));
-          console.log(chalk.dim(`Executing goal: "${goal}"`));
+          if (opts.tui) {
+            const messageBus = createACPMessageBus();
+            const dataSource = new RunnerDataSource({ runner, messageBus, sourceId: 'cli' });
+            dataSource.connect();
 
-          const result = await runner.executeGoal(goal, goal, {
-            priority: opts.priority,
-            projectId: opts.project,
-            tags: opts.tags?.split(',').map((t: string) => t.trim()),
-            waitForCompletion: opts.wait !== false,
-          });
+            const tui = renderTUI({ messageBus });
 
-          printGoalResult(result);
-          process.exitCode = result.success ? 0 : 1;
+            const result = await runner.executeGoal(goal, goal, {
+              priority: opts.priority,
+              projectId: opts.project,
+              tags: opts.tags?.split(',').map((t: string) => t.trim()),
+              waitForCompletion: opts.wait !== false,
+            });
+
+            tui.unmount();
+            dataSource.disconnect();
+
+            printGoalResult(result);
+            process.exitCode = result.success ? 0 : 1;
+          } else {
+            console.log(chalk.green('Runner started.'));
+            console.log(chalk.dim(`Executing goal: "${goal}"`));
+
+            const result = await runner.executeGoal(goal, goal, {
+              priority: opts.priority,
+              projectId: opts.project,
+              tags: opts.tags?.split(',').map((t: string) => t.trim()),
+              waitForCompletion: opts.wait !== false,
+            });
+
+            printGoalResult(result);
+            process.exitCode = result.success ? 0 : 1;
+          }
         });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
