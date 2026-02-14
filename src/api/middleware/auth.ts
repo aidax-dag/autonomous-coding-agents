@@ -19,7 +19,7 @@ export interface AuthMiddlewareConfig {
   excludePaths?: string[];
 }
 
-const DEFAULT_EXCLUDE_PATHS = ['/api/health', '/api/login', '/api/auth/refresh'];
+const DEFAULT_EXCLUDE_PATHS = ['/api/health', '/api/db/health', '/api/login', '/api/auth/refresh'];
 
 /**
  * Install authentication middleware on a WebServer instance.
