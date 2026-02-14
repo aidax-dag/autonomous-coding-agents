@@ -96,14 +96,15 @@ describe('ObservabilityStack Integration', () => {
 
     // Should not throw
     stack.exportSpan({
-      traceId: 'trace-001',
-      spanId: 'span-001',
       name: 'test-span',
-      kind: 'internal',
+      context: {
+        traceId: 'trace-001',
+        spanId: 'span-001',
+      },
       startTime: Date.now(),
       endTime: Date.now() + 100,
       attributes: {},
-      status: { code: 'OK' },
+      status: 'ok',
       events: [],
     });
   });

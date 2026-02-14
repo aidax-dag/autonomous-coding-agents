@@ -1,0 +1,11 @@
+{
+  "total": 20971520,
+  "singleFile": 2097152,
+  "categories": {
+    "core": 5242880,
+    "api": 3145728,
+    "cli": 3145728,
+    "shared": 5242880,
+    "platform": 3145728
+  }
+}
