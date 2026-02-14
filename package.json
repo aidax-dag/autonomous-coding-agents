@@ -3,9 +3,25 @@
   "version": "0.1.0",
   "description": "24/7 Autonomous Software Development with Multi-Agent AI System",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "bin": {
     "multi-agent": "./dist/cli/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "tsx watch src/cli/index.ts",
@@ -22,7 +38,14 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:rollback": "tsx scripts/db-migrate.ts rollback",
+    "db:status": "tsx scripts/db-migrate.ts status",
+    "docs:api": "tsx scripts/generate-openapi.ts",
+    "verify:package": "tsx scripts/verify-package.ts",
+    "analyze:bundle": "tsx scripts/bundle-analysis.ts",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "ai",
@@ -45,9 +68,11 @@
     "chalk": "^5.6.2",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
+    "ink": "^5.0.1",
     "js-yaml": "^4.1.1",
     "octokit": "^4.0.2",
     "openai": "^4.75.0",
+    "react": "^19.2.0",
     "winston": "^3.19.0",
     "zod": "^3.24.1"
   },
@@ -57,16 +82,24 @@
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.15.0",
+    "@types/react": "^19.0.0",
+    "@types/react-test-renderer": "^19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^9.1.0",
+    "ink-testing-library": "^4.0.0",
     "jest": "^29.7.0",
     "prettier": "^3.8.1",
+    "react-test-renderer": "^19.2.4",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.0.0",
+    "pg": "^8.13.0"
   },
   "engines": {
     "node": ">=20.0.0",
