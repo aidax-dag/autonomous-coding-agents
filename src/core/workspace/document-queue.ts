@@ -69,6 +69,7 @@ export interface SubscriptionOptions {
 /**
  * Document Queue
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class DocumentQueue extends EventEmitter {
   private readonly workspace: WorkspaceManager;
   private readonly subscriptions: Map<TeamType, Set<TaskSubscriber>> = new Map();
@@ -218,7 +219,7 @@ export class DocumentQueue extends EventEmitter {
       watcher.on('error', (error) => {
         this.emit('error', error);
       });
-    } catch (error) {
+    } catch {
       // Fall back to polling if watch fails
       this.setupPolling(team, inboxPath, { ...options, pollingInterval: 5000 });
     }
@@ -694,6 +695,7 @@ export class DocumentQueue extends EventEmitter {
 }
 
 // Type-safe event emitter
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface DocumentQueue {
   on<E extends keyof QueueEvents>(event: E, listener: QueueEvents[E]): this;
   emit<E extends keyof QueueEvents>(event: E, ...args: Parameters<QueueEvents[E]>): boolean;

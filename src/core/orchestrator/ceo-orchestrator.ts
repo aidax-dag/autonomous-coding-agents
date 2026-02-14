@@ -116,6 +116,7 @@ const DEFAULT_CONFIG: CEOOrchestratorConfig = {
 /**
  * CEO Orchestrator
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class CEOOrchestrator extends EventEmitter {
   private readonly config: CEOOrchestratorConfig;
   private readonly workspace: WorkspaceManager;
@@ -573,6 +574,7 @@ export class CEOOrchestrator extends EventEmitter {
 }
 
 // Type-safe event emitter
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface CEOOrchestrator {
   on<E extends keyof CEOEvents>(event: E, listener: CEOEvents[E]): this;
   emit<E extends keyof CEOEvents>(event: E, ...args: Parameters<CEOEvents[E]>): boolean;

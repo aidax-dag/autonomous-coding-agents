@@ -27,6 +27,7 @@ export interface SessionManagerEvents {
   'session:error': (sessionId: string, error: Error) => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class SessionManager extends EventEmitter implements ISessionManager {
   private readonly persistence: IJSONLPersistence & { listSessionIds(): Promise<string[]> };
   private readonly recovery: ISessionRecovery | null;
@@ -167,6 +168,7 @@ export class SessionManager extends EventEmitter implements ISessionManager {
 }
 
 // Declaration merging for type-safe events
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface SessionManager {
   on<E extends keyof SessionManagerEvents>(event: E, listener: SessionManagerEvents[E]): this;
   emit<E extends keyof SessionManagerEvents>(event: E, ...args: Parameters<SessionManagerEvents[E]>): boolean;

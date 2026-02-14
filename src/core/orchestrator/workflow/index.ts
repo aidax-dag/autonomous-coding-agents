@@ -75,3 +75,25 @@ export {
   type WorkflowEngineConfig,
   type WorkflowEngineEvents,
 } from './workflow-engine';
+
+// Seven-Phase Workflow
+export {
+  // Classes
+  SevenPhaseWorkflow,
+  createSevenPhaseWorkflow,
+
+  // Constants
+  DEFAULT_PHASE_DEFINITIONS,
+
+  // Types
+  type SevenPhaseType,
+  type PhaseExecutionStatus,
+  type PhaseDefinition,
+  type PhaseExecutionResult,
+  type PhaseArtifact,
+  type SevenPhaseConfig,
+  type SevenPhaseResult,
+  type PhaseExecutionContext,
+  type PhaseExecutor,
+  type SevenPhaseWorkflowEvents,
+} from './seven-phase-workflow';

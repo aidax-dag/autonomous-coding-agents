@@ -13,6 +13,12 @@ import { ILLMClient } from '@/shared/llm/base-client';
 import { ClaudeClient } from '@/shared/llm/claude-client';
 import { OpenAIClient } from '@/shared/llm/openai-client';
 import { GeminiClient } from '@/shared/llm/gemini-client';
+import { MistralClient } from '@/shared/llm/mistral-client';
+import { XAIClient } from '@/shared/llm/xai-client';
+import { GroqClient } from '@/shared/llm/groq-client';
+import { TogetherClient } from '@/shared/llm/together-client';
+import { DeepSeekClient } from '@/shared/llm/deepseek-client';
+import { FireworksClient } from '@/shared/llm/fireworks-client';
 import { ClaudeCLIClient } from '@/shared/llm/cli/claude-cli-client';
 import { CodexCLIClient } from '@/shared/llm/cli/codex-cli-client';
 import { GeminiCLIClient } from '@/shared/llm/cli/gemini-cli-client';
@@ -60,6 +66,12 @@ export { ModelRouter, createModelRouter, type ModelRouterConfig } from '@/shared
 export { ClaudeClient } from '@/shared/llm/claude-client';
 export { OpenAIClient } from '@/shared/llm/openai-client';
 export { GeminiClient } from '@/shared/llm/gemini-client';
+export { MistralClient } from '@/shared/llm/mistral-client';
+export { XAIClient } from '@/shared/llm/xai-client';
+export { GroqClient } from '@/shared/llm/groq-client';
+export { TogetherClient } from '@/shared/llm/together-client';
+export { DeepSeekClient } from '@/shared/llm/deepseek-client';
+export { FireworksClient } from '@/shared/llm/fireworks-client';
 
 // Re-export CLI clients
 export * from '@/shared/llm/cli';
@@ -88,6 +100,18 @@ export function createLLMClient(
       return new OpenAIClient(apiKey, defaultModel);
     case 'gemini':
       return new GeminiClient(apiKey, defaultModel);
+    case 'mistral':
+      return new MistralClient(apiKey, defaultModel);
+    case 'xai':
+      return new XAIClient(apiKey, defaultModel);
+    case 'groq':
+      return new GroqClient(apiKey, defaultModel);
+    case 'together':
+      return new TogetherClient(apiKey, defaultModel);
+    case 'deepseek':
+      return new DeepSeekClient(apiKey, defaultModel);
+    case 'fireworks':
+      return new FireworksClient(apiKey, defaultModel);
     default:
       throw new Error(`Unknown API-based LLM provider: ${provider}. Use createCLILLMClient for CLI providers.`);
   }
@@ -227,6 +251,24 @@ export function createModelRouterFromConfig(config: Config): ModelRouter {
   }
   if (config.llm.geminiApiKey && provider !== 'gemini') {
     clients.set('gemini', new GeminiClient(config.llm.geminiApiKey));
+  }
+  if (config.llm.mistralApiKey && provider !== 'mistral') {
+    clients.set('mistral', new MistralClient(config.llm.mistralApiKey));
+  }
+  if (config.llm.xaiApiKey && provider !== 'xai') {
+    clients.set('xai', new XAIClient(config.llm.xaiApiKey));
+  }
+  if (config.llm.groqApiKey && provider !== 'groq') {
+    clients.set('groq', new GroqClient(config.llm.groqApiKey));
+  }
+  if (config.llm.togetherApiKey && provider !== 'together') {
+    clients.set('together', new TogetherClient(config.llm.togetherApiKey));
+  }
+  if (config.llm.deepseekApiKey && provider !== 'deepseek') {
+    clients.set('deepseek', new DeepSeekClient(config.llm.deepseekApiKey));
+  }
+  if (config.llm.fireworksApiKey && provider !== 'fireworks') {
+    clients.set('fireworks', new FireworksClient(config.llm.fireworksApiKey));
   }
 
   // Build composite strategy

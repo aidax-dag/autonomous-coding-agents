@@ -77,3 +77,6 @@ desktop/node_modules/
 # Web dashboard build artifacts
 web/dist/
 web/node_modules/
+
+.serena/
+.agent-workspace/

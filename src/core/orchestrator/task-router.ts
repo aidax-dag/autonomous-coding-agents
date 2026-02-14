@@ -106,6 +106,7 @@ const PRIORITY_TEAM_ORDER: Record<TaskPriority, TeamType[]> = {
 /**
  * Task Router
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class TaskRouter extends EventEmitter {
   private readonly registry: ITeamRegistry;
   private readonly queue: DocumentQueue;
@@ -419,6 +420,7 @@ export class TaskRouter extends EventEmitter {
 }
 
 // Type-safe event emitter
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface TaskRouter {
   on<E extends keyof RouterEvents>(event: E, listener: RouterEvents[E]): this;
   emit<E extends keyof RouterEvents>(event: E, ...args: Parameters<RouterEvents[E]>): boolean;

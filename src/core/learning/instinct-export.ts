@@ -4,10 +4,15 @@
  * Exports instincts from an InstinctStore to portable formats
  * (JSON, YAML-like) for sharing between projects and teams.
  *
+ * D-1: Adds bundle-based export for instinct sharing across projects.
+ *
  * @module core/learning
  */
 
 import type { IInstinctStore, Instinct } from './interfaces/learning.interface';
+import { createAgentLogger } from '../../shared/logging/logger';
+
+const logger = createAgentLogger('Learning', 'instinct-export');
 
 // ============================================================================
 // Types
@@ -31,6 +36,58 @@ export interface InstinctRecord {
   createdAt: string;
   updatedAt: string;
   lastUsedAt?: string;
+  metadata?: Record<string, unknown>;
+}
+
+// ============================================================================
+// D-1 Bundle Export Types
+// ============================================================================
+
+/**
+ * Options for bundle-based instinct export.
+ */
+export interface ExportOptions {
+  /** Minimum confidence threshold (default: 0.5) */
+  minConfidence?: number;
+  /** Filter by categories (domain values) */
+  categories?: string[];
+  /** Export format (default: 'json') */
+  format?: 'json' | 'yaml';
+  /** Include timestamps and source info (default: true) */
+  includeMetadata?: boolean;
+}
+
+/**
+ * A portable instinct bundle for cross-project sharing.
+ */
+export interface ExportedInstinctBundle {
+  /** Bundle format version */
+  version: string;
+  /** ISO timestamp of export */
+  exportedAt: string;
+  /** Source project name */
+  source: string;
+  /** Number of instincts in bundle */
+  count: number;
+  /** Exported instinct entries */
+  instincts: ExportedInstinct[];
+}
+
+/**
+ * Single instinct entry within an exported bundle.
+ */
+export interface ExportedInstinct {
+  /** Trigger pattern */
+  pattern: string;
+  /** Action to take */
+  action: string;
+  /** Confidence score (0-1) */
+  confidence: number;
+  /** Domain category */
+  category: string;
+  /** Descriptive tags */
+  tags: string[];
+  /** Optional metadata (timestamps, source info) */
   metadata?: Record<string, unknown>;
 }
 
@@ -134,4 +191,92 @@ export class InstinctExporter {
 
 export function createInstinctExporter(): InstinctExporter {
   return new InstinctExporter();
+}
+
+// ============================================================================
+// D-1 Bundle Exporter
+// ============================================================================
+
+/**
+ * Store interface accepted by the bundle exporter.
+ * Any object providing a synchronous getAll() is sufficient.
+ */
+export interface BundleExportStore {
+  getAll(): Instinct[];
+}
+
+/**
+ * Bundle-based instinct exporter for cross-project sharing (D-1).
+ *
+ * Wraps an instinct store and produces portable ExportedInstinctBundle
+ * objects that can be serialized and transferred between projects.
+ */
+export class InstinctBundleExporter {
+  constructor(private readonly store: BundleExportStore) {}
+
+  /**
+   * Export instincts as a portable bundle.
+   *
+   * @param options Export filtering and formatting options
+   * @returns Portable instinct bundle
+   */
+  export(options: ExportOptions = {}): ExportedInstinctBundle {
+    const minConfidence = options.minConfidence ?? 0.5;
+    const includeMetadata = options.includeMetadata ?? true;
+
+    let instincts = this.store.getAll();
+
+    // Filter by confidence
+    instincts = instincts.filter((i) => i.confidence >= minConfidence);
+
+    // Filter by categories (domain)
+    if (options.categories?.length) {
+      instincts = instincts.filter((i) =>
+        options.categories!.includes(i.domain),
+      );
+    }
+
+    const exported: ExportedInstinct[] = instincts.map((i) => ({
+      pattern: i.trigger,
+      action: i.action,
+      confidence: i.confidence,
+      category: i.domain ?? 'general',
+      tags: i.metadata?.tags ?? [],
+      ...(includeMetadata
+        ? { metadata: { source: i.source, createdAt: i.createdAt } }
+        : {}),
+    }));
+
+    logger.info(
+      `Exported ${exported.length} instincts (min confidence: ${minConfidence})`,
+    );
+
+    return {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      source: 'aca',
+      count: exported.length,
+      instincts: exported,
+    };
+  }
+
+  /**
+   * Export instincts as a formatted JSON string.
+   *
+   * @param options Export filtering and formatting options
+   * @returns Pretty-printed JSON string of the bundle
+   */
+  exportToJson(options: ExportOptions = {}): string {
+    return JSON.stringify(this.export(options), null, 2);
+  }
+}
+
+// ============================================================================
+// D-1 Factory Function
+// ============================================================================
+
+export function createInstinctBundleExporter(
+  store: BundleExportStore,
+): InstinctBundleExporter {
+  return new InstinctBundleExporter(store);
 }

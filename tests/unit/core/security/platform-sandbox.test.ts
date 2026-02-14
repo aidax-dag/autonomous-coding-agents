@@ -72,9 +72,20 @@ describe('createPlatformSandbox', () => {
     Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
   });
 
-  it('should return null on unsupported platforms', () => {
+  it('should return WindowsSandbox on Windows', () => {
     const originalPlatform = process.platform;
     Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+    const sandbox = createPlatformSandbox();
+    expect(sandbox).not.toBeNull();
+    expect(sandbox!.getPlatform()).toBe('windows');
+
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+  });
+
+  it('should return null on unsupported platforms', () => {
+    const originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'freebsd', configurable: true });
 
     const sandbox = createPlatformSandbox();
     expect(sandbox).toBeNull();

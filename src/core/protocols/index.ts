@@ -2,6 +2,7 @@
  * Protocols Module
  *
  * Agent Communication Protocol (ACP) for multi-frontend support.
+ * Agent-to-Agent (A2A) Protocol for external agent communication.
  *
  * @module core/protocols
  */
@@ -29,3 +30,6 @@ export {
   createACPMessage,
   type ACPMessageBusOptions,
 } from './acp-message-bus';
+
+// ── A2A Protocol ───────────────────────────────────────────
+export * from './a2a';

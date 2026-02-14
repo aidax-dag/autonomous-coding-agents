@@ -1,0 +1,33 @@
+{
+  "id": "com.aca.jetbrains",
+  "name": "ACA - Autonomous Coding Agents",
+  "version": "0.1.0",
+  "description": "JetBrains IDE integration for Autonomous Coding Agents. Provides task submission, agent monitoring, and real-time updates via JSON-RPC 2.0 over TCP.",
+  "vendor": "ACA",
+  "license": "MIT",
+  "compatibleIDEs": [
+    "IntelliJ IDEA",
+    "WebStorm",
+    "PyCharm",
+    "GoLand",
+    "CLion",
+    "Rider",
+    "RubyMine",
+    "PhpStorm"
+  ],
+  "minIDEVersion": "2024.1",
+  "entryPoint": "./out/index.js",
+  "capabilities": [
+    "task-submission",
+    "agent-monitoring",
+    "real-time-updates",
+    "task-cancellation"
+  ],
+  "connection": {
+    "protocol": "json-rpc-2.0",
+    "transport": "tcp",
+    "defaultPort": 6789,
+    "framing": "content-length"
+  },
+  "repository": "https://github.com/ai-cli/autonomous-coding-agents"
+}

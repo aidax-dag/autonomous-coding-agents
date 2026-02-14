@@ -177,4 +177,18 @@ describe('ServiceRegistry', () => {
       expect(registry.getGitHubClient()).toBeNull();
     });
   });
+
+  describe('Loop detection module', () => {
+    it('should initialize loop detector when enableLoopDetection is true', async () => {
+      const registry = ServiceRegistry.getInstance();
+      await registry.initialize({ enableLoopDetection: true });
+      expect(registry.getLoopDetector()).not.toBeNull();
+    });
+
+    it('should return null when enableLoopDetection is not set', async () => {
+      const registry = ServiceRegistry.getInstance();
+      await registry.initialize();
+      expect(registry.getLoopDetector()).toBeNull();
+    });
+  });
 });

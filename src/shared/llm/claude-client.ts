@@ -98,7 +98,7 @@ export class ClaudeClient extends BaseLLMClient {
 
     try {
       let fullContent = '';
-      let usage: { promptTokens: number; completionTokens: number; totalTokens: number } = {
+      const usage: { promptTokens: number; completionTokens: number; totalTokens: number } = {
         promptTokens: 0,
         completionTokens: 0,
         totalTokens: 0,

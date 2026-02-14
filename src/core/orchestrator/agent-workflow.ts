@@ -100,6 +100,7 @@ export interface AgentWorkflowEvents {
  *
  * Simplified interface for running common development workflows.
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class AgentWorkflow extends EventEmitter {
   private runner: OrchestratorRunner;
   private config: AgentWorkflowConfig;
@@ -473,6 +474,7 @@ export class AgentWorkflow extends EventEmitter {
 }
 
 // Type-safe event emitter
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface AgentWorkflow {
   on<E extends keyof AgentWorkflowEvents>(event: E, listener: AgentWorkflowEvents[E]): this;
   emit<E extends keyof AgentWorkflowEvents>(

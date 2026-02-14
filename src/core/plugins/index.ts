@@ -49,3 +49,23 @@ export {
   PluginAPI,
   createPluginAPI,
 } from './plugin-api';
+
+// ── Marketplace ──────────────────────────────────────────────
+export type {
+  MarketplacePlugin,
+  PluginPackage,
+  PluginManifestData,
+  PackageFile,
+  SearchOptions,
+  SearchResult,
+  InstallResult,
+  PublishResult,
+  VersionInfo,
+} from './marketplace';
+
+export {
+  PluginPackager,
+  createPluginPackager,
+  MarketplaceRegistry,
+  createMarketplaceRegistry,
+} from './marketplace';

@@ -1,0 +1,110 @@
+{
+  "name": "aca-vscode",
+  "displayName": "ACA - Autonomous Coding Agents",
+  "description": "Orchestrate autonomous coding agents directly from VS Code. Submit tasks, monitor agents, and track progress in real time.",
+  "version": "0.1.0",
+  "publisher": "aca-team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aca-team/aca-vscode"
+  },
+  "icon": "assets/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aca.submitTask",
+        "title": "ACA: Submit Task"
+      },
+      {
+        "command": "aca.showStatus",
+        "title": "ACA: Show Status"
+      },
+      {
+        "command": "aca.showAgents",
+        "title": "ACA: Show Agents"
+      },
+      {
+        "command": "aca.stopTask",
+        "title": "ACA: Stop Current Task"
+      },
+      {
+        "command": "aca.showLogs",
+        "title": "ACA: Show Logs"
+      },
+      {
+        "command": "aca.configure",
+        "title": "ACA: Configure Settings"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aca-sidebar",
+          "title": "ACA",
+          "icon": "$(hubot)"
+        }
+      ]
+    },
+    "views": {
+      "aca-sidebar": [
+        {
+          "id": "aca.tasksView",
+          "name": "Tasks"
+        },
+        {
+          "id": "aca.agentsView",
+          "name": "Agents"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ACA - Autonomous Coding Agents",
+      "properties": {
+        "aca.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL of the ACA API server"
+        },
+        "aca.autoConnect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically connect to the ACA server on startup"
+        },
+        "aca.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notification messages for ACA events"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./tsconfig.json",
+    "watch": "tsc -watch -p ./tsconfig.json",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies",
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.22.0",
+    "typescript": "^5.9.3"
+  }
+}

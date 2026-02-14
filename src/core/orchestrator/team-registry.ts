@@ -108,6 +108,7 @@ export interface ITeamRegistry {
 /**
  * Team Registry Implementation
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class TeamRegistry extends EventEmitter implements ITeamRegistry {
   private readonly teams: Map<TeamType, ITeamAgent> = new Map();
   private readonly statusListeners: Map<TeamType, () => void> = new Map();
@@ -372,6 +373,7 @@ export class TeamRegistry extends EventEmitter implements ITeamRegistry {
 }
 
 // Type-safe event emitter
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface TeamRegistry {
   on<E extends keyof RegistryEvents>(event: E, listener: RegistryEvents[E]): this;
   emit<E extends keyof RegistryEvents>(event: E, ...args: Parameters<RegistryEvents[E]>): boolean;

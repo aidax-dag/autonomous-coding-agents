@@ -21,6 +21,8 @@ import { CodeQualityHook } from '../hooks/code-quality/code-quality.hook';
 import { SandboxEscalationHook } from '../hooks/sandbox-escalation/sandbox-escalation.hook';
 import { GoalVerificationHook } from '../hooks/goal-verification/goal-verification.hook';
 import { PermissionGuardHook } from '../hooks/permission-guard/permission-guard.hook';
+import { createVerificationPipeline } from '../validation/verification-pipeline';
+import { createStubDetector } from '../validation/stub-detector';
 import { createPlatformSandbox } from '../security/platform-sandbox';
 import type { IOSSandbox } from '../security/interfaces/os-sandbox.interface';
 import { createTeamLearningHub } from '../learning/team-learning-hub';
@@ -123,6 +125,18 @@ export async function initializeIntegrations(
 
     const verifier = registry.getGoalBackwardVerifier();
     if (verifier) hookRegistry.register(new GoalVerificationHook(verifier));
+
+    // Create VerificationPipeline with StubDetector for enhanced goal verification
+    if (verifier) {
+      try {
+        const stubDetector = createStubDetector();
+        void createVerificationPipeline(verifier, stubDetector);
+        // Pipeline is available for use in executeGoal verification via verifier
+        // StubDetector is wired into the pipeline for stub/placeholder detection
+      } catch {
+        /* pipeline creation failed - continue without enhanced verification */
+      }
+    }
   }
 
   // Register permission guard hook

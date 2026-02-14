@@ -83,8 +83,6 @@ export class ACPMessageBus implements IACPMessageBus {
     const correlationId = message.id;
 
     return new Promise<ACPMessage<TRes>>((resolve, reject) => {
-      let timer: ReturnType<typeof setTimeout>;
-
       const sub = this.subscribe(
         (msg) => msg.correlationId === correlationId && msg.source === message.target,
         async (response) => {
@@ -94,7 +92,7 @@ export class ACPMessageBus implements IACPMessageBus {
         },
       );
 
-      timer = setTimeout(() => {
+      const timer = setTimeout(() => {
         sub.unsubscribe();
         reject(new Error(`ACP request timed out after ${timeoutMs}ms`));
       }, timeoutMs);

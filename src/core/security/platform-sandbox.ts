@@ -11,6 +11,7 @@
 import type { IOSSandbox, SandboxPlatform } from './interfaces/os-sandbox.interface';
 import { createSeatbeltSandbox } from './seatbelt-sandbox';
 import { createLandlockSandbox } from './landlock-sandbox';
+import { createWindowsSandbox } from './windows-sandbox';
 
 /**
  * Detect the current sandbox platform.
@@ -40,6 +41,8 @@ export function createPlatformSandbox(): IOSSandbox | null {
       return createSeatbeltSandbox();
     case 'linux':
       return createLandlockSandbox();
+    case 'windows':
+      return createWindowsSandbox();
     default:
       return null;
   }

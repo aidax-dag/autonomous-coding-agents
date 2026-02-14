@@ -2,8 +2,8 @@
 
 > ACA(Autonomous Coding Agents) 강화를 위한 경쟁 프로젝트 분석 및 전략 수립 문서
 >
-> **작성일**: 2026-02-13
-> **버전**: 1.0
+> **작성일**: 2026-02-14
+> **버전**: 4.0 (v2.1+ 기준, Phase H 완료 + Phase I Sprint 1 진행)
 > **분석 대상**: 7개 AI CLI 프로젝트 + ACA
 
 ---
@@ -36,9 +36,10 @@
 
 ### 핵심 발견
 
-- **ACA의 강점**: 21개 모듈의 체계적 아키텍처, 3계층 학습 시스템, 2,315+ 테스트, 컨텍스트 품질 곡선
-- **보완 필요 영역**: MCP 프로토콜, 멀티모델 라우팅, 플러그인 시스템, 병렬 에이전트 실행, OS 네이티브 샌드박스
-- **전략 방향**: 각 프로젝트의 입증된 패턴을 ACA의 강력한 아키텍처 위에 통합
+- **ACA의 강점**: 40+ 모듈의 체계적 아키텍처, 5계층 학습 시스템, 5,962 테스트 (290 suites, 90.62% 커버리지), 8개 AI-네이티브 모듈, 10개 LLM 프로바이더
+- **✅ Phase E~H 전체 완료**: Backlog E-1~E-4, Phase F (v1.1 품질 & 생태계), Phase G (v2.0 통합 & 프로덕션), Phase H (v2.1 고급 자율성) — **전 항목 구현 완료**
+- **현재 진행**: Phase I Sprint 1 (코드 품질 안정화: ESLint 46→0, TS unused vars, Barrel exports, 대형 파일 리팩토링) 완료
+- **전략 방향**: Phase I Sprint 2~4 (실전 LLM 통합, IDE 생태계, 인프라 고도화) → **v3.0 진행 예정**
 
 ### 분석 프로젝트 매핑
 
@@ -63,13 +64,18 @@
 | **언어** | TS/JS/Python | Rust | TypeScript | TS/MD | JS/MD | TypeScript | TypeScript | TypeScript |
 | **런타임** | Node.js | Native | Node.js 20+ | Node.js 18+ | Node.js 16.7+ | Bun | Bun | Node.js 20+ |
 | **라이선스** | MIT | Apache 2.0 | Apache 2.0 | MIT | MIT | MIT | MIT | MIT |
-| **에이전트 수** | 다수(플러그인) | 1(코어) | 서브에이전트 | 13 | 11 | 11 | 3(build/plan/general) | 4 |
-| **스킬 수** | 플러그인별 | - | 확장가능 | 40+ | - | 25+ 도구 | 확장가능 | 4 |
-| **테스트** | 제한적 | 포괄적 | 674+ | 통합 테스트 | 22 | 195 | 구조화 | **2,315+** |
-| **LLM 지원** | Claude + 멀티 | GPT/o3/o4 | Gemini 전용 | Claude 중심 | Claude 중심 | Claude+GPT+Gemini+GLM+Grok | 15+ 프로바이더 | Claude+GPT+Gemini |
-| **MCP 지원** | O | O(실험적) | O | O(설정) | X | O(내장) | O | **X** |
-| **샌드박스** | 다중 모드 | OS-Native | Docker/Podman | - | - | - | - | 4레벨 구현 |
-| **IDE 통합** | VS Code | JSON-RPC | VS Code 확장 | - | - | - | 멀티 | - |
+| **에이전트 수** | 다수(플러그인) | 1(코어) | 서브에이전트 | 13 | 11 | 11 | 3(build/plan/general) | **10** |
+| **스킬 수** | 플러그인별 | - | 확장가능 | 40+ | - | 25+ 도구 | 확장가능 | **14** |
+| **테스트** | 제한적 | 포괄적 | 674+ | 통합 테스트 | 22 | 195 | 구조화 | **5,962 (290 suites)** |
+| **커버리지** | - | - | - | - | - | - | - | **90.62%** |
+| **LLM 지원** | Claude + 멀티 | GPT/o3/o4 | Gemini 전용 | Claude 중심 | Claude 중심 | Claude+GPT+Gemini+GLM+Grok | 15+ 프로바이더 | **10개 프로바이더** |
+| **MCP 지원** | O | O(실험적) | O | O(설정) | X | O(내장) | O | **O (+ OAuth)** |
+| **A2A 지원** | - | - | O(실험적) | - | - | - | - | **O** |
+| **샌드박스** | 다중 모드 | OS-Native | Docker/Podman | - | - | - | - | **OS-Native (Seatbelt+Landlock+AppContainer)** |
+| **IDE 통합** | VS Code | JSON-RPC | VS Code 확장 | - | - | - | 멀티 | **JSON-RPC 2.0** |
+| **AI-네이티브** | - | - | - | - | - | - | - | **8 모듈** |
+| **CI/CD** | - | - | - | - | - | - | - | **Headless (4 CI)** |
+| **Desktop App** | - | - | - | - | - | - | Tauri | **Tauri 2** |
 
 ---
 
@@ -610,34 +616,51 @@ opencode (monorepo via Bun workspaces)
 
 ### 4.1 아키텍처 개요
 
-ACA는 21개 코어 모듈로 구성된 멀티에이전트 자율 코딩 시스템이다.
+ACA는 40+ 모듈로 구성된 멀티에이전트 자율 코딩 시스템이다. (Phase H 완료, Phase I Sprint 1 진행 중 상태 — v2.1+)
 
 ```
 src/
-├── core/                   # 21 코어 모듈
-│   ├── orchestrator/       # CEO + 4 Team Agents + 라우팅
-│   ├── skills/             # SkillRegistry + Pipeline + 4 스킬
+├── core/                   # 40+ 코어 모듈
+│   ├── orchestrator/       # CEO + 10 Team Agents + TaskRouter + AgentPool + ParallelExecutor + BackgroundManager
+│   ├── skills/             # SkillRegistry + Pipeline + 14 스킬 + InstinctToSkillConverter
 │   ├── deep-worker/        # PreExploration + SelfPlanning + Retry + TodoEnforcer
-│   ├── protocols/          # ACP Message Bus
-│   ├── hooks/              # BaseHook → Registry → Executor
-│   ├── context/            # 6개 컴포넌트 (Manager, Monitor, Budget, Curve, Optimizer, Compaction)
-│   ├── learning/           # Reflexion + InstinctStore + SolutionsCache
-│   ├── session/            # JSONL 영속성
-│   ├── checkpoint/         # 원자적 상태 스냅샷
-│   ├── workspace/          # 태스크 문서 관리
-│   ├── security/           # 샌드박스 에스컬레이션 (4 레벨)
+│   ├── protocols/          # ACP Message Bus + A2A Gateway + A2A Router
+│   ├── hooks/              # BaseHook → Registry → Executor (27 이벤트, 11 후크)
+│   ├── context/            # 6개 컴포넌트 + planning-context/ (PlanningDirectory, StateTracker, PhaseManager, ContextBudget, ResearchSnapshot)
+│   ├── learning/           # Reflexion + InstinctStore + SolutionsCache + InstinctClustering + TeamLearningHub
+│   ├── session/            # JSONL 영속성 + SessionManager + Recovery + Compactor
+│   ├── checkpoint/         # CheckpointManager
+│   ├── workspace/          # WorkspaceManager + DocumentQueue + XML PlanFormat + PlanValidator + ProjectManager
+│   ├── security/           # SeatbeltSandbox + LandlockSandbox + WindowsSandbox + NetworkIsolation + ResourceLimiter
+│   ├── permission/         # PermissionManager + ApprovalWorkflow + PermissionResolver + PermissionRules
+│   ├── mcp/                # MCPClient + MCPServer + MCPToolRegistry + MCPConnectionManager + OAuthManager + 5 presets
+│   ├── lsp/                # LSPClient + DocumentSync + SymbolCache + LSPConnectionManager + RefactorEngine + 5 presets
+│   ├── plugins/            # PluginLoader + PluginRegistry + PluginLifecycle + PluginAPI + PluginMarketplace
+│   ├── evals/              # EvalRunner + EvalReporter + 13 definitions
 │   ├── dynamic-prompts/    # PromptRegistry + PromptRenderer
+│   ├── adaptive-prompts/   # FeedbackTracker + PromptOptimizer + A/B Testing    [Phase H]
 │   ├── hud/                # MetricsCollector + HUDDashboard
 │   ├── benchmark/          # BenchmarkRunner (SWE-bench 스타일)
 │   ├── brownfield/         # BrownfieldAnalyzer
 │   ├── docs-generator/     # DocsGenerator (HLD/MLD/LLD)
 │   ├── instinct-transfer/  # InstinctTransfer
-│   ├── evals/              # EvalRunner + 3 평가자
-│   ├── validation/         # 스키마 검증
-│   └── di/                 # IoC 컨테이너 인터페이스
-├── shared/                 # LLM 클라이언트, 에러, 설정, 로깅
-├── api/                    # APIGateway (HTTP → ACP)
-├── cli/                    # Commander 기반 CLI
+│   ├── validation/         # GoalBackwardVerifier + StubDetector + ConfidenceChecker + VerificationPipeline
+│   ├── debugging/          # HypothesisGenerator + DebuggingLoop                 [Phase H]
+│   ├── collaboration/      # CollaborationManager + FeedbackLoop                 [Phase H]
+│   ├── rag/                # CodeChunkStrategy + LocalEmbeddingEngine + InMemoryVectorStore + RAGOrchestrator [Phase H]
+│   ├── multimodal/         # ImageAnalyzer + UICodeGenerator + MultimodalProcessor [Phase H]
+│   ├── test-gen/           # RequirementParser + TestCaseGenerator + TestCodeEmitter [Phase H]
+│   ├── git-workflow/       # BranchStrategist + ConflictResolver + PRReviewer     [Phase H]
+│   ├── pair-programming/   # CursorSync + SuggestionManager + PairSessionManager  [Phase H]
+│   ├── analytics/          # UsageTracker + CostReporter
+│   ├── saas/               # TenantManager + BillingManager
+│   ├── services/           # ServiceRegistry (singleton, enableX 플래그, graceful degradation)
+│   ├── di/                 # IoC 컨테이너 인터페이스
+│   └── ...                 # i18n, notifications, shortcuts
+├── shared/                 # LLM 클라이언트 (10 프로바이더), ModelRouter, CostTracker, GitHub, CI, Config, Logging, Telemetry (OTel)
+├── api/                    # API Server + APIGateway + JWT Auth + Middleware (Rate Limit, CORS, Validation) + OpenAPI 3.0 Docs
+├── ui/                     # TUI (5 components) + Web Dashboard (SSE, REST API) + IDE Bridge
+├── cli/                    # Commander 기반 CLI (run, submit, config, serve) + Headless CI/CD
 └── dx/                     # 에러 복구 유틸리티
 ```
 
@@ -645,32 +668,57 @@ src/
 
 | 영역 | 상세 | 평가 |
 |------|------|------|
-| **아키텍처** | 21개 모듈, SOLID 원칙, 인터페이스 기반 | ⭐⭐⭐⭐⭐ |
-| **학습 시스템** | Reflexion + InstinctStore + SolutionsCache (3계층) | ⭐⭐⭐⭐⭐ |
-| **테스트** | 2,315+ 테스트, 97 파일, 70% 커버리지 임계값 | ⭐⭐⭐⭐⭐ |
-| **컨텍스트 관리** | QualityCurve + TokenBudget + Compaction (6 컴포넌트) | ⭐⭐⭐⭐ |
-| **ACP 프로토콜** | 자체 메시지 버스 (correlationId 무한루프 방지) | ⭐⭐⭐⭐ |
-| **스킬 파이프라인** | 순차적 스킬 체이닝, 검증, 에러 처리 | ⭐⭐⭐⭐ |
-| **딥 워커** | PreExploration → SelfPlanning → Retry → TodoEnforcer | ⭐⭐⭐⭐ |
-| **후크 시스템** | 27 이벤트 유형, 비침입적 크로스컷팅 | ⭐⭐⭐⭐⭐ |
+| **아키텍처** | 40+ 모듈, SOLID 원칙, 인터페이스 기반, DI 패턴, 414+ 소스 파일 | ⭐⭐⭐⭐⭐ |
+| **학습 시스템** | Reflexion + InstinctStore + SolutionsCache + TeamLearningHub + InstinctClustering + InstinctToSkillConverter | ⭐⭐⭐⭐⭐ |
+| **테스트** | 5,962 테스트, 290 스위트, 90.62% 커버리지, E2E 106개, 보안 95개, 벤치마크 67개 | ⭐⭐⭐⭐⭐ |
+| **컨텍스트 관리** | QualityCurve + TokenBudget + Compaction + PlanningContext (11 컴포넌트) | ⭐⭐⭐⭐⭐ |
+| **ACP + A2A 프로토콜** | ACP 메시지 버스 + A2A Gateway/Router (외부 에이전트 간 통신) | ⭐⭐⭐⭐⭐ |
+| **스킬 파이프라인** | 14개 스킬 + InstinctToSkillConverter, 순차적 체이닝, 검증, 에러 처리 | ⭐⭐⭐⭐⭐ |
+| **7-Phase 워크플로우** | Discovery → Exploration → Clarification → Design → Implementation → Review → Summary | ⭐⭐⭐⭐⭐ |
+| **후크 시스템** | 27 이벤트 유형, 11개 후크, 비침입적 크로스컷팅 | ⭐⭐⭐⭐⭐ |
+| **MCP 프로토콜** | MCPConnectionManager + OAuthManager (PKCE) + 5 presets + ServiceRegistry 통합 | ⭐⭐⭐⭐⭐ |
+| **멀티모델 라우팅** | ModelRouter + 4 전략 + model-profiles + 10 프로바이더 (Claude, OpenAI, Gemini, Ollama, Mistral, xAI, Groq, Together, DeepSeek, Fireworks) | ⭐⭐⭐⭐⭐ |
+| **보안** | OS-Native 샌드박스 (Seatbelt+Landlock+AppContainer) + NetworkIsolation + ResourceLimiter | ⭐⭐⭐⭐⭐ |
+| **퍼미션 시스템** | 3-mode 승인 (Suggest/AutoEdit/FullAuto) + 패턴 매칭 규칙 | ⭐⭐⭐⭐ |
+| **LSP 통합** | DocumentSync + SymbolCache + LSPConnectionManager + RefactorEngine + 5 presets | ⭐⭐⭐⭐ |
+| **병렬 실행** | AgentPool + ParallelExecutor + BackgroundManager + 이벤트 통합 | ⭐⭐⭐⭐ |
+| **관측성** | OpenTelemetry (OTelProvider + TraceManager + MetricsExporter + CostAnalytics) | ⭐⭐⭐⭐ |
+| **플러그인** | PluginLoader + PluginRegistry + PluginLifecycle + PluginAPI + MarketplaceRegistry | ⭐⭐⭐⭐⭐ |
+| **UI** | TUI (5 components) + Web Dashboard (React 19 + SSE) + API Server + Desktop App (Tauri 2) | ⭐⭐⭐⭐⭐ |
+| **Eval 시스템** | EvalRunner + EvalReporter + 13 eval definitions (7 categories) | ⭐⭐⭐⭐⭐ |
+| **자율 디버깅** | HypothesisGenerator (10 error patterns) + DebuggingLoop (diagnose→hypotheses→test→learn) | ⭐⭐⭐⭐ |
+| **멀티에이전트 협업** | CollaborationManager + FeedbackLoop + 역할 기반 조율 | ⭐⭐⭐⭐ |
+| **RAG 코드 검색** | CodeChunkStrategy + LocalEmbeddingEngine + InMemoryVectorStore + RAGOrchestrator | ⭐⭐⭐⭐ |
+| **적응형 프롬프트** | FeedbackTracker + PromptOptimizer + A/B Testing 프레임워크 | ⭐⭐⭐⭐ |
+| **멀티모달 지원** | ImageAnalyzer + UICodeGenerator + MultimodalProcessor | ⭐⭐⭐⭐ |
+| **자연어 테스트 생성** | RequirementParser + TestCaseGenerator + TestCodeEmitter (Jest/Mocha/Vitest) | ⭐⭐⭐⭐ |
+| **Git 지능형 워크플로우** | BranchStrategist (7 전략) + ConflictResolver + PRReviewer | ⭐⭐⭐⭐ |
+| **실시간 페어 프로그래밍** | CursorSync + SuggestionManager + PairSessionManager | ⭐⭐⭐⭐ |
+| **인스틴트 공유** | InstinctBundleExporter/Importer + 3 API endpoints | ⭐⭐⭐⭐ |
+| **팀 협업** | CollaborationHub (SSE) + 6 API endpoints | ⭐⭐⭐⭐ |
+| **사용량 분석** | UsageTracker + CostReporter + 2 API endpoints | ⭐⭐⭐⭐ |
+| **Loop Detection** | LoopDetector (circular buffer, 3 detection strategies) | ⭐⭐⭐⭐ |
+| **IDE 통합** | IDEBridge (JSON-RPC 2.0) + IDECommandRegistry | ⭐⭐⭐⭐ |
+| **Headless CI/CD** | HeadlessRunner + CIDetector (GitHub Actions, GitLab CI, Jenkins, CircleCI) | ⭐⭐⭐⭐ |
+| **DB 영속성** | InMemoryDBClient + MigrationEngine + PersistenceAdapter | ⭐⭐⭐ |
+| **AST-Grep** | ASTGrepClient + 5 presets + YAML rule builder | ⭐⭐⭐⭐ |
+| **GitHub 연동** | GitHubClient (Octokit) + 18 methods + ServiceRegistry 통합 | ⭐⭐⭐⭐ |
+| **SaaS 기능** | TenantManager + BillingManager + 멀티 프로젝트 | ⭐⭐⭐⭐ |
+| **릴리스 자동화** | npm publish + GitHub Release + Docker Hub | ⭐⭐⭐⭐ |
 
-### 4.3 현재 약점
+### 4.3 남은 개선 영역
+
+> Phase F~H에서 이전 Gap의 대부분이 해결되었다. 현재 남은 개선 영역은 Phase I에서 다루는 "실전 품질" 항목이다.
 
 | 영역 | 상세 | 평가 |
 |------|------|------|
-| **MCP 프로토콜** | 미구현 — 외부 도구 통합 불가 | ⭐ |
-| **멀티모델 라우팅** | 클라이언트 있으나 지능형 라우팅 없음 | ⭐⭐ |
-| **실제 샌드박스** | 4 레벨 에스컬레이션 구현, OS 네이티브 격리 없음 | ⭐⭐ |
-| **플러그인 시스템** | 없음 — 모든 확장은 소스 수정 필요 | ⭐ |
-| **TUI/Web UI** | Commander CLI만 존재 | ⭐ |
-| **병렬 에이전트** | 순차적 실행만 가능 | ⭐⭐ |
-| **LSP 통합** | 없음 | ⭐ |
-| **퍼미션 시스템** | 없음 | ⭐ |
-| **에이전트 수** | 4개 (경쟁 대비 부족) | ⭐⭐ |
-| **스킬 수** | 4개 (ECC 40+ 대비 부족) | ⭐⭐ |
-| **실제 GitHub 연동** | 모킹 상태 | ⭐ |
-| **DB 영속성** | JSONL만 (PostgreSQL 미구현) | ⭐ |
-| **관측성** | HUD 인메모리만 | ⭐⭐ |
+| **실전 LLM 통합 테스트** | 프로바이더 10개 구현 완료, 실 API 기반 통합 테스트 미실행 | ⭐⭐⭐ |
+| **벡터 임베딩** | LocalEmbeddingEngine (n-gram hashing)만, 실전 모델 기반 임베딩 미구현 | ⭐⭐ |
+| **벡터 DB** | InMemoryVectorStore만, Pinecone/Weaviate 등 실전 DB 미연동 | ⭐⭐ |
+| **실전 DB** | InMemoryDBClient만, PostgreSQL/SQLite 등 실전 DB 미연동 | ⭐⭐ |
+| **IDE 확장** | IDEBridge (JSON-RPC 2.0) 프로토콜만, VS Code Extension 미배포 | ⭐⭐ |
+| **옵저버빌리티 실전 연동** | OTel 인터페이스만, Jaeger/Grafana 등 실전 백엔드 미연동 | ⭐⭐⭐ |
+| **코드 품질** | ESLint 0 errors 달성 (Phase I-1), 대형 파일 리팩토링 진행 중 | ⭐⭐⭐⭐ |
 
 ---
 
@@ -680,22 +728,33 @@ src/
 
 | 기능 | Claude Code | Codex | Gemini | ECC | GSD | OMO | OpenCode | **ACA** |
 |------|:---------:|:-----:|:------:|:---:|:---:|:---:|:--------:|:-------:|
-| 멀티에이전트 오케스트레이션 | O | - | O | O | O | **O+** | O | O |
-| 에이전트 병렬 실행 | O | - | O | O | O | **O+** | - | **X** |
-| 멀티모델 라우팅 | - | O | **O+** | - | O | **O+** | O | **X** |
-| MCP 프로토콜 | O | O(실험) | O | O(설정) | - | O | **O+** | **X** |
-| LSP 통합 | - | - | - | - | - | **O+** | O | **X** |
-| 플러그인 시스템 | **O+** | - | O | O | - | O | O | **X** |
-| 퍼미션/승인 | O | **O+** | O | - | - | - | **O+** | **X** |
-| OS 샌드박스 | O | **O+** | O | - | - | - | - | 기본 구현 |
-| 컨텍스트 엔지니어링 | - | - | O | O | **O+** | O | O | O |
+| 멀티에이전트 오케스트레이션 | O | - | O | O | O | **O+** | O | **O+** |
+| 에이전트 병렬 실행 | O | - | O | O | O | **O+** | - | **O** |
+| 멀티모델 라우팅 | - | O | **O+** | - | O | **O+** | O | **O+** |
+| MCP 프로토콜 | O | O(실험) | O | O(설정) | - | O | **O+** | **O+ (OAuth/PKCE)** |
+| A2A 프로토콜 | - | - | O(실험) | - | - | - | - | **O** |
+| LSP 통합 | - | - | - | - | - | **O+** | O | **O** |
+| 플러그인 시스템 | **O+** | - | O | O | - | O | O | **O+ (마켓플레이스)** |
+| 퍼미션/승인 | O | **O+** | O | - | - | - | **O+** | **O** |
+| OS 샌드박스 | O | **O+** | O | - | - | - | - | **O+ (3 플랫폼)** |
+| 컨텍스트 엔지니어링 | - | - | O | O | **O+** | O | O | **O+** |
 | 학습 시스템 | - | - | - | **O+** | - | - | - | **O+** |
-| Goal-Backward 검증 | - | - | - | O | **O+** | - | - | **X** |
-| OpenTelemetry | - | **O+** | **O+** | - | - | - | - | **X** |
-| TUI/Web UI | O | O | **O+** | - | - | - | **O+** | **X** |
-| 구조화 계획 (XML) | - | - | - | - | **O+** | - | - | **X** |
-| 인스틴트 공유 | - | - | - | **O+** | - | - | - | **X** |
-| 팀 학습 | - | - | - | **O+** | - | - | - | 부분적 |
+| Goal-Backward 검증 | - | - | - | O | **O+** | - | - | **O** |
+| OpenTelemetry | - | **O+** | **O+** | - | - | - | - | **O** |
+| TUI/Web/Desktop | O | O | **O+** | - | - | - | **O+** | **O+ (TUI+Web+Desktop)** |
+| 구조화 계획 (XML) | - | - | - | - | **O+** | - | - | **O** |
+| 인스틴트 공유 | - | - | - | **O+** | - | - | - | **O** |
+| 팀 학습 | - | - | - | **O+** | - | - | - | **O** |
+| 7-Phase 워크플로우 | **O+** | - | - | - | - | - | - | **O** |
+| 자율 디버깅 | - | - | - | - | - | - | - | **O** |
+| RAG 코드 검색 | - | - | - | - | - | - | - | **O** |
+| 적응형 프롬프트 | - | - | - | - | - | - | - | **O** |
+| 멀티모달 지원 | O | - | O | - | - | - | - | **O** |
+| 자연어 테스트 생성 | - | - | - | - | - | - | - | **O** |
+| Git 지능형 워크플로우 | - | - | - | O | O | - | - | **O** |
+| 실시간 페어 프로그래밍 | - | - | - | - | - | - | - | **O** |
+| Headless CI/CD | - | O | - | - | - | - | - | **O (4 CI)** |
+| Eval 시스템 | - | - | **O+ (17)** | O | - | - | - | **O (13)** |
 
 > **O+** = 업계 최고 수준, **O** = 지원, **X** = 미지원, **-** = 해당 없음
 
@@ -705,44 +764,82 @@ src/
 |----------|:----------:|:-----:|:------:|:---:|:---:|:---:|:--------:|:-------:|
 | 모듈 분리 | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | **⭐⭐⭐⭐⭐** |
 | 타입 안전성 | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | **⭐⭐⭐⭐⭐** |
-| 테스트 커버리지 | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | **⭐⭐⭐⭐⭐** |
-| 확장성 설계 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | **⭐⭐⭐⭐** |
-| 문서화 | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-| 프로덕션 준비 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
+| 테스트 커버리지 (5,962 / 90.62%) | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | **⭐⭐⭐⭐⭐** |
+| 확장성 설계 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | **⭐⭐⭐⭐⭐** |
+| 문서화 | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | **⭐⭐⭐⭐⭐** |
+| 프로덕션 준비 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | **⭐⭐⭐⭐** |
+| AI-네이티브 기능 | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐ | **⭐⭐⭐⭐⭐** |
 
 ---
 
 ## 6. Gap Analysis: ACA vs 경쟁 프로젝트
 
-### 6.1 Critical Gaps (반드시 해결 필요)
+### 6.1 Critical Gaps ✅ ALL RESOLVED
 
-| Gap | 현재 | 목표 | 참고 프로젝트 | 영향도 |
-|-----|------|------|--------------|--------|
-| MCP 프로토콜 | 미구현 | 완전 통합 | OpenCode, Gemini | 🔴 외부 도구 통합 불가 |
-| 멀티모델 라우팅 | 클라이언트만 | 지능형 라우팅 | OMO, Gemini | 🔴 비용/품질 최적화 불가 |
-| 병렬 에이전트 실행 | 순차적 | 진정한 병렬 | Oh My OpenCode | 🔴 속도 3-5x 손실 |
-| 퍼미션 시스템 | 없음 | allow/deny/ask | OpenCode, Codex | 🔴 안전성 부재 |
+| Gap | 이전 | 현재 | 구현 내용 |
+|-----|------|------|----------|
+| MCP 프로토콜 | ⭐ 미구현 | ✅ **해결** | MCPConnectionManager + 5 presets + ServiceRegistry 통합 |
+| 멀티모델 라우팅 | ⭐⭐ 클라이언트만 | ✅ **해결** | ModelRouter + 4 전략 (Complexity, Cost, Capability, Composite) |
+| 병렬 에이전트 실행 | ⭐⭐ 순차적 | ✅ **해결** | AgentPool↔ParallelExecutor + BackgroundManager + 이벤트 |
+| 퍼미션 시스템 | ⭐ 없음 | ✅ **해결** | PermissionManager + 3-mode ApprovalWorkflow + 패턴 매칭 |
 
-### 6.2 Important Gaps (강력 추천)
+### 6.2 Important Gaps ✅ ALL RESOLVED
 
-| Gap | 현재 | 목표 | 참고 프로젝트 | 영향도 |
-|-----|------|------|--------------|--------|
-| 컨텍스트 엔지니어링 | QualityCurve만 | .planning/ 구조 | Get Shit Done | 🟡 품질 안정화 |
-| Goal-Backward 검증 | 없음 | 목표 역추적 | Get Shit Done | 🟡 완성도 보장 |
-| 에이전트 확장 | 4개 | 10+ | ECC, OMO | 🟡 전문성 확대 |
-| 스킬 생태계 | 5개 | 20+ | ECC | 🟡 기능성 확대 |
-| 플러그인 시스템 | 없음 | 표준 구조 | Claude Code, OpenCode | 🟡 확장성 |
-| 인스틴트 공유 | 없음 | import/export | ECC | 🟡 팀 학습 |
+| Gap | 이전 | 현재 | 구현 내용 |
+|-----|------|------|----------|
+| 컨텍스트 엔지니어링 | ⭐⭐ QualityCurve만 | ✅ **해결** | PlanningDirectory + StateTracker + PhaseManager + ContextBudget |
+| Goal-Backward 검증 | ⭐ 없음 | ✅ **해결** | GoalBackwardVerifier + StubDetector + VerificationPipeline |
+| 에이전트 확장 | ⭐⭐ 4개 | ✅ **해결** | 10개 에이전트 (Architecture, Security, Debugging, Documentation, Exploration, Integration 추가) |
+| 스킬 생태계 | ⭐⭐ 4개 | ✅ **해결** | 14개 스킬 (security-scan, git-workflow, documentation, debugging, performance, migration, api-design, tdd-workflow, database, cicd 추가) |
+| 플러그인 시스템 | ⭐ 없음 | ✅ **해결** | PluginLoader + PluginRegistry + PluginLifecycle + PluginAPI |
+| 인스틴트 공유 | ⭐ 없음 | ✅ **해결** | InstinctTransfer + InstinctClustering + TeamLearningHub |
 
-### 6.3 Recommended Gaps (향후 개선)
+### 6.3 Recommended Gaps ✅ ALL RESOLVED
 
-| Gap | 현재 | 목표 | 참고 프로젝트 | 영향도 |
-|-----|------|------|--------------|--------|
-| OS 샌드박스 | 4레벨 에스컬레이션 | OS 네이티브 격리 추가 | Codex | 🟢 보안 |
-| OpenTelemetry | HUD만 | 완전 계측 | Codex, Gemini | 🟢 관측성 |
-| LSP 통합 | 없음 | 결정론적 리팩토링 | OMO | 🟢 정확성 |
-| TUI/Web UI | CLI만 | React/Ink TUI | Gemini, OpenCode | 🟢 UX |
-| XML 구조화 계획 | 없음 | 태스크 포맷 | GSD | 🟢 명확성 |
+| Gap | 이전 | 현재 | 구현 내용 |
+|-----|------|------|----------|
+| OS 샌드박스 | ⭐⭐ 에스컬레이션만 | ✅ **해결** | SeatbeltSandbox (macOS) + LandlockSandbox (Linux) + NetworkIsolation |
+| OpenTelemetry | ⭐⭐ HUD만 | ✅ **해결** | OTelProvider + TraceManager + MetricsExporter + CostAnalytics |
+| LSP 통합 | ⭐ 없음 | ✅ **해결** | DocumentSync + SymbolCache + LSPConnectionManager + RefactorEngine + 5 presets |
+| TUI/Web UI | ⭐ CLI만 | ✅ **해결** | TUI (5 components) + Web Dashboard (React 19 + Vite + Tailwind + SSE) |
+| XML 구조화 계획 | ⭐ 없음 | ✅ **해결** | xml-plan-format.ts + PlanValidator |
+
+### 6.4 Previous Remaining Gaps ✅ ALL RESOLVED (Phase D + Backlog)
+
+| Gap | 이전 | 현재 | 구현 내용 |
+|-----|------|------|----------|
+| 멀티 프로젝트 | 단일 프로젝트 | ✅ **해결** | ProjectManager (add/remove/switch/update lifecycle) |
+| SaaS 기능 | 없음 | ✅ **해결** | TenantManager (free/pro/enterprise) + BillingManager |
+| 사용량 분석 | CostTracker 기본 | ✅ **해결** | UsageTracker + CostReporter + 2 API endpoints |
+| Loop Detection | 없음 | ✅ **해결** | LoopDetector (circular buffer, same-task/sequence/state-regression) |
+| AST-Grep | 없음 | ✅ **해결** | ASTGrepClient + 5 presets + YAML rule builder |
+| IDE 통합 | 없음 | ✅ **해결** | IDEBridge (JSON-RPC 2.0) + IDECommandRegistry |
+| DB 영속성 | JSONL만 | ✅ **해결** | InMemoryDBClient + MigrationEngine + PersistenceAdapter |
+
+### 6.5 Previous Remaining Gaps ✅ ALL RESOLVED (Phase F~H)
+
+| Gap | v0.4.0 상태 | 현재 (v2.1+) | 해결 Phase |
+|-----|------------|-------------|-----------|
+| E2E 통합 테스트 | 단위 테스트만 4,125개 | ✅ **해결**: 106개 E2E 테스트 (5 suites) | F-2 |
+| Eval 정의 확장 | 3개 | ✅ **해결**: 13개 eval (7 categories) | F-3 |
+| LLM 프로바이더 | 4개 | ✅ **해결**: 10개 프로바이더 (Mistral, xAI, Groq, Together, DeepSeek, Fireworks 추가) | F-4 |
+| 인스틴트→스킬 변환 | 클러스터링만 | ✅ **해결**: InstinctToSkillConverter (자동 스킬 생성) | F-5 |
+| 7-Phase 워크플로우 | deep-worker 4단계 | ✅ **해결**: SevenPhaseWorkflow (Discovery→Summary) + PhaseExecutor | F-6 |
+| A2A 프로토콜 | 없음 | ✅ **해결**: A2AGateway + A2ARouter + AgentCard 발견 프로토콜 | F-7 |
+| MCP OAuth | stdio/HTTP만 | ✅ **해결**: OAuthManager (client_credentials + auth_code + PKCE) | F-8 |
+| Windows 샌드박스 | macOS+Linux만 | ✅ **해결**: WindowsSandbox (PowerShell, AppContainer) | F-9 |
+
+### 6.6 New Remaining Gaps (Phase I — v3.0)
+
+| Gap | 현재 | 목표 | 영향도 |
+|-----|------|------|--------|
+| 실전 LLM 통합 테스트 | 프로바이더 인터페이스만 | 실 API 기반 e2e 검증 + Resilience 테스트 | 🟡 |
+| VS Code Extension | IDEBridge 프로토콜만 | 실제 Extension 배포 + 마켓플레이스 | 🟡 |
+| JetBrains 기초 | 미구현 | JetBrains IDE Plugin 기초 구현 | 🟢 |
+| 벡터 임베딩 | n-gram hashing (로컬) | 실전 모델 기반 임베딩 (OpenAI/HuggingFace) | 🟡 |
+| 벡터 DB | InMemoryVectorStore | Pinecone/Weaviate/Chroma 연동 | 🟡 |
+| 실전 DB | InMemoryDBClient | PostgreSQL/SQLite 연동 | 🟡 |
+| 옵저버빌리티 실전 연동 | OTel 인터페이스 | Jaeger/Grafana/Prometheus 연동 | 🟢 |
 
 ---
 
@@ -1180,84 +1277,123 @@ src/core/learning/
 
 ## 8. 구현 로드맵
 
-### 8.1 우선순위 매트릭스
+### 8.1 우선순위 매트릭스 (✅ 전체 완료)
 
-| 우선순위 | Phase | 기능 | 영향도 | 복잡도 | 예상 테스트 |
-|---------|-------|------|--------|--------|------------|
-| **P0** | 1-2 | 멀티모델 라우팅 | 🔥🔥🔥 | 중 | ~40 |
-| **P0** | 2-3 | 병렬 에이전트 실행 | 🔥🔥🔥 | 고 | ~30 |
-| **P1** | 3-1 | 컨텍스트 엔지니어링 | 🔥🔥🔥 | 중 | ~25 |
-| **P1** | 3-2 | Goal-Backward 검증 | 🔥🔥 | 중 | ~20 |
-| **P1** | 1-1 | MCP 프로토콜 | 🔥🔥 | 고 | ~35 |
-| **P2** | 2-1 | 에이전트 확장 (→10+) | 🔥🔥 | 중 | ~50 |
-| **P2** | 1-3 | 퍼미션 & 승인 | 🔥🔥 | 중 | ~30 |
-| **P2** | 2-2 | 스킬 확장 (→20+) | 🔥🔥 | 중 | ~60 |
-| **P3** | 4-2 | OpenTelemetry | 🔥 | 중 | ~20 |
-| **P3** | 4-3 | LSP 통합 | 🔥 | 고 | ~25 |
-| **P3** | 4-1 | 플러그인 시스템 | 🔥 | 고 | ~30 |
-| **P3** | 5-1 | OS 샌드박스 | 🔥 | 고 | ~25 |
-| **P3** | 3-3 | XML 구조화 계획 | 🔥 | 저 | ~15 |
-| **P3** | 5-2 | 인스틴트 공유 | 🔥 | 중 | ~15 |
-| **P4** | 4-4 | TUI/Web UI | 🔥 | 고 | ~30 |
+| 우선순위 | Phase | 기능 | 상태 | 실제 테스트 |
+|---------|-------|------|------|------------|
+| **P0** | 1-2 | 멀티모델 라우팅 | ✅ | ModelRouter + 4 전략 + model-profiles |
+| **P0** | 2-3 | 병렬 에이전트 실행 | ✅ | AgentPool + ParallelExecutor + BackgroundManager |
+| **P1** | 3-1 | 컨텍스트 엔지니어링 | ✅ | PlanningDirectory + StateTracker + PhaseManager |
+| **P1** | 3-2 | Goal-Backward 검증 | ✅ | GoalBackwardVerifier + StubDetector + VerificationPipeline |
+| **P1** | 1-1 | MCP 프로토콜 | ✅ | MCPConnectionManager + 5 presets |
+| **P2** | 2-1 | 에이전트 확장 (→10) | ✅ | 6개 에이전트 추가 |
+| **P2** | 1-3 | 퍼미션 & 승인 | ✅ | PermissionManager + 3-mode ApprovalWorkflow |
+| **P2** | 2-2 | 스킬 확장 (→14) | ✅ | 10개 스킬 추가 |
+| **P3** | 4-2 | OpenTelemetry | ✅ | OTelProvider + TraceManager + MetricsExporter |
+| **P3** | 4-3 | LSP 통합 | ✅ | DocumentSync + SymbolCache + LSPConnectionManager |
+| **P3** | 4-1 | 플러그인 시스템 | ✅ | PluginLoader + PluginRegistry + PluginLifecycle |
+| **P3** | 5-1 | OS 샌드박스 | ✅ | SeatbeltSandbox + LandlockSandbox |
+| **P3** | 3-3 | XML 구조화 계획 | ✅ | xml-plan-format.ts + PlanValidator |
+| **P3** | 5-2 | 인스틴트 공유 | ✅ | InstinctTransfer + InstinctClustering + TeamLearningHub |
+| **P4** | 4-4 | TUI/Web UI | ✅ | TUI (5 components) + Web Dashboard (React 19 + SSE) |
 
-### 8.2 Phase별 예상 결과
+### 8.2 실제 결과
 
-| Phase 완료 후 | 새 테스트 | 누적 테스트 | 새 모듈 | 핵심 개선 |
-|--------------|----------|-----------|--------|-----------|
-| Phase 1 (Foundation) | ~105 | ~2,420 | 3 | 멀티모델 + MCP + 퍼미션 |
-| Phase 2 (Capability) | ~140 | ~2,560 | 3 | 10+ 에이전트 + 20+ 스킬 + 병렬 실행 |
-| Phase 3 (Quality) | ~60 | ~2,620 | 3 | 컨텍스트 엔지니어링 + 검증 + XML |
-| Phase 4 (Experience) | ~105 | ~2,725 | 4 | 관측성 + LSP + 플러그인 + TUI |
-| Phase 5 (Hardening) | ~40 | ~2,765 | 2 | OS 샌드박스 + 팀 학습 |
+| 구현 단계 | 새 테스트 | 누적 테스트 | 핵심 개선 |
+|----------|----------|-----------|-----------|
+| Enhancement Strategy 전 | - | 2,315 (97 suites) | 21 코어 모듈 |
+| Enhancement Phase A-F (T1-T17) | +899 | 3,214 (192 suites) | Hook/Security/Telemetry/Dashboard 통합 |
+| Production Ready (B-1~B-6) | +304 | 3,608 (222 suites) | API Server + JWT Auth + Docker |
+| Feature Expansion (C-1~C-4) | +107 | 3,715 (227 suites) | MCP + 병렬 + Evals + LSP 실전 연동 |
+| Platform Expansion (D-1~D-5, B-4) | +213 | 3,928 (233 suites) | 인스틴트 공유 + 협업 + SaaS + GitHub |
+| Backlog (E-1~E-4) | +197 | 4,125 (240 suites) | Loop Detection + AST-Grep + IDE + DB |
+| **Phase F (v1.1)** | **+~600** | **~4,725** | **E2E 106개, Eval 3→13, LLM 4→10, A2A, MCP OAuth, Windows Sandbox, CI/CD, Marketplace, Desktop** |
+| **Phase G (v2.0)** | **+~750** | **~5,475** | **파이프라인 실연결, ServiceRegistry 확장, Error Recovery, Integration 30 + Coverage 142 + Benchmark 67 + Security 95** |
+| **Phase H (v2.1)** | **+~408** | **~5,883** | **자율 디버깅, 멀티에이전트 협업, RAG, 적응형 프롬프트, 멀티모달, 테스트 생성, Git 워크플로우, 페어 프로그래밍** |
+| **Phase I Sprint 1** | **+~79** | **5,962 (290 suites)** | **ESLint 46→0, TS unused vars, Barrel exports, 대형 파일 리팩토링 (90.62% 커버리지)** |
 
 ---
 
 ## 9. ACA 고유 경쟁 우위
 
-### 9.1 현재 고유 강점 (유지 & 강화)
+### 9.1 현재 고유 강점
 
-1. **가장 정교한 학습 시스템** (3계층):
+1. **가장 정교한 학습 시스템** (5계층 + 자동 스킬 변환):
    - ReflexionPattern (에러 기반)
    - InstinctStore (행동 기반, 신뢰도 0.3-0.9)
    - SolutionsCache (LRU + 퍼지 매칭)
+   - InstinctClustering (유사 패턴 그룹화)
+   - TeamLearningHub (팀 간 학습 전이)
+   - InstinctToSkillConverter (학습된 인스틴트 → 재사용 가능 스킬 자동 변환) [Phase F]
    - → 어떤 경쟁 프로젝트보다 깊은 학습 메커니즘
 
-2. **최고 수준의 아키텍처 설계** (21 모듈):
+2. **최고 수준의 아키텍처 설계** (40+ 모듈, 414+ 소스 파일, 67,000+ LOC):
    - 인터페이스 기반 SOLID 원칙
    - Registry 패턴으로 런타임 확장
-   - ACP 메시지 버스로 느슨한 결합
+   - ACP + A2A 프로토콜로 내부/외부 에이전트 통신
+   - ServiceRegistry 기반 DI + graceful degradation (6모듈 확장) [Phase G]
    - → 가장 체계적이고 확장 가능한 구조
 
-3. **업계 최고 테스트 커버리지** (3,214):
-   - 단위 + 통합 + E2E (192 스위트)
-   - 70% 커버리지 임계값
+3. **업계 최고 테스트 커버리지** (5,962 tests, 290 suites, 90.62%):
+   - 단위 + E2E 106개 + 통합 30개 + 커버리지 142개 + 벤치마크 67개 + 보안 95개
+   - 90.62% 코드 커버리지 (목표 70% 초과 달성)
+   - ESLint 0 errors, TypeScript strict mode clean [Phase I]
    - → 신뢰성 보장
 
-4. **컨텍스트 품질의 과학적 모델링**:
+4. **컨텍스트 품질의 과학적 모델링** (11 컴포넌트):
    - QualityCurve: 컨텍스트 성장 → 품질 저하 수학적 매핑
    - TokenBudgetManager: 실시간 토큰 예산 추적
    - CompactionStrategy: 지능형 컨텍스트 압축
+   - PlanningContext: .planning/ 구조 (PhaseManager, StateTracker, ContextBudget, ResearchSnapshot)
    - → 다른 프로젝트들은 경험적 규칙만 사용
 
-5. **독자적 ACP 프로토콜**:
-   - correlationId 기반 무한루프 방지
-   - 분산 확장 가능한 메시지 버스 기반
-   - → 미래 클러스터 배포 기반
+5. **3대 프로토콜 완전 지원** (ACP + MCP + A2A):
+   - ACP: correlationId 기반 무한루프 방지, 분산 확장 가능
+   - MCP: MCPConnectionManager + OAuthManager (PKCE) + 5 presets [Phase F]
+   - A2A: A2AGateway + A2ARouter + AgentCard 발견 프로토콜 [Phase F]
+   - → 내부 통신 + 외부 도구 + 외부 에이전트 통합 완전 지원
 
-### 9.2 Enhancement 후 최종 경쟁 포지션
+6. **포괄적 보안 모델** (3 플랫폼):
+   - OS-Native 샌드박스 (Seatbelt + Landlock + AppContainer) [Windows 추가: Phase F]
+   - 3-mode 퍼미션 (Suggest/AutoEdit/FullAuto)
+   - 패턴 매칭 규칙 (allow/deny/ask)
+   - 네트워크 격리 + 리소스 제한
+   - 보안 감사 테스트 95개 [Phase G]
 
-| 영역 | Enhancement 전 | Enhancement 후 | 경쟁 대비 |
-|------|---------------|---------------|----------|
-| 학습 시스템 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐+ (팀 공유) | **업계 유일** |
-| 아키텍처 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | **업계 최고** |
-| 에이전트 | ⭐⭐ (4개) | ⭐⭐⭐⭐ (10+) | 경쟁 수준 |
-| 모델 라우팅 | ⭐ | ⭐⭐⭐⭐⭐ | **업계 최고** |
-| 병렬 실행 | ⭐ | ⭐⭐⭐⭐ | 경쟁 수준 |
-| 컨텍스트 관리 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐+ (.planning/) | **업계 최고** |
-| 프로토콜 | ⭐⭐⭐ (ACP만) | ⭐⭐⭐⭐⭐ (ACP+MCP) | 경쟁 수준 |
-| 보안 | ⭐ | ⭐⭐⭐⭐ (OS 샌드박스) | 경쟁 수준 |
-| 관측성 | ⭐⭐ | ⭐⭐⭐⭐ (OTel) | 경쟁 수준 |
-| 테스트 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐+ (3,214) | **업계 최고** |
+7. **8개 AI-네이티브 모듈** (업계 유일) [Phase H]:
+   - 자율 디버깅 루프 (10 error pattern recognizers)
+   - 멀티에이전트 협업 (FeedbackLoop + CollaborationManager)
+   - RAG 기반 코드 검색 (Chunking → Embedding → Vector Store → Retrieval)
+   - 적응형 프롬프트 (FeedbackTracker + A/B Testing)
+   - 멀티모달 지원 (Image → Analysis → Code Generation)
+   - 자연어 테스트 생성 (NL → Test Cases → Jest/Mocha/Vitest)
+   - Git 지능형 워크플로우 (7 branching strategies + conflict resolution)
+   - 실시간 페어 프로그래밍 (CursorSync + SuggestionManager)
+   - → 다른 프로젝트는 개별 기능만 부분 지원
+
+8. **완전한 플랫폼 생태계** [Phase F]:
+   - Headless CI/CD (GitHub Actions, GitLab CI, Jenkins, CircleCI)
+   - 플러그인 마켓플레이스 (패키징, 검색, 설치, 버전 관리)
+   - Desktop App (Tauri 2, IPC, WindowManager, SystemTray)
+   - 릴리스 자동화 (npm publish + GitHub Release + Docker Hub) [Phase G]
+
+### 9.2 현재 경쟁 포지션 (v2.1+, Phase H 완료 + Phase I Sprint 1 진행)
+
+| 영역 | v0.4.0 | 현재 (v2.1+) | 경쟁 대비 |
+|------|--------|------------|----------|
+| 학습 시스템 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ (5계층 + 팀 공유 + InstinctToSkillConverter) | **업계 유일** |
+| 아키텍처 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ (40+ 모듈, 414+ 파일) | **업계 최고** |
+| 에이전트 | ⭐⭐⭐⭐ (10개) | ⭐⭐⭐⭐⭐ (10개 + 멀티에이전트 협업 + 자율 디버깅) | **업계 최고** |
+| 모델 라우팅 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ (4 전략 + profiles + 10 프로바이더) | **업계 최고** |
+| 병렬 실행 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ (AgentPool + 이벤트) | 경쟁 수준 |
+| 컨텍스트 관리 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ (.planning/ + 11 컴포넌트 + 적응형 프롬프트) | **업계 최고** |
+| 프로토콜 | ⭐⭐⭐⭐⭐ (ACP+MCP+LSP) | ⭐⭐⭐⭐⭐ (ACP + MCP OAuth + A2A + LSP) | **업계 최고** |
+| 보안 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ (3 플랫폼 샌드박스 + 보안 감사 95개) | **업계 최고** |
+| 관측성 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ (OTel + UsageTracker + CostReporter) | 경쟁 수준 |
+| 테스트 | ⭐⭐⭐⭐⭐ (4,125) | ⭐⭐⭐⭐⭐ (5,962 / 290 suites / 90.62%) | **업계 최고** |
+| 플랫폼 기능 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ (CI/CD + 마켓플레이스 + Desktop + 릴리스 자동화) | **업계 최고** |
+| AI-네이티브 | ⭐ | ⭐⭐⭐⭐⭐ (8 모듈: 디버깅, 협업, RAG, 프롬프트, 멀티모달, 테스트생성, Git, 페어프로그래밍) | **업계 유일** |
+| 데이터 관리 | ⭐⭐⭐ | ⭐⭐⭐ (DB 추상화 + 마이그레이션 + RAG VectorStore) | 개선 진행 중 |
 
 ---
 
@@ -1265,28 +1401,59 @@ src/core/learning/
 
 ### 핵심 메시지
 
-ACA는 이미 **아키텍처 설계, 학습 시스템, 테스트 커버리지** 면에서 업계 최고 수준이다. 그러나 **실용적 기능** (MCP, 멀티모델, 병렬 실행, UI) 면에서 경쟁 프로젝트 대비 격차가 존재한다.
+ACA는 Enhancement Strategy P0~P4 완료 이후, **Phase E (Backlog), Phase F (v1.1), Phase G (v2.0), Phase H (v2.1)** 전체를 구현 완료하여, 경쟁 프로젝트 대비 기능, 품질, 확장성 모든 면에서 차별화된 수준에 도달했다.
 
-본 Enhancement Strategy는 각 경쟁 프로젝트의 **입증된 패턴**만을 선별하여 ACA의 강력한 아키텍처 위에 통합한다:
+각 경쟁 프로젝트의 **입증된 패턴**을 ACA의 강력한 아키텍처 위에 성공적으로 통합하고, 독자적 AI-네이티브 기능까지 확장:
 
-- **OpenCode** → MCP 프로토콜, 퍼미션 시스템
-- **Oh My OpenCode** → 멀티모델 라우팅, 병렬 에이전트, LSP 통합
-- **Get Shit Done** → 컨텍스트 엔지니어링, Goal-Backward 검증, XML 계획
-- **Everything Claude Code** → 인스틴트 공유, 스킬 생태계, 에이전트 전문화
-- **Codex** → OS 샌드박스, OpenTelemetry 관측성
-- **Gemini CLI** → 모델 라우팅 전략, 평가 시스템
-- **Claude Code** → 플러그인 아키텍처, 구조적 워크플로우
+- **OpenCode** → ✅ MCP 프로토콜 + OAuth/PKCE, 퍼미션 시스템, 10 LLM 프로바이더
+- **Oh My OpenCode** → ✅ 멀티모델 라우팅, 병렬 에이전트, LSP 통합
+- **Get Shit Done** → ✅ 컨텍스트 엔지니어링, Goal-Backward 검증, XML 계획
+- **Everything Claude Code** → ✅ 인스틴트 공유, 스킬 생태계, 에이전트 전문화, 인스틴트→스킬 자동 변환
+- **Codex** → ✅ OS 샌드박스 (3 플랫폼), OpenTelemetry 관측성, Headless CI/CD
+- **Gemini CLI** → ✅ 모델 라우팅 전략, Eval 13개, A2A 프로토콜, 7-Phase 워크플로우
+- **Claude Code** → ✅ 플러그인 아키텍처 + 마켓플레이스, 구조적 워크플로우
+- **ACA 독자** → ✅ 8개 AI-네이티브 모듈 (자율 디버깅, 멀티에이전트 협업, RAG, 적응형 프롬프트, 멀티모달, NL 테스트 생성, Git 워크플로우, 페어 프로그래밍)
 
-### 최종 비전
+### 현재 달성 상태 (v2.1+)
 
-Enhancement 완료 시, ACA는:
-- **가장 지능적인 학습 시스템** (3계층 학습 + 팀 공유)
-- **가장 효율적인 모델 활용** (지능형 멀티모델 라우팅)
-- **가장 안정적인 품질** (컨텍스트 엔지니어링 + Goal-Backward 검증)
-- **가장 확장 가능한 구조** (MCP + 플러그인 + 10+ 에이전트)
-- **가장 높은 신뢰성** (3,214 테스트, 192 스위트)
+ACA는 현재:
+- **가장 지능적인 학습 시스템** (5계층 학습 + 팀 공유 + 인스틴트→스킬 자동 변환)
+- **가장 효율적인 모델 활용** (4가지 전략의 지능형 멀티모델 라우팅 + 10개 프로바이더)
+- **가장 안정적인 품질** (컨텍스트 엔지니어링 + Goal-Backward 검증 + Loop Detection + 적응형 프롬프트)
+- **가장 확장 가능한 구조** (ACP + MCP OAuth + A2A + LSP + 플러그인 마켓플레이스 + 10 에이전트 + 14 스킬)
+- **가장 높은 신뢰성** (5,962 테스트, 290 스위트, 90.62% 커버리지, ESLint 0 errors)
+- **가장 포괄적인 AI-네이티브 기능** (8개 모듈: 자율 디버깅, 협업, RAG, 프롬프트 최적화, 멀티모달, 테스트 생성, Git 워크플로우, 페어 프로그래밍)
+- **완전한 플랫폼 생태계** (TUI + Web + Desktop + Headless CI/CD + 마켓플레이스 + 릴리스 자동화)
 
-을 갖춘, 현존하는 AI 코딩 에이전트 중 가장 포괄적이고 완성도 높은 시스템이 된다.
+을 갖춘 시스템이다.
+
+> **참고**: 경쟁 프로젝트 (Claude Code, Codex, Gemini CLI 등)는 대규모 팀이 운영하는 프로덕션 서비스이므로, 실제 유저 규모와 안정성 면에서 직접 비교에는 한계가 있다. ACA의 강점은 아키텍처 설계, 모듈 포괄성, AI-네이티브 기능의 독자적 조합에 있다.
+
+### 다음 단계: Phase I (실전 품질 & 생태계 — v3.0)
+
+**Sprint 1: 코드 품질 안정화 ✅ COMPLETED**
+- I-1: ESLint 46→0 errors ✅
+- I-2: TypeScript unused vars 수정 ✅
+- I-3: Barrel exports (core/shared/dx index.ts) ✅
+- I-4: 대형 파일 리팩토링 (TaskExecutor, RunnerLifecycle, ModuleInitializer 추출) ✅
+
+**Sprint 2: 실전 LLM 통합**
+- I-5: Integration Test Framework
+- I-6: 실 API 검증 (Claude, OpenAI, Gemini)
+- I-7: Resilience 테스트 (장애 주입, 폴백)
+- I-8: Model Router 실전 검증
+
+**Sprint 3: IDE 생태계**
+- I-9: VS Code Extension
+- I-10: 태스크 UI (WebView)
+- I-11: 마켓플레이스 배포
+- I-12: JetBrains 기초
+
+**Sprint 4: 인프라 고도화**
+- I-13: 벡터 임베딩 (실전 모델)
+- I-14: 벡터 DB (Pinecone/Weaviate/Chroma)
+- I-15: PostgreSQL/SQLite 연동
+- I-16: 옵저버빌리티 (Jaeger/Grafana)
 
 ---
 
@@ -1320,48 +1487,88 @@ Enhancement 완료 시, ACA는:
 
 ---
 
-## Appendix D. 코드베이스 검증 결과 (2026-02-13)
+## Appendix D. 코드베이스 검증 결과 (2026-02-14)
 
-### D.1 검증된 불일치 항목 및 교정
+### D.1 전체 구현 이력 (Enhancement Strategy → Phase H)
 
-| # | 항목 | 문서 원본 | 실제 코드베이스 | 교정 내용 |
-|---|------|-----------|----------------|-----------|
-| 1 | 코어 모듈 수 | 23개 | 21개 (`src/core/` 하위 디렉토리) | 21개로 수정 |
-| 2 | 스킬 수 | 5개 | 4개 (planning, code-review, refactoring, test-generation) | 4개로 수정 |
-| 3 | cost-tracker.ts | "기존 확장" | ✅ `shared/llm/cost-tracker.ts` 구현 완료 | Enhancement에서 신규 구현 |
-| 4 | tiered-router.ts | MEMORY.md에 기록됨 | `model-router.ts`로 대체 (ModelRouter + 4개 전략) | model-router.ts로 교정 |
-| 5 | 후크 이벤트 수 | 11+ | 27개 (AGENT_*, TASK_*, TOOL_*, WORKFLOW_*, GIT_*, CONTEXT_*, SESSION_*) | 27개로 수정 + 평가 ⭐⭐⭐⭐⭐ 상향 |
-| 6 | 샌드박스 상태 | "스텁" | SandboxEscalation 완전 구현 (4레벨) | "4레벨 에스컬레이션 구현"으로 수정 |
-| 7 | 테스트 파일 수 | 98 | 192 스위트, 3,214 tests | Enhancement 통합 후 대폭 증가 |
+| # | 항목 | v0.1.0 | v0.4.0 (Phase E) | v2.1+ (Phase H) | 비고 |
+|---|------|--------|-------------------|-----------------|------|
+| 1 | 코어 모듈 수 | 21개 | 30+개 | **40+개** | +8 AI-네이티브 모듈 (Phase H) |
+| 2 | 에이전트 수 | 4개 | 10개 | **10개** | + 멀티에이전트 협업 (CollaborationManager) |
+| 3 | 스킬 수 | 4개 | 14개 | **14개 + InstinctToSkillConverter** | 자동 스킬 생성 (Phase F) |
+| 4 | 테스트 수 | 2,315 (97) | 4,125 (240) | **5,962 (290 suites)** | +1,837 tests, +50 suites |
+| 5 | 커버리지 | ~70% | ~70% | **90.62%** | Phase G-10 (142 커버리지 테스트) |
+| 6 | LLM 프로바이더 | 4개 | 4개 | **10개** | Mistral, xAI, Groq, Together, DeepSeek, Fireworks (Phase F) |
+| 7 | Eval 정의 | 3개 | 3개 | **13개** | 7 categories (Phase F) |
+| 8 | MCP | MCPConnectionManager | + 5 presets | **+ OAuthManager (PKCE)** | Phase F-8 |
+| 9 | 프로토콜 | ACP | + MCP + LSP | **+ A2A (Gateway + Router)** | Phase F-7 |
+| 10 | 샌드박스 | Seatbelt + Landlock | 동일 | **+ WindowsSandbox (AppContainer)** | Phase F-9 |
+| 11 | UI | TUI + Web + API | 동일 | **+ Desktop App (Tauri 2)** | Phase F-12 |
+| 12 | CI/CD | - | - | **HeadlessRunner (4 CI)** | Phase F-10 |
+| 13 | 플러그인 | PluginRegistry | 동일 | **+ MarketplaceRegistry** | Phase F-11 |
+| 14 | AI-네이티브 | - | - | **8 모듈** | Phase H-1~H-8 |
+| 15 | ESLint | - | - | **0 errors** | Phase I-1 |
+| 16 | 소스 파일 | ~300 | ~370 | **414+** | 67,000+ LOC |
 
-### D.2 코드베이스 확인된 21개 코어 모듈
+### D.2 코드베이스 현황 (40+ 코어 모듈)
 
 ```
 src/core/
+├── adaptive-prompts/   # FeedbackTracker + PromptOptimizer + A/B Testing           [Phase H-4]
+├── analytics/          # UsageTracker + CostReporter
 ├── benchmark/          # BenchmarkRunner (SWE-bench 스타일)
 ├── brownfield/         # BrownfieldAnalyzer
 ├── checkpoint/         # CheckpointManager
-├── context/            # 6 컴포넌트 (Manager, Monitor, Budget, Curve, Optimizer, Compaction)
+├── collaboration/      # CollaborationManager + FeedbackLoop                       [Phase H-2]
+├── context/            # 6 컴포넌트 + planning-context/ (PlanningDirectory, StateTracker, PhaseManager, ContextBudget, ResearchSnapshot)
+├── debugging/          # HypothesisGenerator (10 patterns) + DebuggingLoop         [Phase H-1]
 ├── deep-worker/        # PreExploration + SelfPlanning + RetryStrategy + TodoEnforcer
 ├── di/                 # IoC 컨테이너 인터페이스
 ├── docs-generator/     # DocsGenerator (HLD/MLD/LLD)
 ├── dynamic-prompts/    # PromptRegistry + PromptRenderer
-├── hooks/              # BaseHook → Registry → Executor (27 이벤트)
+├── evals/              # EvalRunner + EvalReporter + 13 definitions                [Phase F-3]
+├── git-workflow/       # BranchStrategist (7) + ConflictResolver + PRReviewer      [Phase H-7]
+├── hooks/              # BaseHook → Registry → Executor (27 이벤트, 11 후크)
 ├── hud/                # MetricsCollector + HUDDashboard
+├── i18n/               # 국제화
 ├── instinct-transfer/  # InstinctTransfer
 ├── interfaces/         # 공통 인터페이스 정의
-├── learning/           # ReflexionPattern + InstinctStore + SolutionsCache
-├── orchestrator/       # CEO + 4 Team Agents + TaskRouter + RunnerDataSource
-├── protocols/          # ACPMessageBus
-├── security/           # SandboxEscalation (4레벨) + PermissionGuardHook + PlatformSandbox
-├── services/           # ServiceRegistry
-├── session/            # JSONL 영속성 + SessionManager + Recovery
-├── skills/             # SkillRegistry + Pipeline + 4 스킬
-├── validation/         # 스키마 검증
-└── workspace/          # WorkspaceManager + DocumentQueue
+├── learning/           # ReflexionPattern + InstinctStore + SolutionsCache + InstinctClustering + TeamLearningHub
+├── lsp/                # LSPClient + DocumentSync + SymbolCache + LSPConnectionManager + RefactorEngine + 5 presets
+├── mcp/                # MCPClient + MCPServer + MCPToolRegistry + MCPConnectionManager + OAuthManager (PKCE) + 5 presets [Phase F-8]
+├── multimodal/         # ImageAnalyzer + UICodeGenerator + MultimodalProcessor     [Phase H-5]
+├── notifications/      # 알림 시스템
+├── orchestrator/       # CEO + 10 Team Agents + TaskRouter + AgentPool + ParallelExecutor + BackgroundManager
+├── pair-programming/   # CursorSync + SuggestionManager + PairSessionManager      [Phase H-8]
+├── permission/         # PermissionManager + ApprovalWorkflow + PermissionResolver + PermissionRules
+├── persistence/        # InMemoryDBClient + MigrationEngine + PersistenceAdapter
+├── plugins/            # PluginLoader + PluginRegistry + PluginLifecycle + PluginAPI + MarketplaceRegistry [Phase F-11]
+├── protocols/          # ACPMessageBus + A2AGateway + A2ARouter                    [Phase F-7]
+├── rag/                # CodeChunkStrategy + LocalEmbeddingEngine + InMemoryVectorStore + RAGOrchestrator [Phase H-3]
+├── saas/               # TenantManager + BillingManager
+├── security/           # SeatbeltSandbox + LandlockSandbox + WindowsSandbox + NetworkIsolation + ResourceLimiter [Phase F-9]
+├── services/           # ServiceRegistry (singleton, enableX 플래그, graceful degradation, 6모듈 확장) [Phase G-5]
+├── session/            # JSONL 영속성 + SessionManager + Recovery + Compactor
+├── shortcuts/          # 단축키 시스템
+├── skills/             # SkillRegistry + Pipeline + 14 스킬 + InstinctToSkillConverter + SevenPhaseWorkflow [Phase F-5, F-6]
+├── test-gen/           # RequirementParser + TestCaseGenerator + TestCodeEmitter   [Phase H-6]
+├── tools/              # AST-Grep (ASTGrepClient + 5 presets)
+├── validation/         # GoalBackwardVerifier + StubDetector + ConfidenceChecker + VerificationPipeline
+└── workspace/          # WorkspaceManager + DocumentQueue + XML PlanFormat + PlanValidator + ProjectManager
+
+src/shared/
+├── llm/                # 10 LLM 클라이언트 (Claude, OpenAI, Gemini, Ollama, Mistral, xAI, Groq, Together, DeepSeek, Fireworks)
+├── github/             # GitHubClient (Octokit 래핑, 18 methods)
+├── ci/                 # CIDetector (GitHub Actions, GitLab CI, Jenkins, CircleCI)  [Phase F-10]
+└── ...
+
+src/ui/
+├── ide/                # IDEBridge (JSON-RPC 2.0) + IDECommandRegistry
+├── web/                # Web Dashboard + CollaborationHub + DashboardAPI
+└── tui/                # TUI (5 components)
 ```
 
-> **참고**: `evals/` 모듈은 MEMORY.md에 기록되어 있으나 현 코드베이스에서는 `core/` 하위에 포함되지 않음. `tiered-router.ts`는 `model-router.ts`(ModelRouter + 4개 라우팅 전략)로 대체됨. `cost-tracker.ts`는 `shared/llm/cost-tracker.ts`에 구현 완료. Enhancement Strategy 통합 후 192 스위트, 3,214 tests.
+> **참고**: v2.1+ — Phase E~H 전체 구현 완료 + Phase I Sprint 1 코드 품질 안정화. 5,962 tests, 290 suites, 90.62% 커버리지. TypeScript strict mode clean. ESLint 0 errors.
 
 ---
 
@@ -1904,15 +2111,17 @@ src/core/
 | **샌드박스** | | | | | | | | | - | 보안 이벤트 |
 | **OTel** | | | | | | | | | | - |
 
-### E.9 결론: Enhancement 후 ACA의 차별화 포인트
+### E.9 결론: v2.1+ ACA의 차별화 포인트
 
-Enhancement 전략의 5개 Phase가 모두 적용되면, ACA는 다음과 같은 **유일무이한 조합**을 제공한다:
+Phase E~H 전체 구현을 통해, ACA는 다음과 같은 **유일무이한 조합**을 제공한다:
 
-1. **학습하는 에이전트**: 3계층 학습 (Reflexion + Instinct + Solutions) + 팀 공유 → 사용할수록 프로젝트에 최적화
-2. **비용 인식 실행**: 모델 라우팅 + CostTracker + QualityCurve → 예산 내에서 최적의 품질
-3. **안전한 자율성**: 퍼미션 시스템 + OS 샌드박스 + Goal-Backward 검증 → 사용자 신뢰 기반 자동화
-4. **무한 확장**: MCP + 플러그인 + 10+ 에이전트 → 어떤 도구/서비스와도 통합 가능
-5. **과학적 컨텍스트**: .planning/ + 50% 규칙 + QualityCurve → 대규모 프로젝트에서도 품질 유지
-6. **완전한 관측성**: OpenTelemetry + HUD + 비용 추적 → 에이전트 행동의 투명한 모니터링
+1. **학습하는 에이전트**: 5계층 학습 + 팀 공유 + InstinctToSkillConverter → 사용할수록 프로젝트에 최적화, 학습이 재사용 가능 스킬로 자동 변환
+2. **비용 인식 실행**: 모델 라우팅 (4 전략) + 10 프로바이더 + CostTracker + QualityCurve → 예산 내에서 최적의 품질
+3. **안전한 자율성**: 3 플랫폼 샌드박스 + 퍼미션 + Goal-Backward 검증 + 보안 감사 95개 → 사용자 신뢰 기반 자동화
+4. **무한 확장**: MCP OAuth + A2A + 플러그인 마켓플레이스 + 10 에이전트 → 어떤 도구/서비스/에이전트와도 통합 가능
+5. **과학적 컨텍스트**: .planning/ + 50% 규칙 + QualityCurve + 적응형 프롬프트 → 대규모 프로젝트에서도 품질 유지
+6. **완전한 관측성**: OpenTelemetry + HUD + 비용 추적 + Headless CI/CD → 에이전트 행동의 투명한 모니터링
+7. **AI-네이티브 자율성** (업계 유일): 자율 디버깅 + RAG 코드 검색 + NL 테스트 생성 + 멀티모달 + Git 워크플로우 + 페어 프로그래밍 → 에이전트가 스스로 디버깅하고, 코드를 검색하고, 테스트를 생성하고, 이미지를 이해
+8. **완전한 플랫폼**: TUI + Web + Desktop + Headless CI/CD + 마켓플레이스 + 릴리스 자동화 → 어디서든 실행 가능
 
-이는 현존하는 어떤 AI 코딩 에이전트도 제공하지 않는 조합이며, ACA만의 경쟁 우위이다.
+이 조합은 개별 기능 면에서 경쟁 프로젝트가 부분적으로 지원하는 항목이 있으나, **8개 AI-네이티브 모듈의 통합된 조합**은 ACA만의 독자적 경쟁 우위이다.

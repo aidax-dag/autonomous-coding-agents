@@ -114,6 +114,63 @@ export {
 } from './solutions-cache';
 
 // ============================================================================
+// D-1: Instinct Sharing (Export/Import Bundles)
+// ============================================================================
+
+export {
+  InstinctExporter,
+  createInstinctExporter,
+  InstinctBundleExporter,
+  createInstinctBundleExporter,
+  type InstinctRecord,
+  type ExportOptions,
+  type ExportedInstinctBundle,
+  type ExportedInstinct,
+  type BundleExportStore,
+} from './instinct-export';
+
+export {
+  InstinctImporter,
+  createInstinctImporter,
+  InstinctBundleImporter,
+  createInstinctBundleImporter,
+  type ValidationResult,
+  type ImportOptions,
+  type BundleImportResult,
+  type BundleImportStore,
+} from './instinct-import';
+
+// ============================================================================
+// Instinct Clustering
+// ============================================================================
+
+export {
+  InstinctClusterer,
+  createInstinctClusterer,
+  type InstinctCluster,
+  type SkillDefinition,
+} from './instinct-clustering';
+
+// ============================================================================
+// F-5: Instinct-to-Skill Auto-Conversion
+// ============================================================================
+
+export {
+  InstinctToSkillConverter,
+  createInstinctToSkillConverter,
+  type ConversionConfig,
+  type ConversionResult,
+  type ConvertedSkillInfo,
+  type SkippedClusterInfo,
+} from './instinct-to-skill-converter';
+
+export {
+  InstinctDerivedSkill,
+  type InstinctDerivedSkillInput,
+  type InstinctDerivedSkillOutput,
+} from './instinct-derived-skill';
+
+// ============================================================================
 // Utility Functions (re-exported from learning-utils to maintain public API)
 // ============================================================================
 

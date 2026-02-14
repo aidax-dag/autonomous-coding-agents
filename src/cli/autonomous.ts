@@ -5,6 +5,7 @@
  * Uses createRunnerFromEnv() to load configuration from environment.
  */
 
+import * as fs from 'fs';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import {
@@ -16,6 +17,12 @@ import type { OrchestratorRunner, GoalResult, WorkflowResult } from '@/core/orch
 import { logger } from '@/shared/logging/logger';
 import type { TeamType } from '@/core/workspace/task-document';
 import { startAPIServer } from '@/api/server';
+import { createHeadlessRunner } from '@/cli/headless/headless-runner';
+import { createOutputFormatter } from '@/cli/headless/output-formatter';
+import { CIDetector } from '@/cli/headless/ci-detector';
+import { EXIT_CODES } from '@/cli/headless/types';
+import type { HeadlessConfig } from '@/cli/headless/types';
+import type { OutputFormat } from '@/cli/headless/output-formatter';
 
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
@@ -72,6 +79,31 @@ async function withRunner(
       });
     }
   }
+}
+
+/**
+ * Build a HeadlessConfig from CLI option values.
+ * Exported for testability.
+ */
+export function createHeadlessConfigFromCLI(
+  goal: string,
+  options: {
+    timeout?: string;
+    format?: string;
+    output?: string;
+    ci?: boolean;
+    exitOnError?: boolean;
+  },
+): HeadlessConfig {
+  return {
+    goal,
+    projectPath: process.cwd(),
+    outputFormat: (options.format ?? 'json') as HeadlessConfig['outputFormat'],
+    timeout: parseInt(options.timeout ?? '300000', 10),
+    exitOnError: options.exitOnError !== false,
+    enabledFeatures: [],
+    environment: {},
+  };
 }
 
 export function createAutonomousCLI(): Command {
@@ -218,6 +250,62 @@ export function createAutonomousCLI(): Command {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(chalk.red(`Failed to start server: ${msg}`));
         process.exitCode = 1;
+      }
+    });
+
+  // ========================================================================
+  // headless — run a goal in headless CI/CD mode
+  // ========================================================================
+  program
+    .command('headless <goal>')
+    .description('Run a goal in headless CI/CD mode')
+    .option('--timeout <ms>', 'Execution timeout in milliseconds', '300000')
+    .option('--exit-on-error', 'Exit with non-zero code on failure', true)
+    .option('--format <format>', 'Output format: json|jsonl|minimal', 'json')
+    .option('--output <file>', 'Write result to file')
+    .option('--ci', 'Force CI mode detection')
+    .option('--no-ci', 'Disable CI mode detection')
+    .action(async (goal: string, options) => {
+      try {
+        const config = createHeadlessConfigFromCLI(goal, options);
+
+        // Detect CI environment unless explicitly disabled
+        const ciDetector = new CIDetector();
+        const isCI = options.ci === true ? true : options.ci === false ? false : ciDetector.isCI();
+
+        if (isCI) {
+          logger.info('CI mode active', { provider: ciDetector.detect().provider });
+        }
+
+        const runner = createHeadlessRunner(config);
+        const result = await runner.execute();
+
+        const formatter = createOutputFormatter(config.outputFormat as OutputFormat);
+        const formatted = formatter.formatResult(result);
+
+        if (options.output) {
+          fs.writeFileSync(options.output, formatted, 'utf-8');
+          logger.info('Result written to file', { path: options.output });
+        } else {
+          console.log(formatted);
+        }
+
+        runner.dispose();
+
+        // Map exit code from result
+        if (result.success) {
+          process.exitCode = EXIT_CODES.SUCCESS;
+        } else if (result.errors.some((e) => e.code === 'TIMEOUT')) {
+          process.exitCode = EXIT_CODES.TIMEOUT;
+        } else if (result.errors.some((e) => e.code === 'RUNTIME_ERROR')) {
+          process.exitCode = EXIT_CODES.RUNTIME_ERROR;
+        } else {
+          process.exitCode = EXIT_CODES.GOAL_FAILED;
+        }
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(`Error: ${msg}`));
+        process.exitCode = EXIT_CODES.RUNTIME_ERROR;
       }
     });
 

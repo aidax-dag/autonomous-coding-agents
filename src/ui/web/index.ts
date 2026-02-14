@@ -26,3 +26,12 @@ export { SSEBrokerImpl, createSSEBroker } from './sse-broker';
 export { DashboardAPI, createDashboardAPI, type DashboardAPIOptions } from './dashboard-api';
 export { WebDashboardApp, createWebDashboard, type WebDashboardOptions } from './web-dashboard';
 export { HttpAdapter, createHttpAdapter } from './http-adapter';
+export {
+  CollaborationHub,
+  createCollaborationHub,
+  type CollaborationClient,
+  type CollaborationMessage,
+  type CollaborationMessageType,
+  type SharedSession,
+  type CollaborationHubOptions,
+} from './collaboration-hub';

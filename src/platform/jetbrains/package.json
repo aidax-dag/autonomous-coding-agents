@@ -1,0 +1,17 @@
+{
+  "name": "aca-jetbrains",
+  "version": "0.1.0",
+  "description": "ACA JetBrains IDE integration client - JSON-RPC 2.0 over TCP",
+  "main": "./out/index.js",
+  "types": "./out/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf out"
+  },
+  "author": "ACA",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

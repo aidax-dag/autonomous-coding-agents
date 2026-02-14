@@ -5,9 +5,201 @@ All notable changes to the Autonomous Coding Agents (ACA) project are documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-02-14
+
+Advanced Autonomy & AI-Native — Autonomous Debugging, Multi-Agent Collaboration, RAG Code Search, Adaptive Prompts, Multimodal, NL Test Generation, Git Workflow Intelligence, Real-time Pair Programming.
+
+### Added
+
+#### Autonomous Debugging Loop (H-1)
+- `HypothesisGenerator` with 10 error pattern recognizers (null reference, type mismatch, async/await, import, bounds, syntax, timeout, permission, memory, network).
+- `DebuggingLoop` implementing diagnose→hypotheses→test→learn cycle with automatic fix verification.
+- Confidence-scored hypothesis ranking and iterative refinement.
+
+#### Multi-Agent Collaboration (H-2)
+- `FeedbackLoop` for structured inter-agent feedback with quality scoring.
+- `CollaborationManager` for agent registration, task delegation, feedback collection, and conflict resolution.
+- Role-based agent coordination (CEO→Planning→Dev→QA) with direct agent-to-agent communication.
+
+#### RAG-Based Code Search (H-3)
+- `CodeChunkStrategy` for intelligent code segmentation by function, class, and block boundaries.
+- `LocalEmbeddingEngine` using n-gram hashing for local vector embeddings without external API calls.
+- `InMemoryVectorStore` with cosine similarity search and configurable top-k retrieval.
+- `RAGOrchestrator` coordinating chunking→embedding→storage→retrieval pipeline.
+
+#### Adaptive Prompts (H-4)
+- `FeedbackTracker` for tracking prompt performance metrics and success rates.
+- `PromptOptimizer` for dynamic prompt refinement based on historical feedback patterns.
+- A/B testing framework for systematic prompt variant comparison and selection.
+
+#### Multimodal Support (H-5)
+- `ImageAnalyzer` for screenshot analysis, UI element detection, and layout extraction.
+- `UICodeGenerator` for converting visual analysis to React component code.
+- `MultimodalProcessor` orchestrating image→analysis→code generation pipeline.
+
+#### Natural Language Test Generation (H-6)
+- `RequirementParser` for extracting testable conditions from natural language requirement text.
+- `TestCaseGenerator` for producing structured test cases from parsed requirements.
+- `TestCodeEmitter` supporting Jest, Mocha, and Vitest output formats.
+- `TestGenerator` facade coordinating parse→generate→emit workflow.
+
+#### Git Intelligent Workflow (H-7)
+- `BranchStrategist` with 7 branching strategies (feature, bugfix, hotfix, release, experiment, refactor, docs).
+- `ConflictResolver` for automatic merge conflict detection and resolution suggestions.
+- `PRReviewer` for automated pull request review with code quality and convention checks.
+
+#### Real-time Pair Programming (H-8)
+- `CursorSync` for synchronized cursor position tracking across IDE sessions.
+- `SuggestionManager` for real-time agent suggestion display with accept/reject workflow.
+- `PairSessionManager` for session lifecycle management (create, join, leave, close) with participant tracking.
+
+## [0.5.0] - 2026-02-14
+
+Quality Deepening & Ecosystem Expansion — E2E Tests, Eval Expansion, LLM Providers, Protocols, Platform Ecosystem.
+
+### Added
+
+#### E2E Integration Tests (F-2)
+- 5 end-to-end test suites: ServiceRegistry lifecycle, Orchestrator lifecycle, ACP integration, Hook pipeline, Skill execution.
+- 106 tests covering full CLI→Orchestrator→Agent→Skill workflows.
+
+#### Eval Expansion (F-3)
+- 10 new eval definitions expanding from 3 to 13 total scenarios.
+- Categories: generalist, plan-mode, subagent-delegation, tool-use, context-management, security, code-quality.
+- `ALL_EVAL_DEFINITIONS` barrel export with category/severity distribution validation.
+
+#### Additional LLM Providers (F-4)
+- 6 new providers: Mistral AI, xAI (Grok), Groq, Together AI, DeepSeek, Fireworks AI.
+- OpenAI-compatible providers using `openai` SDK with custom `baseURL`.
+- 12 new model profiles (2 per provider) with capability metadata.
+- `RunnerConfigSchema` updated with 6 provider entries and API key fields.
+
+#### Instinct-to-Skill Conversion (F-5)
+- `InstinctToSkillConverter` for automatic skill creation from learned instinct patterns.
+- `InstinctDerivedSkill` implementing `ISkill` with pattern matching and confidence scoring.
+- Convert, preview, and cluster-based conversion workflows.
+
+#### 7-Phase Workflow (F-6)
+- `SevenPhaseWorkflow`: Discovery → Exploration → Clarification → Design → Implementation → Review → Summary.
+- `DEFAULT_PHASE_DEFINITIONS` with configurable phase metadata.
+- `PhaseExecutor` callback pattern for pluggable phase implementation.
+
+#### A2A Protocol (F-7)
+- `A2AGateway` for Agent-to-Agent communication with peer discovery and task delegation.
+- `A2ARouter` with pattern-based message routing and priority ordering.
+- `AgentCard` discovery protocol and ACP message bus bridging.
+- 6 A2A message types: task-delegation, acceptance, rejection, progress, completion, discovery.
+
+#### MCP OAuth (F-8)
+- `OAuthManager` with `client_credentials` and `authorization_code` grant types.
+- PKCE (Proof Key for Code Exchange) implementation with S256 challenge method.
+- Automatic token refresh with configurable intervals and `.unref()` timers.
+- Token storage and retrieval interface for persistent OAuth sessions.
+
+#### Windows Sandbox (F-9)
+- `WindowsSandbox` implementing `IOSSandbox` with PowerShell script generation.
+- Environment-variable-based policy passing for sandboxed processes.
+- `createPlatformSandbox()` factory updated with `win32` platform support.
+
+#### Headless CI/CD Mode (F-10)
+- `HeadlessRunner` for non-interactive API-only agent execution.
+- `CIDetector` supporting GitHub Actions, GitLab CI, Jenkins, CircleCI.
+- `OutputFormatter` with JSON, JSONL, and minimal output formats.
+- GitHub Actions annotations (`::notice::`, `::error::`, `::warning::`) and output variables.
+- `EXIT_CODES`: SUCCESS(0), GOAL_FAILED(1), TIMEOUT(2), CONFIG_ERROR(3), RUNTIME_ERROR(4).
+
+#### Plugin Marketplace (F-11)
+- `PluginPackager` with manifest validation (semver, naming), packaging, and integrity verification.
+- `MarketplaceRegistry` for plugin publishing, search (query/keyword/author), install/uninstall.
+- Paginated search with sorting (downloads, rating, name, updated).
+- Download counting and multi-version support.
+
+#### Desktop App (F-12)
+- `IPCBridge` for channel-based IPC communication with timeout and pending request management.
+- `WindowManager` for window lifecycle (create, close, focus, minimize, maximize, resize, move).
+- `SystemTray` with configurable menu items, tooltip, icon, and click simulation.
+- `DesktopApp` orchestrator combining IPC, windows, and tray with state machine lifecycle.
+- 5 built-in IPC handlers: `app:getState`, `app:getConfig`, `window:list`, `window:focus`, `tray:getMenu`.
+
+## [0.4.0] - 2026-02-13
+
+Additional Improvements — Loop Detection, AST-Grep Integration, IDE Bridge, DB Persistence.
+
+### Added
+
+#### Loop Detection (E-1)
+- `LoopDetector` with circular buffer for bounded execution history tracking.
+- Three detection strategies: same-task repetition, task-sequence cycle, and state-regression via output hashing.
+- Configurable thresholds: `maxSameTaskRetries`, `maxSequenceRepeats`, `sequenceWindowSize`, `timeWindowMs`.
+- Escalating suggested actions: `continue` → `warn` → `block`.
+- `LoopMetrics` for monitoring detection statistics: checks performed, loops detected, actions blocked.
+- `ServiceRegistry` integration with `enableLoopDetection` flag.
+
+#### AST-Grep Integration (E-2)
+- `ASTGrepClient` wrapping `sg` CLI binary for structural code search and rewriting.
+- Methods: `search`, `searchByRule`, `rewrite`, `listLanguages`, `isAvailable`.
+- 5 built-in rule presets: unused imports, console.log removal, TODO comments, empty functions, debugger statements.
+- Temporary YAML rule file management for complex rule-based searches.
+- `ServiceRegistry` integration with `enableASTGrep` flag.
+
+#### IDE Integration (E-3)
+- `IDEBridge` for JSON-RPC 2.0 based communication with VS Code and JetBrains IDEs.
+- Client lifecycle management: connect, disconnect, track connected clients.
+- Command dispatch with configurable timeout and built-in commands: `getStatus`, `listAgents`, `submitTask`, `getTaskResult`, `listSkills`.
+- `IDECommandRegistry` for custom command registration and handler management.
+- Event-driven notifications: `client:connected`, `client:disconnected`, `command:executed`, `notification:sent`.
+- `ServiceRegistry` integration with `enableIDE` flag.
+
+#### DB Persistence (E-4)
+- `IDBClient` interface with `connect`, `disconnect`, `query`, `execute`, `transaction`, `isConnected`.
+- `InMemoryDBClient` for testing with regex-based SQL parsing (CREATE TABLE, INSERT, SELECT, UPDATE, DELETE).
+- `MigrationEngine` with version-ordered migration execution, rollback support, and `_migrations` tracking table.
+- `GenericPersistenceAdapter<T>` for typed CRUD operations: `create`, `get`, `update`, `delete`, `list`, `count`.
+- `ServiceRegistry` integration with `enablePersistence` and `dbConfig` options.
+
+## [0.3.0] - 2026-02-13
+
+Platform Expansion — Instinct Sharing, Team Collaboration, Multi-Project, SaaS, Usage Analytics, GitHub Integration.
+
+### Added
+
+#### Instinct Sharing (D-1)
+- `InstinctBundleExporter` for portable instinct bundle export with confidence filtering and category selection.
+- `InstinctBundleImporter` with validation, confidence capping, deduplication, and dry-run support.
+- Dashboard API endpoints: `GET /api/instincts`, `POST /api/instincts/export`, `POST /api/instincts/import`.
+
+#### Team Collaboration (D-2)
+- `CollaborationHub` for SSE-based shared sessions and real-time team communication.
+- Session lifecycle: create, join, leave, close with participant tracking.
+- Message broadcasting with configurable history limits per session.
+- 6 message types: cursor, edit, chat, status, task-update, agent-event.
+- Dashboard API endpoints: 6 collaboration REST routes for session and message management.
+
+#### Multi-Project Management (D-3)
+- `ProjectManager` for managing multiple project workspaces with add/remove/switch lifecycle.
+- Active project tracking with `lastAccessedAt` timestamps for recent project queries.
+- Configurable max project limits with event-driven notifications.
+
+#### SaaS Features (D-4)
+- `TenantManager` with plan-based limits (free/pro/enterprise), usage tracking, and feature gating.
+- `BillingManager` with default billing plans, subscription lifecycle, invoice creation and payment.
+- Stripe-compatible interfaces for payment integration.
+
+#### Usage Analytics (D-5)
+- `UsageTracker` for recording LLM usage with breakdowns by agent, model, and provider.
+- `CostReporter` for generating cost reports with daily aggregation and automated recommendations.
+- Configurable record limits with oldest-first eviction.
+- Dashboard API endpoints: `GET /api/analytics/summary`, `GET /api/analytics/cost-report`.
+
+#### GitHub Integration (B-4)
+- `GitHubClient` wrapping Octokit for PR, Issue, and Repository operations.
+- 18 methods covering full PR lifecycle, issue management, and repository queries.
+- Custom error handling: authentication, rate limit, not found, validation errors.
+- `ServiceRegistry` integration with `enableGitHub` flag.
+
 ## [0.2.0] - 2026-02-13
 
-Phase C: Feature Expansion — MCP, Parallel Execution, LSP real integration.
+Feature Expansion — MCP, Parallel Execution, LSP real integration.
 
 ### Added
 

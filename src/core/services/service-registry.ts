@@ -5,58 +5,76 @@
  * (validation, learning, context). Provides typed getters with null safety
  * and graceful degradation on initialization failures.
  *
+ * Module initialization logic delegated to module-initializer.ts.
+ *
  * @module core/services/service-registry
  */
 
-import {
+import type {
   ConfidenceChecker,
-  createConfidenceChecker,
 } from '../validation/confidence-checker';
-import {
+import type {
   SelfCheckProtocol,
-  createSelfCheckProtocol,
 } from '../validation/self-check-protocol';
-import {
+import type {
   GoalBackwardVerifier,
-  createGoalBackwardVerifier,
 } from '../validation/goal-backward-verifier';
-import { ReflexionPattern, createReflexionPattern } from '../learning/reflexion-pattern';
-import { InstinctStore, createInstinctStore } from '../learning/instinct-store';
-import { SolutionsCache, createSolutionsCache } from '../learning/solutions-cache';
-import { ContextManager, createContextManager } from '../context/context-manager';
-import {
+import type { ReflexionPattern } from '../learning/reflexion-pattern';
+import type { InstinctStore } from '../learning/instinct-store';
+import type { SolutionsCache } from '../learning/solutions-cache';
+import type { ContextManager } from '../context/context-manager';
+import type {
   SessionManager,
-  createSessionManager,
-  createJSONLPersistence,
-  createSessionRecovery,
 } from '../session/index';
-import { SandboxEscalation, createSandboxEscalation } from '../security/sandbox-escalation';
-import type { SandboxEscalationOptions } from '../security/interfaces/escalation.interface';
-import { PermissionManager, createPermissionManager } from '../permission/permission-manager';
+import type { SandboxEscalation } from '../security/sandbox-escalation';
+import type { PermissionManager } from '../permission/permission-manager';
 import type { PermissionManagerOptions } from '../permission/permission-manager';
-import { MCPClient, createMCPClient } from '../mcp/mcp-client';
-import { MCPToolRegistry, createMCPToolRegistry } from '../mcp/mcp-tool-registry';
-import {
+import type { MCPClient } from '../mcp/mcp-client';
+import type { MCPToolRegistry } from '../mcp/mcp-tool-registry';
+import type {
   MCPConnectionManager,
-  createMCPConnectionManager,
-  type MCPServerEntry,
+  MCPServerEntry,
 } from '../mcp/mcp-connection-manager';
-import { LSPClient, createLSPClient } from '../lsp/lsp-client';
-import { DiagnosticsCollector, createDiagnosticsCollector } from '../lsp/diagnostics-collector';
-import {
+import type { LSPClient } from '../lsp/lsp-client';
+import type { DiagnosticsCollector } from '../lsp/diagnostics-collector';
+import type {
   LSPConnectionManager,
-  createLSPConnectionManager,
-  type LSPServerEntry as LSPServerEntryType,
+  LSPServerEntry as LSPServerEntryType,
 } from '../lsp/lsp-connection-manager';
-import { SkillRegistry, createSkillRegistry } from '../skills/skill-registry';
-import { PluginLoader, createPluginLoader } from '../plugins/plugin-loader';
-import { PluginRegistry, createPluginRegistry } from '../plugins/plugin-registry';
-import { PluginLifecycle, createPluginLifecycle } from '../plugins/plugin-lifecycle';
-import { StateTracker, createStateTracker } from '../context/planning-context/state-tracker';
-import { PhaseManager, createPhaseManager } from '../context/planning-context/phase-manager';
-import { ContextBudget, createContextBudget } from '../context/planning-context/context-budget';
-import { GitHubClient, createGitHubClient } from '../../shared/github/github-client';
-import { mkdir } from 'fs/promises';
+import type { SkillRegistry } from '../skills/skill-registry';
+import type { PluginLoader } from '../plugins/plugin-loader';
+import type { PluginRegistry } from '../plugins/plugin-registry';
+import type { PluginLifecycle } from '../plugins/plugin-lifecycle';
+import type { StateTracker } from '../context/planning-context/state-tracker';
+import type { PhaseManager } from '../context/planning-context/phase-manager';
+import type { ContextBudget } from '../context/planning-context/context-budget';
+import type { GitHubClient } from '../../shared/github/github-client';
+import type { CollaborationHub } from '../../ui/web/collaboration-hub';
+import type { IDEBridge } from '../../ui/ide/ide-bridge';
+import type { UsageTracker } from '../analytics/usage-tracker';
+import type { ASTGrepClient } from '../tools/ast-grep/ast-grep-client';
+import type { ProjectManager } from '../workspace/project-manager';
+import type { TenantManager } from '../saas/tenant-manager';
+import type { BillingManager } from '../saas/billing-manager';
+import type { LoopDetector } from '../orchestrator/loop-detector';
+import type {
+  A2AGateway,
+  A2AGatewayConfig,
+} from '../protocols/a2a/a2a-gateway';
+import type { A2ARouter } from '../protocols/a2a/a2a-router';
+import type { OAuthManager } from '../mcp/oauth/oauth-manager';
+import type { OAuthManagerConfig } from '../mcp/oauth/oauth-manager';
+import type {
+  MarketplaceRegistry,
+} from '../plugins/marketplace/marketplace-registry';
+import type {
+  SevenPhaseWorkflow,
+} from '../orchestrator/workflow/seven-phase-workflow';
+import type { SevenPhaseConfig } from '../orchestrator/workflow/seven-phase-workflow';
+import type { CostReporter } from '../analytics/cost-reporter';
+import type { IDBClient, DBConfig } from '../persistence/db-client';
+import type { SandboxEscalationOptions } from '../security/interfaces/escalation.interface';
+import { ModuleInitializer, type ModuleInitResult, createEmptyModuleResult } from './module-initializer';
 
 /**
  * Configuration for ServiceRegistry initialization
@@ -106,6 +124,42 @@ export interface ServiceRegistryConfig {
   enableGitHub?: boolean;
   /** GitHub personal access token */
   githubToken?: string;
+  /** Enable collaboration hub (default: false) */
+  enableCollaboration?: boolean;
+  /** Enable usage analytics module (default: false) */
+  enableAnalytics?: boolean;
+  /** Enable multi-project management (default: false) */
+  enableMultiProject?: boolean;
+  /** Maximum projects for multi-project management (default: 20) */
+  maxProjects?: number;
+  /** Enable SaaS features - tenant and billing management (default: false) */
+  enableSaaS?: boolean;
+  /** Enable IDE bridge for VS Code / JetBrains integration (default: false) */
+  enableIDE?: boolean;
+  /** Enable AST-Grep integration for pattern-based code search (default: false) */
+  enableASTGrep?: boolean;
+  /** Enable loop detection for task execution (default: false) */
+  enableLoopDetection?: boolean;
+  /** Enable database persistence layer (default: false) */
+  enablePersistence?: boolean;
+  /** Database configuration (defaults to InMemoryDBClient when omitted) */
+  dbConfig?: DBConfig;
+  /** Enable A2A protocol modules - A2AGateway and A2ARouter (default: false) */
+  enableA2A?: boolean;
+  /** A2A Gateway configuration (required when enableA2A is true) */
+  a2aConfig?: A2AGatewayConfig;
+  /** Enable MCP OAuth module - OAuthManager (default: false) */
+  enableMCPOAuth?: boolean;
+  /** OAuth manager configuration */
+  oauthConfig?: OAuthManagerConfig;
+  /** Enable plugin marketplace module - MarketplaceRegistry (default: false) */
+  enableMarketplace?: boolean;
+  /** Enable seven-phase workflow module (default: false) */
+  enableSevenPhase?: boolean;
+  /** Seven-phase workflow configuration (required when enableSevenPhase is true) */
+  sevenPhaseConfig?: SevenPhaseConfig;
+  /** Enable usage tracking module - UsageTracker + CostReporter (default: false) */
+  enableUsageTracking?: boolean;
 }
 
 /**
@@ -113,34 +167,12 @@ export interface ServiceRegistryConfig {
  *
  * Singleton registry managing integration module lifecycle.
  * Each module initializes independently - one failure doesn't block others.
+ * Module initialization is delegated to ModuleInitializer.
  */
 export class ServiceRegistry {
   private static instance: ServiceRegistry;
 
-  private confidenceChecker: ConfidenceChecker | null = null;
-  private selfCheckProtocol: SelfCheckProtocol | null = null;
-  private goalBackwardVerifier: GoalBackwardVerifier | null = null;
-  private reflexionPattern: ReflexionPattern | null = null;
-  private instinctStore: InstinctStore | null = null;
-  private solutionsCache: SolutionsCache | null = null;
-  private contextManager: ContextManager | null = null;
-  private sessionManager: SessionManager | null = null;
-  private sandboxEscalation: SandboxEscalation | null = null;
-  private permissionManager: PermissionManager | null = null;
-  private mcpClient: MCPClient | null = null;
-  private mcpToolRegistry: MCPToolRegistry | null = null;
-  private mcpConnectionManager: MCPConnectionManager | null = null;
-  private lspClient: LSPClient | null = null;
-  private diagnosticsCollector: DiagnosticsCollector | null = null;
-  private lspConnectionManager: LSPConnectionManager | null = null;
-  private skillRegistry: SkillRegistry | null = null;
-  private pluginLoader: PluginLoader | null = null;
-  private pluginRegistry: PluginRegistry | null = null;
-  private pluginLifecycle: PluginLifecycle | null = null;
-  private stateTracker: StateTracker | null = null;
-  private phaseManager: PhaseManager | null = null;
-  private contextBudget: ContextBudget | null = null;
-  private githubClient: GitHubClient | null = null;
+  private modules: ModuleInitResult = createEmptyModuleResult();
   private _initialized = false;
 
   private constructor() {}
@@ -165,222 +197,8 @@ export class ServiceRegistry {
   async initialize(config: ServiceRegistryConfig = {}): Promise<void> {
     if (this._initialized) return;
 
-    const {
-      projectRoot = process.cwd(),
-      enableValidation = false,
-      enableLearning = false,
-      enableContext = false,
-      enableSession = false,
-      enableSecurity = false,
-      enablePermission = false,
-      memoryDir = 'docs/memory',
-      sessionDir = 'data/sessions',
-      sandboxOptions,
-      permissionOptions,
-    } = config;
-
-    const basePath = `${projectRoot}/${memoryDir}`;
-
-    // Validation modules (synchronous initialization)
-    if (enableValidation) {
-      try {
-        this.confidenceChecker = createConfidenceChecker();
-      } catch {
-        /* module init failed - continue */
-      }
-
-      try {
-        this.selfCheckProtocol = createSelfCheckProtocol();
-      } catch {
-        /* module init failed - continue */
-      }
-
-      try {
-        this.goalBackwardVerifier = createGoalBackwardVerifier();
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // Learning modules (async initialization)
-    if (enableLearning) {
-      // Ensure memory directory exists before module initialization
-      try {
-        await mkdir(basePath, { recursive: true });
-      } catch {
-        /* directory creation failed - modules will handle individually */
-      }
-
-      try {
-        this.reflexionPattern = await createReflexionPattern({
-          filePath: `${basePath}/solutions_learned.jsonl`,
-        });
-      } catch {
-        /* module init failed - continue */
-      }
-
-      try {
-        this.instinctStore = await createInstinctStore({
-          storagePath: `${basePath}/instincts.jsonl`,
-        });
-      } catch {
-        /* module init failed - continue */
-      }
-
-      try {
-        this.solutionsCache = await createSolutionsCache({
-          persistPath: `${basePath}/solutions_cache.jsonl`,
-        });
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // Context module (synchronous initialization)
-    if (enableContext) {
-      try {
-        this.contextManager = createContextManager();
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // Session module (async initialization)
-    if (enableSession) {
-      const sessionBasePath = `${projectRoot}/${sessionDir}`;
-      try {
-        const persistence = await createJSONLPersistence({ baseDir: sessionBasePath });
-        const recovery = createSessionRecovery({ persistence });
-        this.sessionManager = await createSessionManager({ persistence, recovery });
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // Security module (synchronous initialization)
-    if (enableSecurity) {
-      try {
-        this.sandboxEscalation = createSandboxEscalation(sandboxOptions);
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // Permission module (synchronous initialization)
-    if (enablePermission) {
-      try {
-        this.permissionManager = createPermissionManager(permissionOptions);
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // MCP module (async initialization — connects to configured servers)
-    if (config.enableMCP) {
-      try {
-        this.mcpToolRegistry = createMCPToolRegistry();
-
-        const servers = config.mcpServers ?? [];
-        if (servers.length > 0) {
-          this.mcpConnectionManager = createMCPConnectionManager({ servers });
-          await this.mcpConnectionManager.connectAll();
-
-          // Register discovered tools as skills via the tool registry
-          for (const entry of servers) {
-            const client = this.mcpConnectionManager.getClient(entry.name);
-            const tools = this.mcpConnectionManager.getServerTools(entry.name);
-            if (client && tools.length > 0 && this.mcpToolRegistry) {
-              this.mcpToolRegistry.registerAsSkills(tools, client);
-            }
-          }
-
-          // Backward compatibility: set mcpClient to the first connected server's client
-          const firstConnected = servers.find(
-            (s) => this.mcpConnectionManager?.getClient(s.name)?.isConnected(),
-          );
-          if (firstConnected) {
-            this.mcpClient = this.mcpConnectionManager.getClient(firstConnected.name);
-          }
-        } else {
-          // No servers configured — create a standalone client for backward compatibility
-          this.mcpClient = createMCPClient();
-        }
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // LSP module (async initialization — connects to configured servers)
-    if (config.enableLSP) {
-      try {
-        this.diagnosticsCollector = createDiagnosticsCollector();
-
-        const lspServers = config.lspServers ?? [];
-        if (lspServers.length > 0) {
-          this.lspConnectionManager = createLSPConnectionManager({ servers: lspServers });
-          await this.lspConnectionManager.connectAll();
-
-          // Backward compatibility: set lspClient to the first connected server's client
-          const firstConnected = lspServers.find(
-            (s) => this.lspConnectionManager?.getClient(s.name),
-          );
-          if (firstConnected) {
-            this.lspClient = this.lspConnectionManager.getClient(firstConnected.name);
-          }
-        } else {
-          // No servers configured — create a standalone client for backward compatibility
-          this.lspClient = createLSPClient();
-        }
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // Skills module (auto-enabled with MCP or LSP, or explicitly)
-    if (config.enableSkills || config.enableMCP || config.enableLSP) {
-      try {
-        this.skillRegistry = createSkillRegistry();
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // Planning context module (async initialization)
-    if (config.enablePlanningContext) {
-      const planningBasePath = `${projectRoot}/${config.planningDir || 'data/planning'}`;
-      try {
-        await mkdir(planningBasePath, { recursive: true });
-      } catch {
-        /* directory creation failed - modules will handle individually */
-      }
-      try {
-        this.stateTracker = createStateTracker(`${planningBasePath}/state.md`);
-        this.phaseManager = createPhaseManager();
-        this.contextBudget = createContextBudget();
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // Plugin module (synchronous initialization — discovery is deferred)
-    if (config.enablePlugins) {
-      try {
-        this.pluginLoader = createPluginLoader();
-        this.pluginRegistry = createPluginRegistry();
-        this.pluginLifecycle = createPluginLifecycle();
-      } catch {
-        /* module init failed - continue */
-      }
-    }
-
-    // GitHub module (synchronous initialization)
-    if (config.enableGitHub && config.githubToken) {
-      try {
-        this.githubClient = createGitHubClient(config.githubToken);
-      } catch {
-        /* module init failed - continue */
-      }
-    }
+    const initializer = new ModuleInitializer();
+    this.modules = await initializer.initializeAll(config);
 
     this._initialized = true;
   }
@@ -390,71 +208,160 @@ export class ServiceRegistry {
    */
   async dispose(): Promise<void> {
     try {
-      if (this.solutionsCache) {
-        await this.solutionsCache.dispose();
+      if (this.modules.solutionsCache) {
+        await this.modules.solutionsCache.dispose();
       }
     } catch {
       /* dispose error ignored */
     }
 
     try {
-      if (this.contextManager) {
-        this.contextManager.dispose();
+      if (this.modules.contextManager) {
+        this.modules.contextManager.dispose();
       }
     } catch {
       /* dispose error ignored */
     }
 
     try {
-      if (this.sessionManager) {
-        await this.sessionManager.dispose();
+      if (this.modules.sessionManager) {
+        await this.modules.sessionManager.dispose();
       }
     } catch {
       /* dispose error ignored */
     }
 
     try {
-      if (this.mcpConnectionManager) {
-        await this.mcpConnectionManager.disconnectAll();
-      } else if (this.mcpClient?.isConnected()) {
-        await this.mcpClient.disconnect();
+      if (this.modules.mcpConnectionManager) {
+        await this.modules.mcpConnectionManager.disconnectAll();
+      } else if (this.modules.mcpClient?.isConnected()) {
+        await this.modules.mcpClient.disconnect();
       }
     } catch {
       /* dispose error ignored */
     }
 
     try {
-      if (this.lspConnectionManager) {
-        await this.lspConnectionManager.disconnectAll();
+      if (this.modules.lspConnectionManager) {
+        await this.modules.lspConnectionManager.disconnectAll();
       }
     } catch {
       /* dispose error ignored */
     }
 
-    this.confidenceChecker = null;
-    this.selfCheckProtocol = null;
-    this.goalBackwardVerifier = null;
-    this.reflexionPattern = null;
-    this.instinctStore = null;
-    this.solutionsCache = null;
-    this.contextManager = null;
-    this.sessionManager = null;
-    this.sandboxEscalation = null;
-    this.permissionManager = null;
-    this.mcpClient = null;
-    this.mcpToolRegistry = null;
-    this.mcpConnectionManager = null;
-    this.lspClient = null;
-    this.diagnosticsCollector = null;
-    this.lspConnectionManager = null;
-    this.skillRegistry = null;
-    this.pluginLoader = null;
-    this.pluginRegistry = null;
-    this.pluginLifecycle = null;
-    this.stateTracker = null;
-    this.phaseManager = null;
-    this.contextBudget = null;
-    this.githubClient = null;
+    try {
+      if (this.modules.collaborationHub) {
+        this.modules.collaborationHub.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
+      if (this.modules.ideBridge) {
+        this.modules.ideBridge.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
+      if (this.modules.dbClient?.isConnected()) {
+        await this.modules.dbClient.disconnect();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
+      if (this.modules.a2aGateway) {
+        this.modules.a2aGateway.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
+      if (this.modules.oauthManager) {
+        this.modules.oauthManager.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
+      if (this.modules.marketplaceRegistry) {
+        this.modules.marketplaceRegistry.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    // Null out references that don't need async disposal
+    this.modules.confidenceChecker = null;
+    this.modules.selfCheckProtocol = null;
+    this.modules.goalBackwardVerifier = null;
+    this.modules.reflexionPattern = null;
+    this.modules.instinctStore = null;
+    this.modules.solutionsCache = null;
+    this.modules.contextManager = null;
+    this.modules.sessionManager = null;
+    this.modules.sandboxEscalation = null;
+    this.modules.permissionManager = null;
+    this.modules.mcpClient = null;
+    this.modules.mcpToolRegistry = null;
+    this.modules.mcpConnectionManager = null;
+    this.modules.lspClient = null;
+    this.modules.diagnosticsCollector = null;
+    this.modules.lspConnectionManager = null;
+    this.modules.skillRegistry = null;
+    this.modules.pluginLoader = null;
+    this.modules.pluginRegistry = null;
+    this.modules.pluginLifecycle = null;
+    this.modules.stateTracker = null;
+    this.modules.phaseManager = null;
+    this.modules.contextBudget = null;
+    this.modules.githubClient = null;
+    this.modules.usageTracker = null;
+    this.modules.collaborationHub = null;
+    this.modules.ideBridge = null;
+    this.modules.loopDetector = null;
+
+    try {
+      if (this.modules.projectManager) {
+        this.modules.projectManager.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
+      if (this.modules.tenantManager) {
+        this.modules.tenantManager.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
+      if (this.modules.billingManager) {
+        this.modules.billingManager.dispose();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    this.modules.projectManager = null;
+    this.modules.tenantManager = null;
+    this.modules.billingManager = null;
+    this.modules.astGrepClient = null;
+    this.modules.dbClient = null;
+    this.modules.a2aGateway = null;
+    this.modules.a2aRouter = null;
+    this.modules.oauthManager = null;
+    this.modules.marketplaceRegistry = null;
+    this.modules.sevenPhaseWorkflow = null;
+    this.modules.costReporter = null;
     this._initialized = false;
   }
 
@@ -464,98 +371,158 @@ export class ServiceRegistry {
 
   // Typed getters (null safety)
   getConfidenceChecker(): ConfidenceChecker | null {
-    return this.confidenceChecker;
+    return this.modules.confidenceChecker;
   }
 
   getSelfCheckProtocol(): SelfCheckProtocol | null {
-    return this.selfCheckProtocol;
+    return this.modules.selfCheckProtocol;
   }
 
   getGoalBackwardVerifier(): GoalBackwardVerifier | null {
-    return this.goalBackwardVerifier;
+    return this.modules.goalBackwardVerifier;
   }
 
   getReflexionPattern(): ReflexionPattern | null {
-    return this.reflexionPattern;
+    return this.modules.reflexionPattern;
   }
 
   getInstinctStore(): InstinctStore | null {
-    return this.instinctStore;
+    return this.modules.instinctStore;
   }
 
   getSolutionsCache(): SolutionsCache | null {
-    return this.solutionsCache;
+    return this.modules.solutionsCache;
   }
 
   getContextManager(): ContextManager | null {
-    return this.contextManager;
+    return this.modules.contextManager;
   }
 
   getSessionManager(): SessionManager | null {
-    return this.sessionManager;
+    return this.modules.sessionManager;
   }
 
   getSandboxEscalation(): SandboxEscalation | null {
-    return this.sandboxEscalation;
+    return this.modules.sandboxEscalation;
   }
 
   getPermissionManager(): PermissionManager | null {
-    return this.permissionManager;
+    return this.modules.permissionManager;
   }
 
   getMCPClient(): MCPClient | null {
-    return this.mcpClient;
+    return this.modules.mcpClient;
   }
 
   getMCPToolRegistry(): MCPToolRegistry | null {
-    return this.mcpToolRegistry;
+    return this.modules.mcpToolRegistry;
   }
 
   getMCPConnectionManager(): MCPConnectionManager | null {
-    return this.mcpConnectionManager;
+    return this.modules.mcpConnectionManager;
   }
 
   getLSPClient(): LSPClient | null {
-    return this.lspClient;
+    return this.modules.lspClient;
   }
 
   getDiagnosticsCollector(): DiagnosticsCollector | null {
-    return this.diagnosticsCollector;
+    return this.modules.diagnosticsCollector;
   }
 
   getLSPConnectionManager(): LSPConnectionManager | null {
-    return this.lspConnectionManager;
+    return this.modules.lspConnectionManager;
   }
 
   getSkillRegistry(): SkillRegistry | null {
-    return this.skillRegistry;
+    return this.modules.skillRegistry;
   }
 
   getPluginLoader(): PluginLoader | null {
-    return this.pluginLoader;
+    return this.modules.pluginLoader;
   }
 
   getPluginRegistry(): PluginRegistry | null {
-    return this.pluginRegistry;
+    return this.modules.pluginRegistry;
   }
 
   getPluginLifecycle(): PluginLifecycle | null {
-    return this.pluginLifecycle;
+    return this.modules.pluginLifecycle;
   }
 
   getStateTracker(): StateTracker | null {
-    return this.stateTracker;
+    return this.modules.stateTracker;
   }
 
   getPhaseManager(): PhaseManager | null {
-    return this.phaseManager;
+    return this.modules.phaseManager;
   }
 
   getContextBudget(): ContextBudget | null {
-    return this.contextBudget;
+    return this.modules.contextBudget;
   }
 
   getGitHubClient(): GitHubClient | null {
-    return this.githubClient;
+    return this.modules.githubClient;
+  }
+
+  getUsageTracker(): UsageTracker | null {
+    return this.modules.usageTracker;
+  }
+
+  getCollaborationHub(): CollaborationHub | null {
+    return this.modules.collaborationHub;
+  }
+
+  getProjectManager(): ProjectManager | null {
+    return this.modules.projectManager;
+  }
+
+  getTenantManager(): TenantManager | null {
+    return this.modules.tenantManager;
+  }
+
+  getBillingManager(): BillingManager | null {
+    return this.modules.billingManager;
+  }
+
+  getIDEBridge(): IDEBridge | null {
+    return this.modules.ideBridge;
+  }
+
+  getASTGrepClient(): ASTGrepClient | null {
+    return this.modules.astGrepClient;
+  }
+
+  getLoopDetector(): LoopDetector | null {
+    return this.modules.loopDetector;
+  }
+
+  getDBClient(): IDBClient | null {
+    return this.modules.dbClient;
+  }
+
+  getA2AGateway(): A2AGateway | null {
+    return this.modules.a2aGateway;
+  }
+
+  getA2ARouter(): A2ARouter | null {
+    return this.modules.a2aRouter;
+  }
+
+  getOAuthManager(): OAuthManager | null {
+    return this.modules.oauthManager;
+  }
+
+  getMarketplaceRegistry(): MarketplaceRegistry | null {
+    return this.modules.marketplaceRegistry;
+  }
+
+  getSevenPhaseWorkflow(): SevenPhaseWorkflow | null {
+    return this.modules.sevenPhaseWorkflow;
+  }
+
+  getCostReporter(): CostReporter | null {
+    return this.modules.costReporter;
   }
 }

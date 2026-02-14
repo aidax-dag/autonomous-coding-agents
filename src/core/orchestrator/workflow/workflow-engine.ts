@@ -132,6 +132,7 @@ export interface WorkflowEngineEvents {
  *
  * Executes YAML-defined workflows with conditional and parallel support.
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class WorkflowEngine extends EventEmitter {
   private config: Required<WorkflowEngineConfig>;
   private activeExecutions = new Map<string, WorkflowContext>();
@@ -691,6 +692,7 @@ export class WorkflowEngine extends EventEmitter {
 }
 
 // Type-safe event emitter
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface WorkflowEngine {
   on<E extends keyof WorkflowEngineEvents>(event: E, listener: WorkflowEngineEvents[E]): this;
   emit<E extends keyof WorkflowEngineEvents>(

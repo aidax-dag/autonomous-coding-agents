@@ -1,12 +1,18 @@
 /**
- * Tests for Instinct Exporter
+ * Tests for Instinct Exporter and Bundle Exporter (D-1)
  */
 
 import {
   InstinctExporter,
   createInstinctExporter,
+  InstinctBundleExporter,
+  createInstinctBundleExporter,
 } from '@/core/learning/instinct-export';
-import type { InstinctRecord } from '@/core/learning/instinct-export';
+import type {
+  InstinctRecord,
+  ExportedInstinctBundle,
+  BundleExportStore,
+} from '@/core/learning/instinct-export';
 import type {
   IInstinctStore,
   Instinct,
@@ -154,6 +160,180 @@ describe('InstinctExporter', () => {
     it('should create an InstinctExporter instance', () => {
       const exporter = createInstinctExporter();
       expect(exporter).toBeInstanceOf(InstinctExporter);
+    });
+  });
+});
+
+// ============================================================================
+// D-1 Bundle Exporter Tests
+// ============================================================================
+
+function makeBundleStore(instincts: Instinct[] = []): BundleExportStore {
+  return {
+    getAll: () => instincts,
+  };
+}
+
+describe('InstinctBundleExporter', () => {
+  describe('export with default options', () => {
+    it('should export instincts above default confidence threshold', () => {
+      const store = makeBundleStore([
+        makeInstinct({ id: 'i1', confidence: 0.8 }),
+        makeInstinct({ id: 'i2', confidence: 0.3 }),
+        makeInstinct({ id: 'i3', confidence: 0.6 }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export();
+
+      // Default minConfidence is 0.5, so 0.3 is excluded
+      expect(bundle.instincts).toHaveLength(2);
+      expect(bundle.count).toBe(2);
+      expect(bundle.version).toBe('1.0');
+      expect(bundle.source).toBe('aca');
+    });
+  });
+
+  describe('export filter by minimum confidence', () => {
+    it('should respect custom minConfidence threshold', () => {
+      const store = makeBundleStore([
+        makeInstinct({ id: 'i1', confidence: 0.9 }),
+        makeInstinct({ id: 'i2', confidence: 0.7 }),
+        makeInstinct({ id: 'i3', confidence: 0.4 }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export({ minConfidence: 0.8 });
+
+      expect(bundle.instincts).toHaveLength(1);
+      expect(bundle.instincts[0].confidence).toBe(0.9);
+    });
+  });
+
+  describe('export filter by categories', () => {
+    it('should only include instincts from specified categories', () => {
+      const store = makeBundleStore([
+        makeInstinct({ id: 'i1', domain: 'code-style', confidence: 0.8 }),
+        makeInstinct({ id: 'i2', domain: 'testing', confidence: 0.8 }),
+        makeInstinct({ id: 'i3', domain: 'security', confidence: 0.8 }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export({ categories: ['code-style', 'security'] });
+
+      expect(bundle.instincts).toHaveLength(2);
+      const categories = bundle.instincts.map((i) => i.category);
+      expect(categories).toContain('code-style');
+      expect(categories).toContain('security');
+      expect(categories).not.toContain('testing');
+    });
+  });
+
+  describe('export without metadata', () => {
+    it('should omit metadata when includeMetadata is false', () => {
+      const store = makeBundleStore([
+        makeInstinct({ id: 'i1', confidence: 0.8 }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export({ includeMetadata: false });
+
+      expect(bundle.instincts).toHaveLength(1);
+      expect(bundle.instincts[0].metadata).toBeUndefined();
+    });
+
+    it('should include metadata by default', () => {
+      const store = makeBundleStore([
+        makeInstinct({ id: 'i1', confidence: 0.8, source: 'user-correction' }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export();
+
+      expect(bundle.instincts[0].metadata).toBeDefined();
+      expect(bundle.instincts[0].metadata!.source).toBe('user-correction');
+    });
+  });
+
+  describe('exportToJson', () => {
+    it('should produce valid pretty-printed JSON', () => {
+      const store = makeBundleStore([
+        makeInstinct({ id: 'i1', confidence: 0.8 }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const json = exporter.exportToJson();
+      const parsed = JSON.parse(json) as ExportedInstinctBundle;
+
+      expect(parsed.version).toBe('1.0');
+      expect(parsed.instincts).toHaveLength(1);
+      expect(json).toContain('\n'); // Pretty-printed
+    });
+  });
+
+  describe('empty store', () => {
+    it('should return empty bundle from empty store', () => {
+      const store = makeBundleStore([]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export();
+
+      expect(bundle.instincts).toHaveLength(0);
+      expect(bundle.count).toBe(0);
+    });
+  });
+
+  describe('bundle structure', () => {
+    it('should include version and exportedAt timestamp', () => {
+      const store = makeBundleStore([
+        makeInstinct({ confidence: 0.8 }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export();
+
+      expect(bundle.version).toBe('1.0');
+      expect(bundle.exportedAt).toBeDefined();
+      // Verify it is a valid ISO timestamp
+      const date = new Date(bundle.exportedAt);
+      expect(date.getTime()).not.toBeNaN();
+    });
+
+    it('should map trigger to pattern and domain to category', () => {
+      const store = makeBundleStore([
+        makeInstinct({
+          confidence: 0.8,
+          domain: 'testing',
+        }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export();
+
+      expect(bundle.instincts[0].pattern).toBe('When declaring variables');
+      expect(bundle.instincts[0].category).toBe('testing');
+    });
+
+    it('should extract tags from metadata', () => {
+      const store = makeBundleStore([
+        makeInstinct({
+          confidence: 0.8,
+          metadata: { tags: ['typescript', 'best-practice'] },
+        }),
+      ]);
+      const exporter = new InstinctBundleExporter(store);
+
+      const bundle = exporter.export();
+
+      expect(bundle.instincts[0].tags).toEqual(['typescript', 'best-practice']);
+    });
+  });
+
+  describe('createInstinctBundleExporter factory', () => {
+    it('should create via factory function', () => {
+      const store = makeBundleStore([]);
+      const exporter = createInstinctBundleExporter(store);
+      expect(exporter).toBeInstanceOf(InstinctBundleExporter);
     });
   });
 });

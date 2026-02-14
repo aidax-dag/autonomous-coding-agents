@@ -74,3 +74,11 @@ export {
   SubscriptionOptions,
   DocumentQueue,
 } from './document-queue';
+
+// Project Manager
+export {
+  ProjectConfig,
+  ProjectManagerOptions,
+  ProjectManagerEvents,
+  ProjectManager,
+} from './project-manager';

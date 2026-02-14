@@ -98,6 +98,73 @@ export const RunnerConfigSchema = z.object({
 
   /** Enable fire-and-forget goal execution via BackgroundManager */
   enableBackgroundGoals: z.boolean().default(false),
+
+  // --- A2A Protocol ---
+
+  /** Enable Agent-to-Agent protocol */
+  enableA2A: z.boolean().default(false),
+
+  /** A2A server port */
+  a2aPort: z.number().default(9090),
+
+  /** A2A server host */
+  a2aHost: z.string().default('localhost'),
+
+  // --- MCP OAuth ---
+
+  /** Enable MCP OAuth authentication */
+  enableMCPOAuth: z.boolean().default(false),
+
+  /** MCP OAuth redirect URI */
+  mcpOAuthRedirectUri: z.string().optional(),
+
+  // --- Seven Phase Workflow ---
+
+  /** Enable seven-phase workflow execution */
+  enableSevenPhase: z.boolean().default(false),
+
+  /** Timeout per phase in milliseconds (default: 5 minutes) */
+  sevenPhaseTimeout: z.number().default(300000),
+
+  // --- Error Recovery ---
+
+  /** Enable automatic error recovery (G-6) */
+  enableErrorRecovery: z.boolean().default(false),
+
+  /** Maximum retry attempts for error recovery */
+  maxRetries: z.number().default(2),
+
+  // --- Loop Detection ---
+
+  /** Enable loop detection for agent execution */
+  enableLoopDetection: z.boolean().default(true),
+
+  /** Number of repeated actions before triggering loop detection */
+  loopDetectionThreshold: z.number().default(3),
+
+  /** Time window for loop detection in milliseconds (default: 1 minute) */
+  loopDetectionWindow: z.number().default(60000),
+
+  // --- Usage Tracking ---
+
+  /** Enable usage tracking and metrics collection */
+  enableUsageTracking: z.boolean().default(false),
+
+  /** Interval for persisting usage data in milliseconds (default: 1 minute) */
+  usagePersistInterval: z.number().default(60000),
+
+  // --- Plugin Marketplace ---
+
+  /** Enable plugin marketplace integration */
+  enableMarketplace: z.boolean().default(false),
+
+  /** Plugin marketplace registry URL */
+  marketplaceRegistryUrl: z.string().optional(),
+
+  // --- Desktop ---
+
+  /** Enable desktop mode */
+  enableDesktop: z.boolean().default(false),
 });
 
 export type RunnerConfig = z.infer<typeof RunnerConfigSchema>;
@@ -193,6 +260,62 @@ export function loadRunnerConfig(): RunnerConfig {
 
   const backgroundGoals = parseBoolean(env.ENABLE_BACKGROUND_GOALS);
   if (backgroundGoals !== undefined) raw.enableBackgroundGoals = backgroundGoals;
+
+  // --- A2A Protocol ---
+  const enableA2A = parseBoolean(env.ACA_A2A_ENABLED);
+  if (enableA2A !== undefined) raw.enableA2A = enableA2A;
+
+  const a2aPort = parseNumber(env.ACA_A2A_PORT);
+  if (a2aPort !== undefined) raw.a2aPort = a2aPort;
+
+  if (env.ACA_A2A_HOST) raw.a2aHost = env.ACA_A2A_HOST;
+
+  // --- MCP OAuth ---
+  const enableMCPOAuth = parseBoolean(env.ACA_MCP_OAUTH_ENABLED);
+  if (enableMCPOAuth !== undefined) raw.enableMCPOAuth = enableMCPOAuth;
+
+  if (env.ACA_MCP_OAUTH_REDIRECT_URI) raw.mcpOAuthRedirectUri = env.ACA_MCP_OAUTH_REDIRECT_URI;
+
+  // --- Seven Phase Workflow ---
+  const enableSevenPhase = parseBoolean(env.ACA_SEVEN_PHASE_ENABLED);
+  if (enableSevenPhase !== undefined) raw.enableSevenPhase = enableSevenPhase;
+
+  const sevenPhaseTimeout = parseNumber(env.ACA_SEVEN_PHASE_TIMEOUT);
+  if (sevenPhaseTimeout !== undefined) raw.sevenPhaseTimeout = sevenPhaseTimeout;
+
+  // --- Error Recovery ---
+  const enableErrorRecovery = parseBoolean(env.ACA_ERROR_RECOVERY_ENABLED);
+  if (enableErrorRecovery !== undefined) raw.enableErrorRecovery = enableErrorRecovery;
+
+  const maxRetries = parseNumber(env.ACA_MAX_RETRIES);
+  if (maxRetries !== undefined) raw.maxRetries = maxRetries;
+
+  // --- Loop Detection ---
+  const enableLoopDetection = parseBoolean(env.ACA_LOOP_DETECTION_ENABLED);
+  if (enableLoopDetection !== undefined) raw.enableLoopDetection = enableLoopDetection;
+
+  const loopDetectionThreshold = parseNumber(env.ACA_LOOP_DETECTION_THRESHOLD);
+  if (loopDetectionThreshold !== undefined) raw.loopDetectionThreshold = loopDetectionThreshold;
+
+  const loopDetectionWindow = parseNumber(env.ACA_LOOP_DETECTION_WINDOW);
+  if (loopDetectionWindow !== undefined) raw.loopDetectionWindow = loopDetectionWindow;
+
+  // --- Usage Tracking ---
+  const enableUsageTracking = parseBoolean(env.ACA_USAGE_TRACKING_ENABLED);
+  if (enableUsageTracking !== undefined) raw.enableUsageTracking = enableUsageTracking;
+
+  const usagePersistInterval = parseNumber(env.ACA_USAGE_PERSIST_INTERVAL);
+  if (usagePersistInterval !== undefined) raw.usagePersistInterval = usagePersistInterval;
+
+  // --- Plugin Marketplace ---
+  const enableMarketplace = parseBoolean(env.ACA_MARKETPLACE_ENABLED);
+  if (enableMarketplace !== undefined) raw.enableMarketplace = enableMarketplace;
+
+  if (env.ACA_MARKETPLACE_REGISTRY_URL) raw.marketplaceRegistryUrl = env.ACA_MARKETPLACE_REGISTRY_URL;
+
+  // --- Desktop ---
+  const enableDesktop = parseBoolean(env.ACA_DESKTOP_ENABLED);
+  if (enableDesktop !== undefined) raw.enableDesktop = enableDesktop;
 
   return RunnerConfigSchema.parse(raw);
 }

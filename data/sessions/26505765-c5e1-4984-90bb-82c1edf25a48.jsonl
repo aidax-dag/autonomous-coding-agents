@@ -1,0 +1,2 @@
+{"timestamp":"2026-02-14T03:13:11.166Z","type":"state_change","data":{"action":"session_start"},"seq":0}
+{"timestamp":"2026-02-14T03:13:11.169Z","type":"state_change","data":{"action":"session_end"},"seq":1}

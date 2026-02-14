@@ -7,6 +7,7 @@
  * - SandboxEscalation: 4-stage progressive permission system
  * - SeatbeltSandbox: macOS Seatbelt sandbox integration
  * - LandlockSandbox: Linux Landlock sandbox integration
+ * - WindowsSandbox: Windows PowerShell-based sandbox integration
  * - NetworkIsolation: network access control
  * - ResourceLimiter: memory, CPU, and timeout enforcement
  *
@@ -66,6 +67,11 @@ export {
   LandlockSandbox,
   createLandlockSandbox,
 } from './landlock-sandbox';
+
+export {
+  WindowsSandbox,
+  createWindowsSandbox,
+} from './windows-sandbox';
 
 // ============================================================================
 // Network Isolation

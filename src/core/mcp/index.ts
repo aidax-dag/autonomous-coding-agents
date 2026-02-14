@@ -40,3 +40,5 @@ export {
 } from './mcp-connection-manager';
 
 export { MCP_PRESETS, getMCPPreset, listPresets } from './presets/index';
+
+export * from './oauth';

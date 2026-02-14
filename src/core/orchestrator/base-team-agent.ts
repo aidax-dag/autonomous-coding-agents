@@ -61,6 +61,7 @@ export interface BaseTeamAgentOptions {
 /**
  * Abstract Base Team Agent
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export abstract class BaseTeamAgent extends EventEmitter implements ITeamAgent {
   readonly id: string;
   readonly teamType: TeamType;
@@ -410,6 +411,7 @@ export abstract class BaseTeamAgent extends EventEmitter implements ITeamAgent {
 }
 
 // Type-safe event emitter
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface BaseTeamAgent {
   on<E extends keyof BaseTeamAgentEvents>(event: E, listener: BaseTeamAgentEvents[E]): this;
   emit<E extends keyof BaseTeamAgentEvents>(event: E, ...args: Parameters<BaseTeamAgentEvents[E]>): boolean;

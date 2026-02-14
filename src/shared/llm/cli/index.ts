@@ -23,10 +23,12 @@ export {
 export { BaseCLIClient, CLIAvailability, CLIExecutionResult } from './base-cli-client';
 
 // Client implementations
-export { ClaudeCLIClient } from './claude-cli-client';
-export { CodexCLIClient } from './codex-cli-client';
-export { GeminiCLIClient } from './gemini-cli-client';
-export { OllamaClient } from './ollama-client';
+import { ClaudeCLIClient } from './claude-cli-client';
+import { CodexCLIClient } from './codex-cli-client';
+import { GeminiCLIClient } from './gemini-cli-client';
+import { OllamaClient } from './ollama-client';
+
+export { ClaudeCLIClient, CodexCLIClient, GeminiCLIClient, OllamaClient };
 
 // Provider types for CLI clients
 export type CLIProvider = 'claude-cli' | 'codex-cli' | 'gemini-cli' | 'ollama';
@@ -44,13 +46,13 @@ export function isCLIProvider(provider: string): provider is CLIProvider {
 export function createCLIClient(provider: CLIProvider, defaultModel?: string, host?: string) {
   switch (provider) {
     case 'claude-cli':
-      return new (require('./claude-cli-client').ClaudeCLIClient)(defaultModel);
+      return new ClaudeCLIClient(defaultModel);
     case 'codex-cli':
-      return new (require('./codex-cli-client').CodexCLIClient)(defaultModel);
+      return new CodexCLIClient(defaultModel);
     case 'gemini-cli':
-      return new (require('./gemini-cli-client').GeminiCLIClient)(defaultModel);
+      return new GeminiCLIClient(defaultModel);
     case 'ollama':
-      return new (require('./ollama-client').OllamaClient)(defaultModel, host);
+      return new OllamaClient(defaultModel, host);
     default:
       throw new Error(`Unknown CLI provider: ${provider}`);
   }

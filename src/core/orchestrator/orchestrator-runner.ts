@@ -6,6 +6,8 @@
  *
  * Agent initialization delegated to agent-factory.ts.
  * Integration module setup delegated to integration-setup.ts.
+ * Task execution delegated to task-executor.ts.
+ * Session/context lifecycle delegated to runner-lifecycle.ts.
  *
  * Feature: End-to-End Workflow Integration for Agent OS
  */
@@ -19,13 +21,11 @@ import { DocumentQueue } from '../workspace/document-queue';
 import { WorkspaceManager } from '../workspace/workspace-manager';
 import { ILLMClient } from '@/shared/llm';
 import { RoutingStrategy } from './task-router';
-import { TaskHandlerResult } from './team-agent';
-import { BaseTeamAgent } from './base-team-agent';
 import { RunnerStateManager } from './runner-state-manager';
-import { ErrorEscalator, EscalationAction } from './error-escalator';
+import { ErrorEscalator } from './error-escalator';
 import { HookRegistry } from '../hooks/hook-registry';
 import { HookExecutor } from '../hooks/hook-executor';
-import { HookEvent, HookAction } from '../interfaces/hook.interface';
+import { HookEvent } from '../interfaces/hook.interface';
 import { ServiceRegistry } from '../services/service-registry';
 import type { GoalBackwardResult } from '../validation/interfaces/validation.interface';
 import { createAndRegisterAgents } from './agent-factory';
@@ -37,7 +37,9 @@ import { BackgroundManager } from './background-manager';
 import type { BackgroundTaskHandle } from './interfaces/parallel.interface';
 import { OTelProvider, createOTelProvider } from '@/shared/telemetry';
 import { logger } from '@/shared/logging/logger';
-import { AgentError, ErrorCode, wrapError } from '@/shared/errors/custom-errors';
+import { wrapError, ErrorCode } from '@/shared/errors/custom-errors';
+import { TaskExecutor } from './task-executor';
+import { RunnerLifecycle } from './runner-lifecycle';
 
 /**
  * Runner status
@@ -53,6 +55,20 @@ export enum RunnerStatus {
 }
 
 /**
+ * Task-level validation result from post-execution confidence checking
+ */
+export interface TaskValidationResult {
+  /** Confidence score from ConfidenceChecker (0-100) */
+  confidence: number;
+  /** Whether the confidence check passed threshold */
+  passed: boolean;
+  /** Recommendation from the checker */
+  recommendation: 'proceed' | 'alternatives' | 'stop';
+  /** Failed check item names */
+  failedChecks?: string[];
+}
+
+/**
  * Workflow execution result
  */
 export interface WorkflowResult {
@@ -62,6 +78,8 @@ export interface WorkflowResult {
   error?: string;
   duration: number;
   teamType: TeamType;
+  /** Post-execution validation result (when enableValidation is true) */
+  validation?: TaskValidationResult;
 }
 
 /**
@@ -104,6 +122,8 @@ export interface OrchestratorRunnerConfig {
   useRealQualityTools?: boolean;
   /** Enable pre/post validation hooks (default: false) */
   enableValidation?: boolean;
+  /** Minimum confidence threshold for task validation (0-100, default: 70) */
+  minConfidenceThreshold?: number;
   /** Enable error learning hooks (default: false) */
   enableLearning?: boolean;
   /** Enable context management hooks (default: false) */
@@ -136,6 +156,10 @@ export interface OrchestratorRunnerConfig {
   globalMax?: number;
   /** Enable fire-and-forget goal execution via BackgroundManager (default: false) */
   enableBackgroundGoals?: boolean;
+  /** Enable error recovery pipeline with retry logic (default: false) */
+  enableErrorRecovery?: boolean;
+  /** Maximum retries per task when error recovery is enabled (default: 2) */
+  maxRetries?: number;
 }
 
 /**
@@ -152,12 +176,18 @@ export interface RunnerEvents {
   'goal:started': (goalId: string) => void;
   'goal:completed': (result: GoalResult) => void;
   'goal:verification': (goalId: string, result: GoalBackwardResult) => void;
+  'validation:low-confidence': (info: { taskId: string; confidence: number; recommendation: string }) => void;
   'context:warning': () => void;
   'context:critical': () => void;
+  'context:budget-warning': (info: { taskId: string; utilization: number }) => void;
   'parallel:batch-start': (info: { groupId: string; taskCount: number }) => void;
   'parallel:batch-complete': (info: { groupId: string; results: number; duration: number }) => void;
   'pool:acquired': (info: { provider: string; taskId: string }) => void;
   'pool:released': (info: { provider: string; taskId: string }) => void;
+  'learning:solution-found': (info: { taskId: string; solution: unknown }) => void;
+  'error:retry': (info: { taskId: string; attempt: number; maxRetries: number; error: Error }) => void;
+  'error:escalated': (info: { taskId: string; action: string; error: Error }) => void;
+  'error:recovered': (info: { taskId: string; attempt: number; error: Error }) => void;
   error: (error: Error) => void;
 }
 
@@ -167,6 +197,7 @@ export interface RunnerEvents {
  * Thin runner that delegates agent creation and integration setup
  * to dedicated modules while focusing on lifecycle and execution flow.
  */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class OrchestratorRunner extends EventEmitter {
   private readonly config: Required<OrchestratorRunnerConfig>;
   private readonly orchestrator: CEOOrchestrator;
@@ -183,6 +214,11 @@ export class OrchestratorRunner extends EventEmitter {
   private readonly backgroundManager: BackgroundManager;
   private readonly telemetry: OTelProvider | null;
 
+  /** Delegates task execution (extracted module) */
+  private readonly taskExecutor: TaskExecutor;
+  /** Delegates session/context lifecycle (extracted module) */
+  private readonly lifecycle: RunnerLifecycle;
+
   constructor(config: OrchestratorRunnerConfig) {
     super();
 
@@ -197,6 +233,7 @@ export class OrchestratorRunner extends EventEmitter {
       projectContext: config.projectContext || '',
       useRealQualityTools: config.useRealQualityTools ?? false,
       enableValidation: config.enableValidation ?? false,
+      minConfidenceThreshold: config.minConfidenceThreshold ?? 70,
       enableLearning: config.enableLearning ?? false,
       enableContextManagement: config.enableContextManagement ?? false,
       enableSecurity: config.enableSecurity ?? false,
@@ -213,6 +250,8 @@ export class OrchestratorRunner extends EventEmitter {
       providerLimits: config.providerLimits ?? {},
       globalMax: config.globalMax ?? 10,
       enableBackgroundGoals: config.enableBackgroundGoals ?? false,
+      enableErrorRecovery: config.enableErrorRecovery ?? false,
+      maxRetries: config.maxRetries ?? 2,
     };
 
     this.telemetry = this.config.enableTelemetry
@@ -257,6 +296,34 @@ export class OrchestratorRunner extends EventEmitter {
       taskTimeout: this.config.taskTimeout,
       autoStartTeams: false,
       enableDecomposition: true,
+    });
+
+    // Initialize extracted delegates
+    this.taskExecutor = new TaskExecutor({
+      orchestrator: this.orchestrator,
+      hookRegistry: this.hookRegistry,
+      hookExecutor: this.hookExecutor,
+      stateManager: this.stateManager,
+      errorEscalator: this.errorEscalator,
+      emitter: this,
+      telemetry: this.telemetry,
+      config: {
+        enableValidation: this.config.enableValidation,
+        minConfidenceThreshold: this.config.minConfidenceThreshold,
+        enableLearning: this.config.enableLearning,
+        enableErrorRecovery: this.config.enableErrorRecovery,
+        maxRetries: this.config.maxRetries,
+      },
+    });
+
+    this.lifecycle = new RunnerLifecycle({
+      hookRegistry: this.hookRegistry,
+      hookExecutor: this.hookExecutor,
+      emitter: this,
+      config: {
+        enableSession: this.config.enableSession,
+        enableContextManagement: this.config.enableContextManagement,
+      },
     });
 
     this.setupEventHandlers();
@@ -374,7 +441,16 @@ export class OrchestratorRunner extends EventEmitter {
         this,
       );
 
+      // Wire session lifecycle via delegate
+      await this.lifecycle.startSession();
+
+      // Wire context monitoring via delegate
+      this.lifecycle.wireContextMonitoring();
+
       await this.orchestrator.start();
+
+      // AGENT_STARTED Hook via delegate
+      await this.lifecycle.fireAgentStartedHook(this.orchestrator.teams.getAll().length);
 
       this.stateManager.markStarted();
       this.emit('started');
@@ -393,6 +469,16 @@ export class OrchestratorRunner extends EventEmitter {
 
     try {
       this.stateManager.setStatus(RunnerStatus.STOPPING);
+
+      // End session via delegate
+      await this.lifecycle.endSession();
+
+      // Clean up context event listeners via delegate
+      this.lifecycle.cleanupContextListeners();
+
+      // AGENT_STOPPED Hook via delegate
+      await this.lifecycle.fireAgentStoppedHook({});
+
       await this.orchestrator.stop();
       await this.queue.stop();
       this.stateManager.setStatus(RunnerStatus.STOPPED);
@@ -454,6 +540,16 @@ export class OrchestratorRunner extends EventEmitter {
         tags: options?.tags,
       });
 
+      // WORKFLOW_START Hook
+      if (this.hookRegistry.count() > 0) {
+        await this.hookExecutor.executeHooks(
+          HookEvent.WORKFLOW_START,
+          { goal: description, tasks, goalId },
+        ).catch((e) => {
+          logger.warn('WORKFLOW_START hook failed', { goalId, error: e instanceof Error ? e.message : String(e) });
+        });
+      }
+
       const results: WorkflowResult[] = [];
 
       if (options?.waitForCompletion !== false) {
@@ -479,7 +575,7 @@ export class OrchestratorRunner extends EventEmitter {
 
       let verification: GoalBackwardResult | undefined;
       if (this.config.enableValidation && results.every((r) => r.success)) {
-        verification = await this.verifyGoal(description, tasks).catch((e) => {
+        verification = await this.taskExecutor.verifyGoal(description, tasks).catch((e) => {
           logger.warn('Goal verification failed', { goalId, error: e instanceof Error ? e.message : String(e) });
           return undefined;
         });
@@ -498,12 +594,33 @@ export class OrchestratorRunner extends EventEmitter {
         verification,
       };
 
+      // WORKFLOW_END Hook
+      if (this.hookRegistry.count() > 0) {
+        await this.hookExecutor.executeHooks(
+          HookEvent.WORKFLOW_END,
+          { goal: description, results, verification, goalId },
+        ).catch((e) => {
+          logger.warn('WORKFLOW_END hook failed', { goalId, error: e instanceof Error ? e.message : String(e) });
+        });
+      }
+
       if (goalSpan) this.telemetry!.getTraceManager().endSpan(goalSpan, goalResult.success ? 'ok' : 'error');
       this.emit('goal:completed', goalResult);
       return goalResult;
     } catch (error) {
       const err = wrapError(error, undefined, ErrorCode.WORKFLOW_ERROR);
       logger.error('Goal execution failed', { goalId, error: err.message, code: err.code });
+
+      // WORKFLOW_ERROR Hook
+      if (this.hookRegistry.count() > 0) {
+        await this.hookExecutor.executeHooks(
+          HookEvent.WORKFLOW_ERROR,
+          { goal: description, error: err, goalId },
+        ).catch((e) => {
+          logger.warn('WORKFLOW_ERROR hook failed', { goalId, error: e instanceof Error ? e.message : String(e) });
+        });
+      }
+
       const goalResult: GoalResult = {
         success: false,
         goalId,
@@ -548,112 +665,7 @@ export class OrchestratorRunner extends EventEmitter {
   }
 
   async executeTask(task: TaskDocument): Promise<WorkflowResult> {
-    const startTime = Date.now();
-    const taskId = task.metadata.id;
-    const taskSpan = this.telemetry?.getTraceManager().startSpan('executeTask');
-    if (taskSpan) {
-      taskSpan.attributes['task.id'] = taskId;
-      taskSpan.attributes['task.team'] = task.metadata.to;
-      taskSpan.attributes['task.type'] = task.metadata.type;
-    }
-
-    this.emit('workflow:started', taskId);
-
-    try {
-      // TASK_BEFORE Hooks
-      if (this.hookRegistry.count() > 0) {
-        const beforeResults = await this.hookExecutor.executeHooks(
-          HookEvent.TASK_BEFORE, task, { stopOnAction: [HookAction.ABORT] }
-        ).catch((e) => {
-          logger.warn('TASK_BEFORE hook failed', { taskId, error: e instanceof Error ? e.message : String(e) });
-          return [];
-        });
-
-        const aborted = beforeResults.find(r => r.action === HookAction.ABORT);
-        if (aborted) {
-          const workflowResult: WorkflowResult = {
-            success: false,
-            taskId,
-            error: `Blocked by validation: ${aborted.message}`,
-            duration: Date.now() - startTime,
-            teamType: task.metadata.to,
-          };
-          this.stateManager.recordResult(taskId, workflowResult);
-          this.emit('workflow:completed', workflowResult);
-          return workflowResult;
-        }
-      }
-
-      const team = this.orchestrator.teams.get(task.metadata.to);
-      if (!team) {
-        throw new AgentError(
-          `No team registered for type: ${task.metadata.to}`,
-          ErrorCode.AGENT_STATE_ERROR,
-          false,
-          { teamType: task.metadata.to, taskId },
-        );
-      }
-
-      const baseAgent = team as BaseTeamAgent;
-      const result: TaskHandlerResult = await baseAgent.processTask(task);
-
-      const workflowResult: WorkflowResult = {
-        success: result.success,
-        taskId,
-        result: result.result,
-        error: result.error,
-        duration: Date.now() - startTime,
-        teamType: task.metadata.to,
-      };
-
-      // TASK_AFTER Hooks
-      if (this.hookRegistry.count() > 0) {
-        await this.hookExecutor.executeHooks(
-          HookEvent.TASK_AFTER, { task, result }
-        ).catch((e) => {
-          logger.warn('TASK_AFTER hook failed', { taskId, error: e instanceof Error ? e.message : String(e) });
-        });
-      }
-
-      if (taskSpan) this.telemetry!.getTraceManager().endSpan(taskSpan, workflowResult.success ? 'ok' : 'error');
-      this.stateManager.recordResult(taskId, workflowResult);
-      this.errorEscalator.recordSuccess(taskId);
-      this.emit('workflow:completed', workflowResult);
-
-      return workflowResult;
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      const classification = this.errorEscalator.classify(err, 'executeTask');
-      const action = this.errorEscalator.handleError(err, 'executeTask', taskId);
-
-      // TASK_ERROR Hooks (pass classification for learning system)
-      if (this.hookRegistry.count() > 0) {
-        await this.hookExecutor.executeHooks(
-          HookEvent.TASK_ERROR, { task, error: err, classification }
-        ).catch((e) => {
-          logger.warn('TASK_ERROR hook failed', { taskId, error: e instanceof Error ? e.message : String(e) });
-        });
-      }
-
-      if (action === EscalationAction.STOP_RUNNER) {
-        this.stateManager.setStatus(RunnerStatus.ERROR);
-        this.emit('error', err);
-      }
-
-      const workflowResult: WorkflowResult = {
-        success: false,
-        taskId,
-        error: err.message,
-        duration: Date.now() - startTime,
-        teamType: task.metadata.to,
-      };
-
-      if (taskSpan) this.telemetry!.getTraceManager().endSpan(taskSpan, 'error');
-      this.stateManager.recordResult(taskId, workflowResult);
-      this.emit('workflow:failed', taskId, err);
-
-      return workflowResult;
-    }
+    return this.taskExecutor.executeTask(task);
   }
 
   async submitToTeam(
@@ -753,11 +765,16 @@ export class OrchestratorRunner extends EventEmitter {
 
   async destroy(): Promise<void> {
     this.backgroundManager.cancelAll();
+
+    // AGENT_STOPPED Hook (on destroy) via delegate
+    await this.lifecycle.fireAgentStoppedHook({ reason: 'destroy' });
+
     await this.stop();
     await this.orchestrator.destroy();
     if (this.telemetry) this.telemetry.shutdown();
     this.stateManager.clearResults();
     this.errorEscalator.reset();
+    this.lifecycle.cleanupContextListeners();
     this.removeAllListeners();
 
     try {
@@ -766,33 +783,6 @@ export class OrchestratorRunner extends EventEmitter {
     } catch {
       /* dispose error ignored */
     }
-  }
-
-  private async verifyGoal(
-    goalDescription: string,
-    tasks: TaskDocument[],
-  ): Promise<GoalBackwardResult | undefined> {
-    const registry = ServiceRegistry.getInstance();
-    const verifier = registry.getGoalBackwardVerifier();
-    if (!verifier) return undefined;
-
-    const expectedPaths: string[] = [];
-    for (const task of tasks) {
-      if (task.metadata.files) {
-        for (const file of task.metadata.files) {
-          if (file.path && !expectedPaths.includes(file.path)) {
-            expectedPaths.push(file.path);
-          }
-        }
-      }
-    }
-
-    if (expectedPaths.length === 0) return undefined;
-
-    return verifier.verify({
-      description: goalDescription,
-      expectedPaths,
-    });
   }
 
   private setupEventHandlers(): void {
@@ -825,6 +815,7 @@ export class OrchestratorRunner extends EventEmitter {
 }
 
 // Type-safe event emitter
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface OrchestratorRunner {
   on<E extends keyof RunnerEvents>(event: E, listener: RunnerEvents[E]): this;
   emit<E extends keyof RunnerEvents>(event: E, ...args: Parameters<RunnerEvents[E]>): boolean;

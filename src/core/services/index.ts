@@ -22,3 +22,10 @@ export {
 
 // Service Registry
 export { ServiceRegistry, type ServiceRegistryConfig } from './service-registry';
+
+// Module Initializer (extracted from service-registry)
+export {
+  ModuleInitializer,
+  createEmptyModuleResult,
+  type ModuleInitResult,
+} from './module-initializer';

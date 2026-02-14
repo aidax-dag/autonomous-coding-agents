@@ -11,12 +11,12 @@ import type { ILLMClient } from '@/shared/llm';
 import type { PlanningOutput } from './agents/planning-agent';
 import type { DevelopmentOutput } from './agents/development-agent';
 import type { QAOutput } from './agents/qa-agent';
-import { OrchestratorRunner, createOrchestratorRunner } from './orchestrator-runner';
+import { OrchestratorRunner, OrchestratorRunnerConfig, createOrchestratorRunner } from './orchestrator-runner';
 
 /**
  * Create a runner with mock LLM for testing
  */
-export function createMockRunner(options?: {
+export function createMockRunner(options?: Partial<Omit<OrchestratorRunnerConfig, 'llmClient'>> & {
   workspaceDir?: string;
   projectContext?: string;
 }): OrchestratorRunner {
@@ -77,6 +77,7 @@ export function createMockRunner(options?: {
   };
 
   return createOrchestratorRunner({
+    ...options,
     llmClient: mockClient,
     workspaceDir: options?.workspaceDir,
     projectContext: options?.projectContext,

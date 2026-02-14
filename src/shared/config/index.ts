@@ -24,6 +24,12 @@ const LLMProviderSchema = z.enum([
   'claude',
   'openai',
   'gemini',
+  'mistral',
+  'xai',
+  'groq',
+  'together',
+  'deepseek',
+  'fireworks',
   'claude-cli',
   'codex-cli',
   'gemini-cli',
@@ -63,6 +69,12 @@ const ConfigSchema = z.object({
     anthropicApiKey: z.string().optional(),
     openaiApiKey: z.string().optional(),
     geminiApiKey: z.string().optional(),
+    mistralApiKey: z.string().optional(),
+    xaiApiKey: z.string().optional(),
+    groqApiKey: z.string().optional(),
+    togetherApiKey: z.string().optional(),
+    deepseekApiKey: z.string().optional(),
+    fireworksApiKey: z.string().optional(),
     // CLI-specific configuration
     ollamaHost: z.string().url().optional(),
     defaultModel: z.string().optional(),
@@ -159,6 +171,12 @@ function parseEnv(): Config {
       anthropicApiKey: env.ANTHROPIC_API_KEY,
       openaiApiKey: env.OPENAI_API_KEY,
       geminiApiKey: env.GEMINI_API_KEY,
+      mistralApiKey: env.MISTRAL_API_KEY,
+      xaiApiKey: env.XAI_API_KEY,
+      groqApiKey: env.GROQ_API_KEY,
+      togetherApiKey: env.TOGETHER_API_KEY,
+      deepseekApiKey: env.DEEPSEEK_API_KEY,
+      fireworksApiKey: env.FIREWORKS_API_KEY,
       ollamaHost: env.OLLAMA_HOST,
       defaultModel: env.LLM_DEFAULT_MODEL,
     },
@@ -198,7 +216,12 @@ function parseEnv(): Config {
  * Validate configuration and throw errors if invalid
  */
 export function validateConfig(config: Config): void {
-  const { anthropicApiKey, openaiApiKey, geminiApiKey, provider } = config.llm;
+  const {
+    anthropicApiKey, openaiApiKey, geminiApiKey,
+    mistralApiKey, xaiApiKey, groqApiKey,
+    togetherApiKey, deepseekApiKey, fireworksApiKey,
+    provider,
+  } = config.llm;
 
   // CLI-based providers don't require API keys (use subscription authentication)
   if (!isCLIProvider(provider)) {
@@ -206,12 +229,20 @@ export function validateConfig(config: Config): void {
     const hasApiKey =
       (provider === 'claude' && anthropicApiKey) ||
       (provider === 'openai' && openaiApiKey) ||
-      (provider === 'gemini' && geminiApiKey);
+      (provider === 'gemini' && geminiApiKey) ||
+      (provider === 'mistral' && mistralApiKey) ||
+      (provider === 'xai' && xaiApiKey) ||
+      (provider === 'groq' && groqApiKey) ||
+      (provider === 'together' && togetherApiKey) ||
+      (provider === 'deepseek' && deepseekApiKey) ||
+      (provider === 'fireworks' && fireworksApiKey);
 
     if (!hasApiKey) {
       throw new Error(
         `LLM API key for provider '${provider}' is required. ` +
-          `Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env file.\n` +
+          `Set the appropriate API key environment variable (e.g., ANTHROPIC_API_KEY, OPENAI_API_KEY, ` +
+          `GEMINI_API_KEY, MISTRAL_API_KEY, XAI_API_KEY, GROQ_API_KEY, TOGETHER_API_KEY, ` +
+          `DEEPSEEK_API_KEY, or FIREWORKS_API_KEY) in .env file.\n` +
           `Alternatively, use a CLI-based provider: claude-cli, codex-cli, gemini-cli, or ollama.`
       );
     }
@@ -261,7 +292,11 @@ export function getConfigValue<K extends keyof Config>(
  * Get LLM API key based on provider
  */
 export function getLLMApiKey(config: Config): string {
-  const { provider, anthropicApiKey, openaiApiKey, geminiApiKey } = config.llm;
+  const {
+    provider, anthropicApiKey, openaiApiKey, geminiApiKey,
+    mistralApiKey, xaiApiKey, groqApiKey,
+    togetherApiKey, deepseekApiKey, fireworksApiKey,
+  } = config.llm;
 
   switch (provider) {
     case 'claude':
@@ -279,6 +314,36 @@ export function getLLMApiKey(config: Config): string {
         throw new Error('Gemini API key not configured');
       }
       return geminiApiKey;
+    case 'mistral':
+      if (!mistralApiKey) {
+        throw new Error('Mistral API key not configured');
+      }
+      return mistralApiKey;
+    case 'xai':
+      if (!xaiApiKey) {
+        throw new Error('xAI API key not configured');
+      }
+      return xaiApiKey;
+    case 'groq':
+      if (!groqApiKey) {
+        throw new Error('Groq API key not configured');
+      }
+      return groqApiKey;
+    case 'together':
+      if (!togetherApiKey) {
+        throw new Error('Together API key not configured');
+      }
+      return togetherApiKey;
+    case 'deepseek':
+      if (!deepseekApiKey) {
+        throw new Error('DeepSeek API key not configured');
+      }
+      return deepseekApiKey;
+    case 'fireworks':
+      if (!fireworksApiKey) {
+        throw new Error('Fireworks API key not configured');
+      }
+      return fireworksApiKey;
     default:
       throw new Error(`Unknown LLM provider: ${provider}`);
   }

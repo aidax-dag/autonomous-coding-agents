@@ -210,8 +210,22 @@ export {
   type OrchestratorRunnerConfig,
   type RunnerEvents,
   type WorkflowResult,
+  type TaskValidationResult,
   type GoalResult,
 } from './orchestrator-runner';
+
+// Task Executor (extracted from orchestrator-runner)
+// NOTE: Not re-exported via barrel to avoid name collision with benchmark/TaskExecutor.
+// Import directly from './task-executor' when needed.
+export type { TaskExecutorDeps } from './task-executor';
+
+export {
+  // Runner Lifecycle (extracted from orchestrator-runner)
+  RunnerLifecycle,
+
+  // Types
+  type RunnerLifecycleDeps,
+} from './runner-lifecycle';
 
 export {
   // Agent Factory
@@ -388,4 +402,19 @@ export {
   type StepExecutor,
   type WorkflowEngineConfig,
   type WorkflowEngineEvents,
+
+  // Seven-Phase Workflow
+  SevenPhaseWorkflow,
+  createSevenPhaseWorkflow,
+  DEFAULT_PHASE_DEFINITIONS,
+  type SevenPhaseType,
+  type PhaseExecutionStatus,
+  type PhaseDefinition,
+  type PhaseExecutionResult,
+  type PhaseArtifact,
+  type SevenPhaseConfig,
+  type SevenPhaseResult,
+  type PhaseExecutionContext,
+  type PhaseExecutor,
+  type SevenPhaseWorkflowEvents,
 } from './workflow';
