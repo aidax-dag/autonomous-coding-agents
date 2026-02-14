@@ -57,6 +57,9 @@ pids/
 *.seed
 *.pid.lock
 
+# Session data
+data/sessions/
+
 # Agent working directories
 /tmp/autonomous-coding-agents/
 /work/
