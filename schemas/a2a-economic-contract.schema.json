@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aca.local/schemas/a2a-economic-contract.schema.json",
+  "title": "ACA A2A Economic Contract",
+  "description": "Contract schema for requester/responder agent agreement, escrow, and settlement",
+  "type": "object",
+  "required": [
+    "contractId",
+    "requesterAgentId",
+    "responderAgentId",
+    "ticketId",
+    "specHash",
+    "acceptanceCriteriaHash",
+    "quote",
+    "state",
+    "createdAt"
+  ],
+  "properties": {
+    "contractId": { "type": "string", "minLength": 1 },
+    "requesterAgentId": { "type": "string", "minLength": 1 },
+    "responderAgentId": { "type": "string", "minLength": 1 },
+    "ticketId": { "type": "string", "minLength": 1 },
+    "featureId": { "type": "string" },
+    "specHash": { "type": "string", "minLength": 1 },
+    "acceptanceCriteriaHash": { "type": "string", "minLength": 1 },
+    "quote": {
+      "type": "object",
+      "required": ["amount", "currency", "paymentProtocol", "expiresAt"],
+      "properties": {
+        "amount": { "type": "number", "exclusiveMinimum": 0 },
+        "currency": { "type": "string", "minLength": 1 },
+        "paymentProtocol": { "type": "string", "enum": ["x402"] },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "proposal",
+        "counter_proposal",
+        "accepted",
+        "escrow_locked",
+        "in_execution",
+        "delivered",
+        "verified",
+        "settled",
+        "disputed",
+        "cancelled"
+      ]
+    },
+    "escrow": {
+      "type": "object",
+      "properties": {
+        "escrowProvider": { "type": "string" },
+        "escrowTxId": { "type": "string" },
+        "lockAmount": { "type": "number", "exclusiveMinimum": 0 },
+        "lockedAt": { "type": "string", "format": "date-time" },
+        "releasedAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "delivery": {
+      "type": "object",
+      "properties": {
+        "artifactLinks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "url"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "url": { "type": "string", "format": "uri" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "deliveredAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "verified": { "type": "boolean" },
+        "verifiedAt": { "type": "string", "format": "date-time" },
+        "reviewNotes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "onchainNetwork": { "type": "string" },
+        "anchorTxId": { "type": "string" },
+        "anchorAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

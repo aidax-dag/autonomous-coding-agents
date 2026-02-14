@@ -7,7 +7,8 @@
 ```
 05-specifications/
 ├── v1/    # 리팩토링 계획 v1 (프로젝트 전체 관점)
-└── v2/    # Feature별 상세 스펙 (구현 가이드 포함)
+├── v2/    # Feature별 상세 스펙 (구현 가이드 포함)
+└── v3/    # MAL + Ticket/Feature Cycle + Agent Economy
 ```
 
 ## v1 - Project-Level Refactoring
@@ -55,10 +56,32 @@
 |----|---------|-------------|------|
 | F009 | [AgentConsolidation](./v2/F009-AgentConsolidation.md) | 에이전트 통합 | ✅ |
 
+## v3 - Program-Level Next Architecture
+
+ACA를 Ticket 기반 Product Builder + 재사용 Feature 자산 + Agent Economy로 확장하기 위한 프로그램 스펙 문서입니다.
+
+| ID | Feature | Description | 상태 |
+|----|---------|-------------|------|
+| F021 | [MAL](./v3/F021-MAL.md) | Multi Agent Abstraction Layer | 🟡 Draft |
+| F022 | [Ticket/Feature Cycle](./v3/F022-Ticket-Feature-Cycle.md) | Ticket 기반 실행 + Feature 재사용 관리 | 🟡 Draft |
+| F023 | [Agent Economy](./v3/F023-Agent-Economy.md) | 원격 Agent 마켓/프라이버시/정산 계약 | 🟡 Draft |
+| F024 | [Program Roadmap](./v3/F024-Program-Roadmap.md) | 다중 프로젝트 단계별 실행 계획 | 🟡 Draft |
+| F025 | [Feature Management Service](./v3/F025-Feature-Management-Service.md) | Feature 카탈로그 운영 서비스 설계/구현 | 🟢 Implemented |
+| F026 | [Ticket/Feature Runtime + MCP Enforcement](./v3/F026-Ticket-Feature-Runtime-and-MCP-Enforcement.md) | Ticket/Feature 런타임 구현과 MCP 필수 정책 | 🟢 Implemented |
+| F027 | [ACA Platform Final Definition](./v3/F027-ACA-Platform-Final-Definition.md) | v1/v1.1 범위 고정 + 제품 정체성/게이트/로드맵 경계 | 🟢 Finalized |
+
+보조 문서:
+
+- [v3 Overview](./v3/README.md)
+- `schemas/ticket.schema.json`
+- `schemas/feature.schema.json`
+- `schemas/a2a-economic-contract.schema.json`
+
 ## Reading Order
 
 1. **v1 문서를 먼저 읽기** → 전체 아키텍처와 방향성 이해
 2. **v2 문서로 상세 확인** → 개별 기능 구현 상세 확인
+3. **v3 문서로 확장 계획 확인** → MAL/Ticket/Feature/Economy 프로그램 설계 확인
 
 ## 관련 문서
 
@@ -70,8 +93,10 @@
 
 ```yaml
 문서_정보:
-  수정일: 2026-02-08
+  수정일: 2026-02-14
   변경_이력:
+    - "F027 최종 정의 문서 추가 (v1 Builder 고정, Jira v1.1, Remote Trust/Personal Agent 정책 확정)"
+    - "v3 스펙 섹션 확장 (F021~F026)"
     - "P3 구조 통합 완료 (2026-02-08)"
     - "P3 핵심 구현 완료 상태 반영 (2026-02-08)"
     - "05-specs/ 디렉토리를 v2/로 통합 (2026-02-08)"

@@ -12,9 +12,11 @@ docs/
 ├── 04-planning/         # 기획 및 분석
 ├── 05-specifications/   # 기능 스펙 문서
 │   ├── v1/              # 리팩토링 v1
-│   └── v2/              # 리팩토링 v2 (기능별)
-└── 06-roadmap/          # 로드맵 및 태스크
-    └── tasks/           # 상세 태스크
+│   ├── v2/              # 리팩토링 v2 (기능별)
+│   └── v3/              # MAL/Ticket/Feature/Economy 확장 스펙
+├── 06-roadmap/          # 로드맵 및 태스크
+│   └── tasks/           # 상세 태스크
+└── checklists/          # 스프린트/게이트 운영 체크리스트
 ```
 
 ---
@@ -81,6 +83,15 @@ docs/
 | [F008-ContextModule](./05-specifications/v2/F008-ContextModule.md) | 컨텍스트 모듈 |
 | [F009-AgentConsolidation](./05-specifications/v2/F009-AgentConsolidation.md) | 에이전트 통합 |
 
+#### v3 - 프로그램 확장 스펙
+| Document | Description |
+|----------|-------------|
+| [README](./05-specifications/v3/README.md) | v3 스펙 개요 |
+| [F021-MAL](./05-specifications/v3/F021-MAL.md) | 다중 엔진 추상화 레이어 |
+| [F022-Ticket-Feature-Cycle](./05-specifications/v3/F022-Ticket-Feature-Cycle.md) | Ticket 실행/검증/리뷰 + Feature 재사용 |
+| [F023-Agent-Economy](./05-specifications/v3/F023-Agent-Economy.md) | Agent 마켓/정산/프라이버시 모델 |
+| [F024-Program-Roadmap](./05-specifications/v3/F024-Program-Roadmap.md) | 다중 프로젝트 단계 로드맵 |
+
 ### 06. Roadmap (로드맵)
 | Document | Description |
 |----------|-------------|
@@ -95,6 +106,32 @@ docs/
 | Document | Description |
 |----------|-------------|
 | [TASK1_IMPLEMENTATION_PLAN](./06-roadmap/tasks/TASK1_IMPLEMENTATION_PLAN.md) | Task 1 구현 계획 |
+| [TASK2_EPIC_CAPABILITY_FEATURE_TICKET_TREE](./06-roadmap/tasks/TASK2_EPIC_CAPABILITY_FEATURE_TICKET_TREE.md) | E-C-F-T 세분화 트리 |
+| [E01_TICKET_PACK](./06-roadmap/tasks/e01-ticket-pack/README.md) | E01 실제 발행용 티켓 패키지 |
+| [E02_TICKET_PACK](./06-roadmap/tasks/e02-ticket-pack/README.md) | E02 실제 발행용 티켓 패키지 |
+| [E03_TICKET_PACK](./06-roadmap/tasks/e03-ticket-pack/README.md) | E03 실제 발행용 티켓 패키지 |
+| [E04_TICKET_PACK](./06-roadmap/tasks/e04-ticket-pack/README.md) | E04 실제 발행용 티켓 패키지 |
+| [E05_TICKET_PACK](./06-roadmap/tasks/e05-ticket-pack/README.md) | E05 실제 발행용 티켓 패키지 |
+| [E06_TICKET_PACK](./06-roadmap/tasks/e06-ticket-pack/README.md) | E06 실제 발행용 티켓 패키지 (v1/v1.1) |
+| [E07_TICKET_PACK](./06-roadmap/tasks/e07-ticket-pack/README.md) | E07 실제 발행용 티켓 패키지 |
+
+### 07. Checklists (운영 체크리스트)
+| Document | Description |
+|----------|-------------|
+| [README](./checklists/README.md) | 체크리스트 사용 가이드 |
+| [GATE_CHECKLIST](./checklists/GATE_CHECKLIST.md) | 단계별 게이트 승인 체크 |
+| [IMPLEMENTATION_TEST_CHECKLIST](./checklists/IMPLEMENTATION_TEST_CHECKLIST.md) | 구현/테스트/보안 검증 체크 |
+| [SPRINT_RESULT_ANALYSIS_CHECKLIST](./checklists/SPRINT_RESULT_ANALYSIS_CHECKLIST.md) | 결과정리 및 다음 요구사항 업데이트 체크 |
+
+### 08. Ticket Templates (티켓 템플릿)
+| Document | Description |
+|----------|-------------|
+| [README](../templates/tickets/README.md) | 템플릿 사용 가이드 |
+| [TICKET_TEMPLATE](../templates/tickets/TICKET_TEMPLATE.md) | 일반 티켓 템플릿 |
+| [FEATURE_TICKET_TEMPLATE](../templates/tickets/FEATURE_TICKET_TEMPLATE.md) | Feature 전용 티켓 템플릿 |
+| [REQUIREMENT_UPDATE_TEMPLATE](../templates/tickets/REQUIREMENT_UPDATE_TEMPLATE.md) | 스프린트 인계용 요구사항 템플릿 |
+| [ISSUE_TEMPLATE_GITHUB_JIRA_COMMON](../templates/tickets/ISSUE_TEMPLATE_GITHUB_JIRA_COMMON.md) | GitHub/Jira 공용 티켓 템플릿 |
+| [ISSUE_FIELD_MAPPING_GITHUB_JIRA](../templates/tickets/ISSUE_FIELD_MAPPING_GITHUB_JIRA.md) | GitHub/Jira 공용 필드 매핑 |
 
 ---
 
@@ -106,7 +143,7 @@ docs/
 | **프로젝트 이해** | [VISION](./01-vision/VISION.md) → [OVERVIEW](./02-architecture/OVERVIEW.md) |
 | **배포 담당자** | [Deployment](./03-guides/DEPLOYMENT.md) |
 | **개발자** | [CODE_QUALITY](./03-guides/CODE_QUALITY.md) → [SYSTEM_DESIGN](./02-architecture/SYSTEM_DESIGN.md) |
-| **기여자** | [PROJECT_ANALYSIS_REPORT](./04-planning/PROJECT_ANALYSIS_REPORT.md) → [Specifications](./05-specifications/v2/README.md) |
+| **기여자** | [PROJECT_ANALYSIS_REPORT](./04-planning/PROJECT_ANALYSIS_REPORT.md) → [Specifications](./05-specifications/v3/README.md) |
 
 ---
 
@@ -118,6 +155,7 @@ docs/
 | Architecture | 4 |
 | Guides | 7 |
 | Planning | 8 |
-| Specifications | 16 |
+| Specifications | 21 |
 | Roadmap | 8 |
-| **Total** | **46** |
+| Checklists | 4 |
+| **Total** | **55** |

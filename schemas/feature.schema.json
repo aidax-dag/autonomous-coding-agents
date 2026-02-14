@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aca.local/schemas/feature.schema.json",
+  "title": "ACA Reusable Feature",
+  "description": "Reusable atomic feature catalog schema",
+  "type": "object",
+  "required": [
+    "featureId",
+    "title",
+    "background",
+    "problem",
+    "requirements",
+    "verificationChecklist",
+    "artifactLinks",
+    "usageGuideLinks",
+    "labels",
+    "options",
+    "version",
+    "status",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "featureId": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "background": { "type": "string", "minLength": 1 },
+    "problem": { "type": "string", "minLength": 1 },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "verificationChecklist": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "artifactLinks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "url", "kind"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "format": "uri" },
+          "kind": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "usageGuideLinks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "url"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "format": "uri" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "labels": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "options": {
+      "type": "object",
+      "required": ["languages", "applicableDomains", "constraints"],
+      "properties": {
+        "languages": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "applicableDomains": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "constraints": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "status": { "type": "string", "enum": ["draft", "published", "deprecated", "archived"] },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reviewerType", "reviewerId", "decision", "comment", "updatedAt"],
+        "properties": {
+          "reviewerType": { "type": "string", "enum": ["human", "agent"] },
+          "reviewerId": { "type": "string", "minLength": 1 },
+          "decision": { "type": "string", "enum": ["approved", "changes_requested"] },
+          "comment": { "type": "string", "minLength": 1 },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "sourceTickets": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

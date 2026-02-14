@@ -18,6 +18,14 @@
 | 문서 | 설명 |
 |------|------|
 | [TASK1_IMPLEMENTATION_PLAN.md](./tasks/TASK1_IMPLEMENTATION_PLAN.md) | Task 1 구현 계획 |
+| [TASK2_EPIC_CAPABILITY_FEATURE_TICKET_TREE.md](./tasks/TASK2_EPIC_CAPABILITY_FEATURE_TICKET_TREE.md) | 최종 범위 기준 E-C-F-T 세분화 트리 |
+| [e01-ticket-pack/README.md](./tasks/e01-ticket-pack/README.md) | E01(T0101~T0111) 실제 발행용 티켓 패키지 |
+| [e02-ticket-pack/README.md](./tasks/e02-ticket-pack/README.md) | E02(T0201~T0209) 실제 발행용 티켓 패키지 |
+| [e03-ticket-pack/README.md](./tasks/e03-ticket-pack/README.md) | E03(T0301~T0306) 실제 발행용 티켓 패키지 |
+| [e04-ticket-pack/README.md](./tasks/e04-ticket-pack/README.md) | E04(T0401~T0409) 실제 발행용 티켓 패키지 |
+| [e05-ticket-pack/README.md](./tasks/e05-ticket-pack/README.md) | E05(T0501~T0509) 실제 발행용 티켓 패키지 |
+| [e06-ticket-pack/README.md](./tasks/e06-ticket-pack/README.md) | E06(T0601~T0607) 실제 발행용 티켓 패키지 (v1/v1.1) |
+| [e07-ticket-pack/README.md](./tasks/e07-ticket-pack/README.md) | E07(T0701~T0706) 실제 발행용 티켓 패키지 |
 
 ## 읽기 순서
 
