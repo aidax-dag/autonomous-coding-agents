@@ -43,5 +43,6 @@ export * from './security';
 export * from './services';
 export * from './shortcuts';
 export * from './test-gen';
+export * from './ticketing';
 export * from './validation';
 export * from './workspace';

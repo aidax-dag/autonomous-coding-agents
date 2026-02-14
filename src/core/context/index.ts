@@ -193,6 +193,28 @@ export type {
 } from './planning-context';
 
 // ============================================================================
+// Session Persistence (J-10)
+// ============================================================================
+
+export {
+  SessionStore,
+  createSessionStore,
+  type SessionData,
+  type SessionSummary,
+} from './session-store';
+
+export {
+  DecisionLog,
+  createDecisionLog,
+  type ArchitecturalDecision,
+} from './decision-log';
+
+export {
+  ProjectMemory,
+  createProjectMemory,
+} from './project-memory';
+
+// ============================================================================
 // Default Export
 // ============================================================================
 

@@ -72,7 +72,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: aca-postgres
-    profiles: ["db", "full"]
+    profiles: ["db", "database", "full"]
     restart: unless-stopped
     environment:
       POSTGRES_DB: aca
