@@ -2,7 +2,7 @@
 
 > 프로젝트 현재 진행 상황
 
-**Last Updated**: 2026-02-13
+**Last Updated**: 2026-02-15
 
 ---
 
@@ -103,6 +103,11 @@ Test Runner: Jest + ts-jest
 ---
 
 ## 3. Recent Changes
+
+### 2026-02-15 (I-15/I-16/D1: 백엔드 실전 연동)
+- ✅ **I-15**: PostgreSQL/SQLite 실전 연동 — `module-initializer.ts` ServiceRegistry 배선 수정 (`dbConfig` 전달), migration `down()` 실구현, 통합 테스트, 운영 가이드, docker-compose PostgreSQL 서비스
+- ✅ **I-16**: 옵저버빌리티 백엔드 실전 연동 — ServiceRegistry `enableObservability` 배선, docker-compose Jaeger/Prometheus/Grafana, Prometheus 스크레이프+알림 규칙, Grafana 대시보드 JSON, 통합 테스트, 런북
+- ✅ **D1**: 문서 현행화 — `00-INDEX.md` 전체 완료 상태 반영, I-15/I-16/D1 문서 갱신, STATUS.md 갱신
 
 ### 2026-02-13 (Phase C: 기능 확장)
 - ✅ **C-1**: MCP 도구 실전 연동 — MCPConnectionManager (365줄), presets 5종, config 스키마, ServiceRegistry 통합, Dashboard API (`/api/mcp/servers`)

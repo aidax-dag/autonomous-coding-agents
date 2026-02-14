@@ -74,6 +74,8 @@ import type { SevenPhaseConfig } from '../orchestrator/workflow/seven-phase-work
 import type { CostReporter } from '../analytics/cost-reporter';
 import type { IDBClient, DBConfig } from '../persistence/db-client';
 import type { SandboxEscalationOptions } from '../security/interfaces/escalation.interface';
+import type { ObservabilityStack } from '../../shared/telemetry/observability-stack';
+import type { ObservabilityConfig } from '../../shared/telemetry/observability-stack';
 import { ModuleInitializer, type ModuleInitResult, createEmptyModuleResult } from './module-initializer';
 
 /**
@@ -160,6 +162,10 @@ export interface ServiceRegistryConfig {
   sevenPhaseConfig?: SevenPhaseConfig;
   /** Enable usage tracking module - UsageTracker + CostReporter (default: false) */
   enableUsageTracking?: boolean;
+  /** Enable observability stack - OTLP traces + Prometheus metrics (default: false) */
+  enableObservability?: boolean;
+  /** Observability configuration (OTLP endpoint, Prometheus port, etc.) */
+  observabilityConfig?: ObservabilityConfig;
 }
 
 /**
@@ -266,6 +272,14 @@ export class ServiceRegistry {
     }
 
     try {
+      if (this.modules.observabilityStack) {
+        await this.modules.observabilityStack.stop();
+      }
+    } catch {
+      /* dispose error ignored */
+    }
+
+    try {
       if (this.modules.dbClient?.isConnected()) {
         await this.modules.dbClient.disconnect();
       }
@@ -362,6 +376,7 @@ export class ServiceRegistry {
     this.modules.marketplaceRegistry = null;
     this.modules.sevenPhaseWorkflow = null;
     this.modules.costReporter = null;
+    this.modules.observabilityStack = null;
     this._initialized = false;
   }
 
@@ -524,5 +539,9 @@ export class ServiceRegistry {
 
   getCostReporter(): CostReporter | null {
     return this.modules.costReporter;
+  }
+
+  getObservabilityStack(): ObservabilityStack | null {
+    return this.modules.observabilityStack;
   }
 }

@@ -1,0 +1,53 @@
+# ACA SLI-based alerting rules
+# Core SLIs: Success Rate, Task Latency, LLM Cost, Error Rate
+
+groups:
+  - name: aca_sli_alerts
+    rules:
+      # Success Rate < 95% over 5 minutes
+      - alert: ACALowSuccessRate
+        expr: |
+          (
+            rate(aca_task_completed_total[5m])
+            / (rate(aca_task_completed_total[5m]) + rate(aca_task_failed_total[5m]))
+          ) < 0.95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ACA task success rate below 95%"
+          description: "Success rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+          runbook: "docs/03-guides/observability-runbook.md#low-success-rate"
+
+      # Task Latency p99 > 120s
+      - alert: ACAHighLatency
+        expr: histogram_quantile(0.99, rate(aca_task_duration_seconds_bucket[5m])) > 120
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ACA task p99 latency exceeds 120s"
+          description: "p99 latency is {{ $value | humanizeDuration }}."
+          runbook: "docs/03-guides/observability-runbook.md#high-latency"
+
+      # LLM Cost > $10/hr
+      - alert: ACAHighLLMCost
+        expr: rate(aca_llm_cost_total[1h]) * 3600 > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ACA LLM cost exceeds $10/hr"
+          description: "Current rate: ${{ $value | humanize }}/hr."
+          runbook: "docs/03-guides/observability-runbook.md#high-llm-cost"
+
+      # Error Spike > 10 errors/min
+      - alert: ACAErrorSpike
+        expr: rate(aca_errors_total[1m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ACA error rate spike detected"
+          description: "{{ $value | humanize }} errors/min."
+          runbook: "docs/03-guides/observability-runbook.md#error-spike"

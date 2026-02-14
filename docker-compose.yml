@@ -66,10 +66,87 @@ services:
       start_period: 5s
       retries: 3
 
+  # ----------------------------------------
+  # PostgreSQL Database (opt-in via profile)
+  # ----------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: aca-postgres
+    profiles: ["db", "full"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aca
+      POSTGRES_USER: aca
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aca_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - aca-pgdata:/var/lib/postgresql/data
+    networks:
+      - aca-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aca"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------
+  # Jaeger (opt-in via profile: observability)
+  # ----------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    container_name: aca-jaeger
+    profiles: ["observability", "full"]
+    restart: unless-stopped
+    ports:
+      - "16686:16686"    # Jaeger UI
+      - "4318:4318"      # OTLP HTTP receiver
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - aca-network
+
+  # ----------------------------------------
+  # Prometheus (opt-in via profile: observability)
+  # ----------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: aca-prometheus
+    profiles: ["observability", "full"]
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    networks:
+      - aca-network
+
+  # ----------------------------------------
+  # Grafana (opt-in via profile: observability)
+  # ----------------------------------------
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: aca-grafana
+    profiles: ["observability", "full"]
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - aca-network
+
 volumes:
   aca-workspace:
     driver: local
   aca-logs:
+    driver: local
+  aca-pgdata:
     driver: local
 
 networks:

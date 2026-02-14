@@ -82,8 +82,15 @@ import {
 } from '../orchestrator/workflow/seven-phase-workflow';
 import type { SevenPhaseConfig } from '../orchestrator/workflow/seven-phase-workflow';
 import { CostReporter, createCostReporter } from '../analytics/cost-reporter';
-import type { IDBClient } from '../persistence/db-client';
+import type { IDBClient, DBConfig } from '../persistence/db-client';
 import { createInMemoryDBClient } from '../persistence/db-client';
+import { createDBClient } from '../persistence/db-factory';
+import { OTelProvider } from '../../shared/telemetry/otel-provider';
+import {
+  ObservabilityStack,
+  createObservabilityStack,
+  type ObservabilityConfig,
+} from '../../shared/telemetry/observability-stack';
 import { mkdir } from 'fs/promises';
 import type { ServiceRegistryConfig } from './service-registry';
 
@@ -124,6 +131,7 @@ export interface ModuleInitResult {
   astGrepClient: ASTGrepClient | null;
   loopDetector: LoopDetector | null;
   dbClient: IDBClient | null;
+  observabilityStack: ObservabilityStack | null;
   a2aGateway: A2AGateway | null;
   a2aRouter: A2ARouter | null;
   oauthManager: OAuthManager | null;
@@ -170,6 +178,7 @@ export function createEmptyModuleResult(): ModuleInitResult {
     astGrepClient: null,
     loopDetector: null,
     dbClient: null,
+    observabilityStack: null,
     a2aGateway: null,
     a2aRouter: null,
     oauthManager: null,
@@ -279,7 +288,7 @@ export class ModuleInitializer {
     }
 
     if (config.enablePersistence) {
-      await this.initializePersistence(result);
+      await this.initializePersistence(result, config.dbConfig);
     }
 
     if (config.enableA2A && config.a2aConfig) {
@@ -300,6 +309,10 @@ export class ModuleInitializer {
 
     if (config.enableUsageTracking) {
       this.initializeUsageTracking(result);
+    }
+
+    if (config.enableObservability) {
+      await this.initializeObservability(result, config.observabilityConfig);
     }
 
     return result;
@@ -581,11 +594,33 @@ export class ModuleInitializer {
     }
   }
 
-  async initializePersistence(result: ModuleInitResult): Promise<void> {
+  async initializePersistence(
+    result: ModuleInitResult,
+    dbConfig?: DBConfig,
+  ): Promise<void> {
     try {
-      const client = createInMemoryDBClient();
+      const client = dbConfig
+        ? createDBClient(dbConfig)
+        : createInMemoryDBClient();
       await client.connect();
       result.dbClient = client;
+    } catch {
+      /* module init failed - continue */
+    }
+  }
+
+  async initializeObservability(
+    result: ModuleInitResult,
+    config?: ObservabilityConfig,
+  ): Promise<void> {
+    try {
+      const provider = new OTelProvider({
+        serviceName: config?.serviceName ?? 'aca',
+      });
+      provider.initialize();
+      const stack = createObservabilityStack(provider, config);
+      await stack.start();
+      result.observabilityStack = stack;
     } catch {
       /* module init failed - continue */
     }
