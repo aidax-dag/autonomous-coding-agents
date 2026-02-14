@@ -27,6 +27,8 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
   dashboard: 'HUD dashboard data endpoints',
   agents: 'Agent management and monitoring',
   tasks: 'Task submission and tracking',
+  tickets: 'Ticket-based work cycle management',
+  features: 'Reusable feature catalog management',
   sse: 'Server-Sent Events management',
   mcp: 'Model Context Protocol server management',
   pool: 'Agent pool statistics and management',

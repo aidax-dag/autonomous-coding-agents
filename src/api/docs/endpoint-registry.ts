@@ -64,6 +64,36 @@ export function registerAllEndpoints(registry: EndpointRegistry): void {
     },
   });
 
+  // ── Database Health ─────────────────────────────────────────────
+  registry.register({
+    path: '/api/db/health',
+    method: 'GET',
+    summary: 'Database health check',
+    description: 'Returns database connectivity status, engine type, and probe latency. Designed for load balancers and monitoring systems.',
+    tags: ['system'],
+    auth: false,
+    responses: {
+      '200': {
+        description: 'Database is healthy',
+        schema: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', enum: ['healthy', 'degraded', 'unhealthy'] },
+            engine: { type: 'string', enum: ['sqlite', 'postgres', 'memory'] },
+            connected: { type: 'boolean' },
+            reachable: { type: 'boolean' },
+            latencyMs: { type: 'number' },
+            checkedAt: { type: 'string', format: 'date-time' },
+            error: { type: 'string' },
+          },
+        },
+      },
+      '503': {
+        description: 'Database is unreachable or not connected',
+      },
+    },
+  });
+
   // ── Auth ────────────────────────────────────────────────────────
   registry.register({
     path: '/api/login',
@@ -199,6 +229,455 @@ export function registerAllEndpoints(registry: EndpointRegistry): void {
       },
       '400': { description: 'Task name is required' },
       '503': { description: 'Message bus not configured' },
+    },
+  });
+
+  // ── Ticket Cycle ───────────────────────────────────────────────
+  registry.register({
+    path: '/api/tickets',
+    method: 'POST',
+    summary: 'Create ticket',
+    description: 'Create a ticket with required planning context for the working cycle.',
+    tags: ['tickets'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        required: [
+          'title',
+          'background',
+          'problem',
+          'workDescription',
+          'expectedArtifacts',
+          'verification',
+          'createdBy',
+        ],
+      },
+      required: true,
+    },
+    responses: {
+      '201': { description: 'Ticket created' },
+      '400': { description: 'Validation failed' },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets',
+    method: 'GET',
+    summary: 'List tickets',
+    description: 'List tickets with optional status filter.',
+    tags: ['tickets'],
+    auth: true,
+    responses: {
+      '200': {
+        description: 'Ticket list',
+        schema: { type: 'object', properties: { count: { type: 'number' }, tickets: { type: 'array' } } },
+      },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets/:ticketId',
+    method: 'GET',
+    summary: 'Get ticket',
+    description: 'Get a ticket by ticketId.',
+    tags: ['tickets'],
+    auth: true,
+    responses: {
+      '200': { description: 'Ticket detail' },
+      '404': { description: 'Ticket not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets/:ticketId/start',
+    method: 'PUT',
+    summary: 'Start ticket execution',
+    description: 'Move a ticket to in_progress and register executor context.',
+    tags: ['tickets'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: { type: 'object', properties: { agentId: { type: 'string' } } },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Ticket started' },
+      '400': { description: 'Invalid transition or MCP gate failed' },
+      '404': { description: 'Ticket not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets/:ticketId/status',
+    method: 'PUT',
+    summary: 'Update ticket status',
+    description: 'Update ticket status following lifecycle transition rules.',
+    tags: ['tickets'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: { type: 'object', required: ['status'], properties: { status: { type: 'string' } } },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Ticket updated' },
+      '400': { description: 'Invalid transition' },
+      '404': { description: 'Ticket not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets/:ticketId/reviews',
+    method: 'POST',
+    summary: 'Add ticket review',
+    description: 'Record or update reviewer decision for a ticket.',
+    tags: ['tickets'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        required: ['reviewerId', 'decision', 'comment'],
+        properties: {
+          reviewerId: { type: 'string' },
+          decision: { type: 'string' },
+          comment: { type: 'string' },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Review recorded' },
+      '404': { description: 'Ticket not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets/:ticketId/artifacts',
+    method: 'POST',
+    summary: 'Add ticket artifact',
+    description: 'Attach ticket output artifact with URL and type for traceability.',
+    tags: ['tickets'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        required: ['name', 'url', 'kind'],
+        properties: {
+          name: { type: 'string' },
+          url: { type: 'string', format: 'uri' },
+          kind: { type: 'string' },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Artifact added' },
+      '404': { description: 'Ticket not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets/:ticketId/issues',
+    method: 'POST',
+    summary: 'Add ticket issue',
+    description: 'Record issue/blocker raised during ticket execution.',
+    tags: ['tickets'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        required: ['message'],
+        properties: {
+          message: { type: 'string' },
+          severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Issue added' },
+      '404': { description: 'Ticket not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets/:ticketId/complete',
+    method: 'PUT',
+    summary: 'Complete ticket',
+    description: 'Finalize ticket after verification/review gates. Optionally auto-register feature.',
+    tags: ['tickets'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        properties: { registerFeature: { type: 'boolean' }, feature: { type: 'object' } },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Ticket completed' },
+      '400': { description: 'Completion gate failed' },
+      '404': { description: 'Ticket not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/tickets/:ticketId/register-feature',
+    method: 'POST',
+    summary: 'Register feature from ticket',
+    description: 'Create a reusable feature entry from a completed ticket output.',
+    tags: ['tickets', 'features'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: { type: 'object' },
+      required: true,
+    },
+    responses: {
+      '201': { description: 'Feature registered' },
+      '400': { description: 'Feature registration failed' },
+      '404': { description: 'Ticket not found' },
+    },
+  });
+
+  // ── Feature Catalog ────────────────────────────────────────────
+  registry.register({
+    path: '/api/features',
+    method: 'POST',
+    summary: 'Create feature',
+    description: 'Create a reusable feature catalog entry.',
+    tags: ['features'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: { type: 'object', required: ['title', 'requirements', 'artifactLinks', 'usageGuideLinks'] },
+      required: true,
+    },
+    responses: {
+      '201': { description: 'Feature created' },
+      '400': { description: 'Validation failed' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features',
+    method: 'GET',
+    summary: 'List features',
+    description: 'List reusable features with optional filters.',
+    tags: ['features'],
+    auth: true,
+    responses: {
+      '200': {
+        description: 'Feature list',
+        schema: { type: 'object', properties: { count: { type: 'number' }, features: { type: 'array' } } },
+      },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/labels',
+    method: 'GET',
+    summary: 'List feature labels',
+    description: 'List all unique labels used in feature catalog.',
+    tags: ['features'],
+    auth: true,
+    responses: {
+      '200': {
+        description: 'Label list',
+        schema: { type: 'object', properties: { count: { type: 'number' }, labels: { type: 'array' } } },
+      },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/management/summary',
+    method: 'GET',
+    summary: 'Feature management summary',
+    description: 'Get feature counts by status and usage summary for management dashboard.',
+    tags: ['features'],
+    auth: true,
+    responses: {
+      '200': { description: 'Feature management summary' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/:featureId',
+    method: 'GET',
+    summary: 'Get feature',
+    description: 'Get feature details by featureId.',
+    tags: ['features'],
+    auth: true,
+    responses: {
+      '200': { description: 'Feature detail' },
+      '404': { description: 'Feature not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/:featureId/versions',
+    method: 'GET',
+    summary: 'List feature versions',
+    description: 'List version history snapshots of a feature.',
+    tags: ['features'],
+    auth: true,
+    responses: {
+      '200': {
+        description: 'Feature versions',
+        schema: { type: 'object', properties: { count: { type: 'number' }, versions: { type: 'array' } } },
+      },
+      '404': { description: 'Feature not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/:featureId/reviews',
+    method: 'POST',
+    summary: 'Add feature review',
+    description: 'Add human/agent review decision for feature lifecycle.',
+    tags: ['features'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        required: ['reviewerType', 'reviewerId', 'decision', 'comment'],
+        properties: {
+          reviewerType: { type: 'string' },
+          reviewerId: { type: 'string' },
+          decision: { type: 'string' },
+          comment: { type: 'string' },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Feature review recorded' },
+      '404': { description: 'Feature not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/:featureId/labels',
+    method: 'PUT',
+    summary: 'Update feature labels',
+    description: 'Add or remove labels for a specific feature.',
+    tags: ['features'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        properties: {
+          add: { type: 'array' },
+          remove: { type: 'array' },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Feature labels updated' },
+      '404': { description: 'Feature not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/:featureId/use',
+    method: 'POST',
+    summary: 'Mark feature usage',
+    description: 'Record a feature usage event for reuse tracking.',
+    tags: ['features'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        properties: {
+          actorId: { type: 'string' },
+          reason: { type: 'string' },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Feature usage updated' },
+      '404': { description: 'Feature not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/:featureId/rollback',
+    method: 'PUT',
+    summary: 'Rollback feature version',
+    description: 'Rollback feature content to an existing version and create a new version snapshot.',
+    tags: ['features'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        required: ['toVersion'],
+        properties: {
+          toVersion: { type: 'string' },
+          nextVersion: { type: 'string' },
+          updatedBy: { type: 'string' },
+          reason: { type: 'string' },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Feature rolled back' },
+      '404': { description: 'Feature not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/:featureId',
+    method: 'PUT',
+    summary: 'Update feature',
+    description: 'Update reusable feature content and metadata.',
+    tags: ['features'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: { type: 'object' },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Feature updated' },
+      '400': { description: 'Validation failed' },
+      '404': { description: 'Feature not found' },
+    },
+  });
+
+  registry.register({
+    path: '/api/features/:featureId/status',
+    method: 'PUT',
+    summary: 'Update feature status',
+    description: 'Update lifecycle status of reusable feature.',
+    tags: ['features'],
+    auth: true,
+    requestBody: {
+      contentType: 'application/json',
+      schema: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['draft', 'published', 'deprecated', 'archived'] },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      '200': { description: 'Feature status updated' },
+      '404': { description: 'Feature not found' },
     },
   });
 

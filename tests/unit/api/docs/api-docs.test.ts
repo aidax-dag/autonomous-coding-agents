@@ -151,9 +151,9 @@ describe('EndpointRegistry', () => {
       expect(all.length).toBeGreaterThanOrEqual(15);
     });
 
-    it('should register exactly 21 endpoints matching source code', () => {
+    it('should register the current endpoint set defined in source code', () => {
       registerAllEndpoints(registry);
-      expect(registry.getAll()).toHaveLength(21);
+      expect(registry.getAll()).toHaveLength(44);
     });
 
     it('should include health endpoint', () => {
@@ -502,7 +502,7 @@ describe('API Documentation Integration', () => {
     registerAllEndpoints(registry);
     const spec = new OpenAPIGenerator(registry).generate();
 
-    // Expected paths from dashboard-api.ts and login-handler.ts
+    // Expected paths from API route modules and docs registry
     const expectedPaths = [
       '/api/health',
       '/api/login',
@@ -511,6 +511,25 @@ describe('API Documentation Integration', () => {
       '/api/agents',
       '/api/agents/{agentId}',
       '/api/tasks',
+      '/api/tickets',
+      '/api/tickets/{ticketId}',
+      '/api/tickets/{ticketId}/start',
+      '/api/tickets/{ticketId}/status',
+      '/api/tickets/{ticketId}/artifacts',
+      '/api/tickets/{ticketId}/issues',
+      '/api/tickets/{ticketId}/reviews',
+      '/api/tickets/{ticketId}/complete',
+      '/api/tickets/{ticketId}/register-feature',
+      '/api/features',
+      '/api/features/labels',
+      '/api/features/management/summary',
+      '/api/features/{featureId}',
+      '/api/features/{featureId}/versions',
+      '/api/features/{featureId}/labels',
+      '/api/features/{featureId}/use',
+      '/api/features/{featureId}/rollback',
+      '/api/features/{featureId}/status',
+      '/api/features/{featureId}/reviews',
       '/api/sse/clients',
       '/api/mcp/servers',
       '/api/pool/stats',

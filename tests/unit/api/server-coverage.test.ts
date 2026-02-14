@@ -81,8 +81,8 @@ describe('API Server - Coverage Supplement', () => {
   // =========================================================================
 
   describe('JWT login endpoint', () => {
-    it('should install login endpoint when JWT_SECRET is 16+ chars', async () => {
-      process.env.JWT_SECRET = 'this-is-a-valid-secret-key-16';
+    it('should install login endpoint when JWT_SECRET is 32+ chars', async () => {
+      process.env.JWT_SECRET = 'this-is-a-valid-secret-key-32chr!';
 
       const handle = await startAPIServer({ port: 0, host: '127.0.0.1' });
 

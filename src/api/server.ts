@@ -21,9 +21,20 @@ import { createACPMessageBus } from '../core/protocols';
 import { createWebDashboard } from '../ui/web/web-dashboard';
 import { createRequestLogger } from './middleware/request-logger';
 import { installErrorHandler } from './middleware/error-handler';
+import { createRateLimiter } from './middleware/rate-limiter';
+import { createCORSMiddleware } from './middleware/cors';
 import { installLoginHandler } from './auth/login-handler';
+import { installOpenAPIDocs } from './docs/openapi-serve';
 import { createJWTService } from './auth/jwt';
+import { validateSecretStrength } from './auth/jwt-security';
 import { logger } from '../shared/logging/logger';
+import { createGracefulShutdown } from './graceful-shutdown';
+import { createCostDashboardAPI } from './routes/cost-dashboard';
+import { createTicketFeatureCycleAPI } from './routes/ticket-feature-cycle';
+import { createCostTracker } from '../shared/llm/cost-tracker';
+import { createDBHealthAPI } from './routes/db-health';
+import { createDBClient } from '../core/persistence/db-factory';
+import type { DBEngine } from '../core/persistence/db-factory';
 import type { OrchestratorRunner } from '../core/orchestrator/orchestrator-runner';
 import type { WebDashboardApp } from '../ui/web/web-dashboard';
 
@@ -83,15 +94,64 @@ export async function startAPIServer(options: APIServerOptions = {}): Promise<AP
   requestLogger.install(webServer);
   installErrorHandler(webServer);
 
-  // 5b. Install login endpoint (JWT-based authentication)
+  // 5b. Install CORS middleware (reads CORS_ORIGINS from env)
+  const corsMiddleware = createCORSMiddleware();
+  corsMiddleware.install(webServer);
+
+  // 5c. Install rate limiter
+  const rateLimiter = createRateLimiter();
+  rateLimiter.install(webServer);
+
+  // 5d. Install login endpoint (JWT-based authentication)
   const jwtSecret = process.env.JWT_SECRET ?? '';
-  if (jwtSecret.length >= 16) {
+  if (jwtSecret.length >= 32) {
+    const strengthResult = validateSecretStrength(jwtSecret);
+    if (!strengthResult.valid) {
+      for (const issue of strengthResult.issues) {
+        logger.warn('JWT secret strength issue', { issue });
+      }
+    }
     const jwtService = createJWTService({ secret: jwtSecret });
     installLoginHandler(webServer, { jwtService });
     logger.info('Login endpoint installed');
   } else {
-    logger.warn('JWT_SECRET not configured (min 16 chars) — login endpoint disabled');
+    logger.warn('JWT_SECRET not configured (min 32 chars) — login endpoint disabled');
   }
+
+  // 5e. Install OpenAPI documentation routes
+  installOpenAPIDocs(webServer);
+
+  // 5f. Install cost dashboard routes
+  const costTracker = createCostTracker();
+  createCostDashboardAPI({ server: webServer, costTracker });
+
+  // 5g. Install ticket/feature cycle routes
+  createTicketFeatureCycleAPI({
+    server: webServer,
+    dataDir: process.env.ACA_TICKET_DATA_DIR,
+    requireMCP: process.env.ACA_REQUIRE_MCP_FOR_TICKET_CYCLE !== 'false',
+  });
+
+  // 5h. Install database health check route
+  const dbEngine = (process.env.DB_ENGINE ?? 'memory') as DBEngine;
+  const dbClient = createDBClient({
+    engine: dbEngine,
+    connectionString: process.env.DB_CONNECTION_STRING ?? process.env.DATABASE_URL,
+    filePath: process.env.DB_FILE_PATH,
+    maxConnections: process.env.DB_MAX_CONNECTIONS
+      ? parseInt(process.env.DB_MAX_CONNECTIONS, 10)
+      : undefined,
+  });
+  try {
+    await dbClient.connect();
+    logger.info('Database client connected', { engine: dbEngine });
+  } catch (dbErr) {
+    logger.warn('Database client failed to connect — health endpoint will report unhealthy', {
+      engine: dbEngine,
+      error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+    });
+  }
+  createDBHealthAPI({ server: webServer, dbClient, engine: dbEngine });
 
   // 6. Wire runner events to HUD
   runner.on('workflow:started', (taskId) => {
@@ -136,6 +196,7 @@ export async function startAPIServer(options: APIServerOptions = {}): Promise<AP
     logger.info('Shutting down API server...');
     await dashboard.stop();
     await runner.destroy();
+    await dbClient.disconnect();
     logger.info('API server stopped');
   };
 
@@ -145,25 +206,10 @@ export async function startAPIServer(options: APIServerOptions = {}): Promise<AP
 // ── Direct execution entry point ────────────────────────────────
 
 async function main(): Promise<void> {
-  let shutdownFn: (() => Promise<void>) | null = null;
-  let shuttingDown = false;
-
-  const handleSignal = async (signal: string) => {
-    if (shuttingDown) return;
-    shuttingDown = true;
-    logger.info(`Received ${signal}`);
-    if (shutdownFn) {
-      await shutdownFn();
-    }
-    process.exit(0);
-  };
-
-  process.on('SIGTERM', () => handleSignal('SIGTERM'));
-  process.on('SIGINT', () => handleSignal('SIGINT'));
-
   try {
     const { shutdown } = await startAPIServer();
-    shutdownFn = shutdown;
+    const gs = createGracefulShutdown(shutdown);
+    gs.installSignalHandlers();
   } catch (error) {
     logger.error('Failed to start API server', {
       error: error instanceof Error ? error.message : String(error),
