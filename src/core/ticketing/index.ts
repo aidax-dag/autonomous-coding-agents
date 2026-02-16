@@ -19,3 +19,32 @@ export {
   type FeatureUsageInput,
   type FeatureManagementSummary,
 } from './ticket-feature-service';
+
+export type {
+  ITicketFeatureRepository,
+  TicketFeatureStore,
+} from './interfaces/ticket-feature-repository.interface';
+
+export {
+  JsonTicketFeatureRepository,
+  createJsonTicketFeatureRepository,
+  type JsonTicketFeatureRepositoryOptions,
+} from './repositories/json-repository';
+
+export {
+  SqliteTicketFeatureRepository,
+  createSqliteTicketFeatureRepository,
+  type SqliteTicketFeatureRepositoryOptions,
+} from './repositories/sqlite-repository';
+
+// External sync
+export {
+  ExternalSyncManager,
+  GitHubSyncAdapter,
+  createDefaultSyncConfig,
+  type IExternalSyncAdapter,
+  type ExternalSyncResult,
+  type ExternalSyncConfig,
+  type GitHubSyncConfig,
+  type JiraSyncConfig,
+} from './sync';

@@ -1,7 +1,11 @@
-import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
 import { ServiceRegistry } from '@/core/services/service-registry';
+import { checkMCPReadiness, type MCPGateResult, MCPGateReasonCode } from './mcp-gate';
+import type { ITicketFeatureRepository, TicketFeatureStore } from './interfaces/ticket-feature-repository.interface';
+import { JsonTicketFeatureRepository } from './repositories/json-repository';
+import type { ExternalSyncConfig } from './sync/external-sync.interface';
+import { ExternalSyncManager } from './sync/sync-manager';
 
 const ticketStatusSchema = z.enum([
   'created',
@@ -152,20 +156,15 @@ export interface FeatureRecord extends FeatureCreateInput {
   updatedAt: string;
 }
 
-interface TicketFeatureStore {
-  version: number;
-  counters: {
-    ticket: number;
-    feature: number;
-    management: number;
-  };
-  tickets: TicketRecord[];
-  features: FeatureRecord[];
-}
-
 export interface TicketFeatureServiceOptions {
   dataDir?: string;
   requireMCP?: boolean;
+  /** Pluggable storage backend. Defaults to JsonTicketFeatureRepository. */
+  repository?: ITicketFeatureRepository;
+  /** External sync configuration. Disabled by default. */
+  syncConfig?: Partial<ExternalSyncConfig>;
+  /** Pre-configured sync manager instance (overrides syncConfig). */
+  syncManager?: ExternalSyncManager;
 }
 
 export interface TicketListFilter {
@@ -218,15 +217,28 @@ const TICKET_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
 };
 
 export class TicketFeatureService {
-  private readonly filePath: string;
+  private readonly repository: ITicketFeatureRepository;
   private readonly requireMCP: boolean;
+  private readonly syncManager: ExternalSyncManager;
   private store: TicketFeatureStore = structuredClone(DEFAULT_STORE);
   private loaded = false;
 
   constructor(options: TicketFeatureServiceOptions = {}) {
-    const dataDir = options.dataDir ?? path.join(process.cwd(), 'data', 'ticket-cycle');
-    this.filePath = path.join(dataDir, 'store.json');
+    this.repository = options.repository ?? new JsonTicketFeatureRepository({
+      filePath: path.join(
+        options.dataDir ?? path.join(process.cwd(), 'data', 'ticket-cycle'),
+        'store.json',
+      ),
+    });
     this.requireMCP = options.requireMCP ?? process.env.ACA_REQUIRE_MCP_FOR_TICKET_CYCLE !== 'false';
+    this.syncManager = options.syncManager ?? new ExternalSyncManager(options.syncConfig);
+  }
+
+  /**
+   * Returns the external sync manager for configuration or testing.
+   */
+  getSyncManager(): ExternalSyncManager {
+    return this.syncManager;
   }
 
   async createTicket(input: TicketCreateInput): Promise<TicketRecord> {
@@ -252,6 +264,10 @@ export class TicketFeatureService {
 
     this.store.tickets.push(ticket);
     await this.persist();
+
+    // Fire-and-forget: sync to external system
+    this.fireAndForgetSync(() => this.syncManager.onTicketCreated(ticket));
+
     return structuredClone(ticket);
   }
 
@@ -278,6 +294,7 @@ export class TicketFeatureService {
     this.assertMCPReady();
 
     const ticket = this.mustGetTicket(ticketId);
+    const oldStatus = ticket.status;
     this.assertTransition(ticket.status, 'in_progress');
 
     const now = new Date().toISOString();
@@ -291,6 +308,10 @@ export class TicketFeatureService {
     }
 
     await this.persist();
+
+    // Fire-and-forget: sync status change to external system
+    this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, oldStatus, 'in_progress'));
+
     return structuredClone(ticket);
   }
 
@@ -299,6 +320,7 @@ export class TicketFeatureService {
     const parsed = ticketStatusSchema.parse(status);
 
     const ticket = this.mustGetTicket(ticketId);
+    const oldStatus = ticket.status;
     this.assertTransition(ticket.status, parsed);
 
     ticket.status = parsed;
@@ -308,6 +330,10 @@ export class TicketFeatureService {
     }
 
     await this.persist();
+
+    // Fire-and-forget: sync status change to external system
+    this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, oldStatus, parsed));
+
     return structuredClone(ticket);
   }
 
@@ -362,6 +388,10 @@ export class TicketFeatureService {
 
     ticket.updatedAt = updatedAt;
     await this.persist();
+
+    // Fire-and-forget: sync review to external system
+    this.fireAndForgetSync(() => this.syncManager.onReviewAdded(ticketId, parsed));
+
     return structuredClone(ticket);
   }
 
@@ -412,6 +442,9 @@ export class TicketFeatureService {
     } else {
       await this.persist();
     }
+
+    // Fire-and-forget: sync status change to external system
+    this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, 'reviewing', 'completed'));
 
     return {
       ticket: structuredClone(ticket),
@@ -725,33 +758,25 @@ export class TicketFeatureService {
       return;
     }
 
-    await mkdir(path.dirname(this.filePath), { recursive: true });
-
-    try {
-      const raw = await readFile(this.filePath, 'utf-8');
-      const parsed = JSON.parse(raw) as Partial<TicketFeatureStore>;
-      this.store = {
-        version: parsed.version ?? DEFAULT_STORE.version,
-        counters: {
-          ticket: parsed.counters?.ticket ?? 0,
-          feature: parsed.counters?.feature ?? 0,
-          management: parsed.counters?.management ?? 0,
-        },
-        tickets: parsed.tickets ?? [],
-        features: (parsed.features ?? []).map((feature, index) => this.normalizeFeatureRecord(feature, index)),
-      };
-      this.store.counters.feature = Math.max(this.store.counters.feature, this.store.features.length);
-      this.store.counters.ticket = Math.max(this.store.counters.ticket, this.store.tickets.length);
-    } catch {
-      this.store = structuredClone(DEFAULT_STORE);
-      await this.persist();
-    }
+    const loaded = await this.repository.load();
+    this.store = {
+      version: loaded.version,
+      counters: {
+        ticket: loaded.counters.ticket,
+        feature: loaded.counters.feature,
+        management: loaded.counters.management,
+      },
+      tickets: loaded.tickets,
+      features: loaded.features.map((feature, index) => this.normalizeFeatureRecord(feature, index)),
+    };
+    this.store.counters.feature = Math.max(this.store.counters.feature, this.store.features.length);
+    this.store.counters.ticket = Math.max(this.store.counters.ticket, this.store.tickets.length);
 
     this.loaded = true;
   }
 
   private async persist(): Promise<void> {
-    await writeFile(this.filePath, JSON.stringify(this.store, null, 2), 'utf-8');
+    await this.repository.save(this.store);
   }
 
   private mustGetTicket(ticketId: string): TicketRecord {
@@ -871,28 +896,29 @@ export class TicketFeatureService {
     }
   }
 
+  /**
+   * Execute a sync operation without blocking the caller.
+   * Errors are silently swallowed -- sync must never interfere with
+   * internal ticket operations.
+   */
+  private fireAndForgetSync(operation: () => Promise<unknown>): void {
+    void operation().catch(() => {
+      // Intentionally swallowed. The SyncManager already logs failures.
+    });
+  }
+
   private assertMCPReady(): void {
     if (!this.requireMCP) {
       return;
     }
 
     const registry = ServiceRegistry.getInstance();
-    if (!registry.isInitialized()) {
-      throw new Error('MCP is required for ticket cycle, but ServiceRegistry is not initialized');
-    }
+    const gateResult: MCPGateResult = checkMCPReadiness(registry);
 
-    const manager = registry.getMCPConnectionManager();
-    if (manager) {
-      const connected = manager.getStatus().some((status) => status.connected);
-      if (!connected) {
-        throw new Error('MCP is required for ticket cycle, but no MCP server is connected');
-      }
-      return;
-    }
-
-    const client = registry.getMCPClient();
-    if (!client || !client.isConnected()) {
-      throw new Error('MCP is required for ticket cycle, but MCP client is not connected');
+    if (!gateResult.ready) {
+      throw new Error(
+        `MCP gate check failed [${gateResult.reasonCode}]: ${gateResult.details}`,
+      );
     }
   }
 }

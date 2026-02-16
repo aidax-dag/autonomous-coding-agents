@@ -236,6 +236,6 @@ describe('TicketFeatureCycleAPI', () => {
 
     expect(started.status).toBe(400);
     const body = started.body as { error: string };
-    expect(body.error).toContain('MCP is required');
+    expect(body.error).toContain('MCP gate check failed');
   });
 });

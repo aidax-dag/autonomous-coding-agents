@@ -313,21 +313,33 @@ export class InMemoryDBClient implements IDBClient {
   // --------------------------------------------------------------------------
 
   private handleDelete(sql: string, params?: unknown[]): QueryResult {
-    // DELETE FROM <table> WHERE ...
-    const match = sql.match(
+    // DELETE FROM <table> [WHERE ...]
+    const matchWithWhere = sql.match(
       /DELETE\s+FROM\s+(\w+)\s+WHERE\s+(.+)/i,
     );
-    if (!match) throw new Error(`Invalid DELETE: ${sql}`);
+    const matchAll = sql.match(
+      /DELETE\s+FROM\s+(\w+)\s*$/i,
+    );
 
-    const tableName = match[1];
-    const whereClause = match[2];
+    if (!matchWithWhere && !matchAll) {
+      throw new Error(`Invalid DELETE: ${sql}`);
+    }
 
+    const tableName = (matchWithWhere ?? matchAll)![1];
     const table = this.getTable(tableName);
-    const toRemove = new Set(this.applyWhere(table, whereClause, params));
-    const remaining = table.filter((r) => !toRemove.has(r));
-    const removedCount = table.length - remaining.length;
 
-    this.tables.set(tableName, remaining);
+    let removedCount: number;
+    if (matchWithWhere) {
+      const whereClause = matchWithWhere[2];
+      const toRemove = new Set(this.applyWhere(table, whereClause, params));
+      const remaining = table.filter((r) => !toRemove.has(r));
+      removedCount = table.length - remaining.length;
+      this.tables.set(tableName, remaining);
+    } else {
+      // DELETE FROM <table> without WHERE — clear all rows
+      removedCount = table.length;
+      this.tables.set(tableName, []);
+    }
     return { rows: [], rowCount: removedCount };
   }
 
