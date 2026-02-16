@@ -25,7 +25,7 @@
 | **Session Model** | Interactive one-time | Continuous workflow |
 | **Agent Count** | Single + sub-agents | Multi-agent collaboration |
 | **State Management** | In-memory/File | PostgreSQL + Redis |
-| **Communication** | In-process | NATS message broker |
+| **Communication** | In-process | ACP MessageBus (in-process) |
 
 ---
 
@@ -76,11 +76,11 @@ interface BackgroundTaskState {
   lastUpdate: Date;
 }
 
-// Our adaptation: Add NATS messaging
+// Our adaptation: Add ACP MessageBus messaging
 class BackgroundTaskManager {
   async execute(task: Task): Promise<void> {
     await this.saveState(task.id, { status: 'running' });
-    await this.nats.publish(`task.${task.id}.started`);
+    await this.messageBus.publish(createACPMessage({ type: 'task.started', source: 'background', target: '*', payload: { taskId: task.id } }));
     // ... execution
   }
 }

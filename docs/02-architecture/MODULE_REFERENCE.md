@@ -1,8 +1,8 @@
 # Module Reference
 
-> ⚠️ **PARTIALLY OUTDATED** (2026-02-12): This document predates the architecture refactoring.
-> For current module structure, see [SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md).
-> Key changes: `src/agents/` removed (→ `src/core/orchestrator/agents/`), `AgentType` enum removed (→ `TeamType`).
+> **DEPRECATED** (2026-02-15): 이 문서는 초기 설계 기준이며 현재 코드와 크게 다릅니다.
+> 현재 모듈 구조는 **[SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md)** 를 참조하세요.
+> 주요 차이: `src/agents/` 제거됨, core/ 모듈 8개→45개 확장, desktop/platform/types 추가, NATS→ACP 전환.
 
 > 모듈 구조 및 구현된 모듈 레퍼런스
 
@@ -462,7 +462,7 @@ git/
 ### 14.4 Messaging (`src/shared/messaging/`)
 ```
 messaging/
-├── nats-client.ts
+├── acp-message-bus.ts
 └── index.ts
 ```
 

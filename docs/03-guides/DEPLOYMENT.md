@@ -4,7 +4,7 @@
 
 - Node.js 20+
 - PostgreSQL 15+
-- NATS Server 2.x
+- ACP MessageBus (built-in, no external server needed)
 - PM2 (process management)
 - Git
 
@@ -33,7 +33,6 @@ npm run db:migrate
 ### Required Environment Variables
 
 ```bash
-NATS_URL=nats://localhost:4222
 GITHUB_TOKEN=your_github_token
 LLM_PROVIDER=claude  # or openai, gemini
 ANTHROPIC_API_KEY=your_api_key  # or OPENAI_API_KEY, GEMINI_API_KEY
@@ -186,7 +185,7 @@ Or use PM2 scale command:
 pm2 scale coder-agent 3  # Scale to 3 instances
 ```
 
-NATS provides automatic load balancing across multiple instances.
+ACP MessageBus provides in-process message routing across agent instances.
 
 ---
 
@@ -196,8 +195,7 @@ NATS provides automatic load balancing across multiple instances.
 
 1. Check logs: `npm run logs`
 2. Verify `.env` file configuration
-3. Test NATS: `curl http://localhost:8222/healthz`
-4. Check database: `npm run db:studio`
+3. Check database: `npm run db:studio`
 
 ### High Memory Usage
 
@@ -215,7 +213,7 @@ npm run logs:coder  # Check for errors before crash
 
 Common causes:
 - Invalid API keys
-- NATS connection lost
+- ACP MessageBus connection lost
 - Database connection issues
 - Out of memory
 
@@ -225,7 +223,7 @@ Common causes:
 
 - [ ] Environment variables configured
 - [ ] Database migrations applied
-- [ ] NATS server running (`curl http://localhost:8222/healthz`)
+- [ ] ACP MessageBus initialized (built-in, starts with agents)
 - [ ] GitHub token valid
 - [ ] LLM API keys valid
 - [ ] PM2 auto-start configured (`pm2 startup && pm2 save`)
@@ -243,8 +241,8 @@ Common causes:
 - Use GitHub App authentication when possible
 
 ### Network
-- Run NATS with authentication
-- Use TLS for NATS in production
+- Secure ACP MessageBus communication channels
+- Use TLS for external connections in production
 - Restrict database to localhost/private network
 - Firewall health endpoints
 

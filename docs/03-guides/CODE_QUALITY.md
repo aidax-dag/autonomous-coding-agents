@@ -237,18 +237,17 @@ function processData<T extends DataSchema>(data: T): void {
 #### Connection Cleanup:
 ```typescript
 // DO THIS - Proper resource cleanup
-export class NatsClient {
-  private connection: NatsConnection | null = null;
+export class ACPMessageBusClient {
+  private bus: ACPMessageBus | null = null;
 
-  async connect(url: string): Promise<void> {
-    this.connection = await connect({ servers: url });
+  async initialize(options?: ACPMessageBusOptions): Promise<void> {
+    this.bus = new ACPMessageBus(options);
   }
 
   async close(): Promise<void> {
-    if (this.connection) {
-      await this.connection.drain();
-      await this.connection.close();
-      this.connection = null;
+    if (this.bus) {
+      this.bus.clear();
+      this.bus = null;
     }
   }
 
@@ -420,7 +419,7 @@ const EnvSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   GITHUB_TOKEN: z.string().min(1),
-  NATS_URL: z.string().url(),
+  ACP_BUS_TIMEOUT: z.number().optional(),
   DATABASE_URL: z.string().url(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 }).refine(
@@ -677,25 +676,24 @@ describe('CoderAgent', () => {
 ```typescript
 // tests/integration/e2e-workflow.test.ts
 describe('E2E Workflow', () => {
-  let natsClient: NatsClient;
+  let messageBus: ACPMessageBus;
   let db: PrismaClient;
 
   beforeAll(async () => {
-    // Setup real infrastructure (Docker Compose)
-    natsClient = new NatsClient();
-    await natsClient.connect('nats://localhost:4222');
+    // Setup real infrastructure
+    messageBus = new ACPMessageBus();
 
     db = new PrismaClient();
     await db.$connect();
   });
 
   afterAll(async () => {
-    await natsClient.close();
+    messageBus.clear();
     await db.$disconnect();
   });
 
   it('should complete full PR cycle: create -> review -> merge', async () => {
-    // This test runs against real NATS and PostgreSQL
+    // This test runs against real ACP MessageBus and PostgreSQL
     const jobId = await createTestJob(db);
 
     // Start agents
@@ -711,10 +709,12 @@ describe('E2E Workflow', () => {
 
     try {
       // Trigger workflow
-      await natsClient.publish('agent.coder', {
+      await messageBus.publish(createACPMessage({
         type: 'START_PROJECT',
+        source: 'test',
+        target: 'agent.coder',
         payload: { jobId },
-      });
+      }));
 
       // Wait for completion (with timeout)
       const result = await waitForMessage(

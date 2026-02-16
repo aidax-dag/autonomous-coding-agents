@@ -211,7 +211,7 @@
 |------|------|----------|
 | **Runtime** | Node.js 20+ | 비동기 처리, 생태계 |
 | **Language** | TypeScript 5.0+ | 타입 안정성 |
-| **Message Broker** | NATS | 경량, 고성능, 내장 JetStream |
+| **Message Broker** | ACP MessageBus | 경량, 인메모리, 에이전트 통신 프로토콜 |
 | **Primary DB** | PostgreSQL + Prisma | 관계형 데이터, ORM, Feature Store |
 | **Graph DB** | Neo4j | 온톨로지 관계 표현, SSOT |
 | **Vector DB** | Pinecone/Weaviate | 시맨틱 검색, 유사도 검색 |
@@ -2105,7 +2105,7 @@ RETURN f, i, s
 │                                                                      │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐  │
 │  │   Event Bus     │───►│  Policy Engine  │───►│    Matcher      │  │
-│  │  (NATS/Redis)   │    │  (Kanban/WIP/   │    │ (Role/Capability│  │
+│  │ (ACP/Redis)     │    │  (Kanban/WIP/   │    │ (Role/Capability│  │
 │  │                 │    │   Gate/Fuse)    │    │   /Trust/Load)  │  │
 │  └─────────────────┘    └─────────────────┘    └────────┬────────┘  │
 │         ▲                       │                       │           │

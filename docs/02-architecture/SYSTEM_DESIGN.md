@@ -538,7 +538,6 @@ const result = await strategy.execute(operation);
 ### 9.1 Environment Variables
 ```bash
 # Required
-NATS_URL=nats://localhost:4222
 DATABASE_URL=postgresql://user:pass@localhost:5432/db
 GITHUB_TOKEN=ghp_...
 
@@ -566,7 +565,7 @@ NODE_ENV=production
 ### 9.2 Config Schema
 ```typescript
 interface AppConfig {
-  nats: NatsConfig;
+  messageBus: ACPMessageBusOptions;
   database: DatabaseConfig;
   llm: LLMConfig;
   agents: AgentConfig[];

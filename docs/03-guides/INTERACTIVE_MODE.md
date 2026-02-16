@@ -199,13 +199,9 @@ Use `/respond` when agent requests feedback:
 
 ## Configuration
 
-Uses existing NATS connection from `.env`:
+Uses ACP MessageBus (in-process, no external configuration needed).
 
-```bash
-NATS_URL=nats://localhost:4222
-```
-
-**NATS Topics:**
+**ACP Message Types:**
 - `task.{taskId}.updates` - Agent updates
 - `task.{taskId}.feedback-request` - Feedback requests
 - `task.{taskId}.feedback` - User responses
@@ -277,11 +273,11 @@ NATS_URL=nats://localhost:4222
 
 **No updates appearing:**
 - Ensure agents are running (`pm2 status`)
-- Check NATS connection (`curl http://localhost:8222/healthz`)
+- Verify ACP MessageBus is initialized (starts automatically with agents)
 - Verify task ID is correct
 
 **Cannot send feedback:**
-- Check NATS connection
+- Check ACP MessageBus connection
 - Ensure task is active (not completed)
 - Try restarting interactive mode
 
@@ -319,9 +315,10 @@ echo "/respond req-001 approve" | multi-agent interactive task-XXX
 Subscribe to update topics directly for custom processing:
 
 ```typescript
-await natsClient.subscribe(`task.${taskId}.updates`, (data) => {
-  const update = JSON.parse(data);
-  // Custom handling
+messageBus.on('task.updates', async (message) => {
+  if (message.payload.taskId === taskId) {
+    // Custom handling
+  }
 });
 ```
 

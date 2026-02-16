@@ -69,7 +69,7 @@ Database:
   - PostgreSQL (관계형 데이터)
   - Neo4j Aura (지식 그래프)
   - Pinecone/Qdrant (벡터 저장소)
-Messaging: NATS JetStream
+Messaging: ACP MessageBus (in-process)
 ORM: Prisma 5.x
 LLM: OpenAI GPT-4, Anthropic Claude, Google Gemini
 ```
@@ -210,7 +210,7 @@ Phase 2: Document-Driven Dev (1주)
 ### 6.2 외부 문서 (구현 시 참조)
 - Neo4j JavaScript Driver: https://neo4j.com/docs/javascript-manual/
 - Pinecone Client: https://docs.pinecone.io/
-- NATS JetStream: https://docs.nats.io/nats-concepts/jetstream
+- ACP MessageBus: src/core/protocols/acp-message-bus.ts (internal)
 - OpenAI Embeddings: https://platform.openai.com/docs/guides/embeddings
 
 ### 6.3 디자인 패턴 참조

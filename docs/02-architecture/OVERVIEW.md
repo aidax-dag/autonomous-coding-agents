@@ -121,7 +121,7 @@ Security Module             →     Permission Manager + Audit System
                                   │
 ┌─────────────────────────────────▼───────────────────────────────────────┐
 │                     Infrastructure Layer                                 │
-│    LLM Clients │ NATS │ PostgreSQL │ Redis │ GitHub API                 │
+│    LLM Clients │ ACP MessageBus │ PostgreSQL │ Redis │ GitHub API       │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -181,7 +181,7 @@ Security Module             →     Permission Manager + Audit System
 - **Language**: TypeScript 5.x (Strict Mode)
 - **Runtime**: Bun / Node.js
 - **Architecture**: SOLID + Clean Architecture + DDD
-- **Testing**: Jest (2,374 tests, 97 suites)
+- **Testing**: Jest (6,754+ tests, 330+ suites)
 - **CI/CD**: GitHub Actions
 
 ### 5.2 AI/LLM Integration
@@ -202,7 +202,7 @@ Security Module             →     Permission Manager + Audit System
 | ollama | 0.13.5+ | Local LLM support |
 
 ### 5.3 Infrastructure
-- **Message Broker**: NATS (JetStream)
+- **Message Broker**: ACP MessageBus (in-process)
 - **Database**: PostgreSQL + Prisma
 - **Cache**: Redis
 - **Process Manager**: PM2 / Daemon

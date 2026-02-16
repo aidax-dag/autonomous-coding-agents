@@ -272,7 +272,7 @@ Claude Code  Codex  Gemini  OpenCode  SuperClaude  Oh My OC  GSD  ACA
 | Oh My CC | 32 | 전문화 + 조합 가능 | Tiered Routing | - |
 | ECC | 13 | 전문화 | 스킬 기반 | Instinct |
 | GSD | 11 | 전문화 | Thin Orchestrator | Context Engineering |
-| **ACA** | **11+** | **역할 기반 (CEO 조율)** | **NATS 메시지 브로커** | **Agent OS** |
+| **ACA** | **11+** | **역할 기반 (CEO 조율)** | **ACP MessageBus** | **Agent OS** |
 
 ### 5.3 데이터 지속성 비교 (v2.0 업데이트)
 
@@ -360,7 +360,7 @@ Claude Code  Codex  Gemini  OpenCode  SuperClaude  Oh My OC  GSD  ACA
 │                                │    (API 3 + CLI 4)              │
 │                                │                                 │
 │   자체 프로토콜               →    표준 프로토콜                  │
-│                                │    (A2A + NATS + GraphQL)       │
+│                                │    (A2A + ACP MessageBus + GraphQL) │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -372,7 +372,7 @@ Claude Code  Codex  Gemini  OpenCode  SuperClaude  Oh My OC  GSD  ACA
 | Agent OS (커널 기반) | oh-my-opencode (Sisyphus) | 커널 레벨 리소스 관리 | ✅ 작동 |
 | 3중 검증 시스템 | SuperClaude (개별 패턴) | 통합된 검증 파이프라인 | 🟡 미연결 |
 | A2A Protocol 구현 | gemini-cli (부분 지원) | 완전한 양방향 A2A | 🟡 미연결 |
-| NATS 메시징 | 없음 (대부분 직접 호출) | 비동기 멀티 에이전트 통신 | ✅ 작동 |
+| ACP MessageBus | 없음 (대부분 직접 호출) | 비동기 멀티 에이전트 통신 | ✅ 작동 |
 | Enterprise 모듈 | 없음 | SSO, Multi-Repo, Team | 🔄 계획 |
 | 7 LLM Provider | opencode (멀티 모델) | API + CLI Provider 모두 지원 | ✅ 작동 |
 

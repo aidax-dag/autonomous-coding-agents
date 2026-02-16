@@ -8,8 +8,8 @@
 
 | 항목 | 값 |
 |------|-----|
-| 총 테스트 | 2,374개 |
-| 테스트 스위트 | 97개 |
+| 총 테스트 | 6,754+개 |
+| 테스트 스위트 | 330+개 |
 | 커버리지 목표 | 70% |
 
 ---
@@ -34,27 +34,25 @@ npm test -- --watch
 
 ## 모킹 인프라
 
-### 1. NATS Mock (`tests/__mocks__/nats.ts`)
+### 1. ACP MessageBus Mock (`tests/__mocks__/acp-message-bus.ts`)
 
-NATS 서버 없이 메시징 테스트 가능:
+ACP MessageBus 서버 없이 메시징 테스트 가능:
 
 ```typescript
-import { NatsClient } from '@/shared/messaging/nats-client';
+import { ACPMessageBus } from '@/core/protocols/acp-message-bus';
 
 // Jest가 자동으로 mock 사용
-const client = new NatsClient(config);
-await client.connect();  // 실제 서버 연결 없음
+const bus = new ACPMessageBus();
+// In-memory bus - 외부 서버 연결 불필요
 
 // Mock 상태 리셋
-const natsMock = jest.requireMock('nats');
-natsMock.__resetMockState();
+bus.clear();
 ```
 
 **지원 기능:**
-- `connect()` - 연결 시뮬레이션
-- `publish()` / `subscribe()` - 메시지 발행/구독
+- `publish()` - 메시지 발행
+- `subscribe()` / `on()` - 메시지 구독
 - `request()` - 요청/응답 패턴
-- JetStream API (streams, consumers)
 
 ### 2. GitHub/Octokit Mock (`tests/__mocks__/@octokit/rest.ts`)
 
@@ -97,19 +95,20 @@ expect(mockLLM.getCallHistory()).toHaveLength(2);
 ```typescript
 describe('MyAgent', () => {
   let agent: MyAgent;
-  let mockNatsClient: jest.Mocked<NatsClient>;
+  let mockMessageBus: jest.Mocked<ACPMessageBus>;
   let mockLLMClient: jest.Mocked<ILLMClient>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.ANTHROPIC_API_KEY = 'test-key';
 
-    mockNatsClient = {
+    mockMessageBus = {
       subscribe: jest.fn(),
       publish: jest.fn(),
       request: jest.fn(),
-      close: jest.fn(),
-      isConnected: jest.fn().mockReturnValue(true),
+      on: jest.fn(),
+      clear: jest.fn(),
+      subscriptionCount: jest.fn().mockReturnValue(0),
     } as any;
 
     mockLLMClient = {
@@ -120,7 +119,7 @@ describe('MyAgent', () => {
       }),
     } as any;
 
-    agent = new MyAgent(config, mockNatsClient, mockLLMClient);
+    agent = new MyAgent(config, mockMessageBus, mockLLMClient);
   });
 
   afterEach(async () => {
@@ -170,7 +169,7 @@ export default {
   testEnvironment: 'node',
   moduleNameMapper: {
     // ESM 패키지 mock
-    '^nats$': '<rootDir>/tests/__mocks__/nats.ts',
+    '^@/core/protocols/acp-message-bus$': '<rootDir>/tests/__mocks__/acp-message-bus.ts',
     '^@octokit/rest$': '<rootDir>/tests/__mocks__/@octokit/rest.ts',
     '^octokit$': '<rootDir>/tests/__mocks__/octokit.ts',
     // Path aliases
@@ -186,7 +185,7 @@ export default {
 ```
 tests/
 ├── __mocks__/           # Jest 자동 mock
-│   ├── nats.ts
+│   ├── acp-message-bus.ts
 │   ├── octokit.ts
 │   └── @octokit/
 │       └── rest.ts
@@ -228,7 +227,7 @@ jest.advanceTimersByTime(100);
 beforeEach(() => {
   jest.clearAllMocks();
   // 필요시 mock 상태도 리셋
-  const natsMock = jest.requireMock('nats');
-  natsMock.__resetMockState?.();
+  const busMock = jest.requireMock('@/core/protocols/acp-message-bus');
+  busMock.__resetMockState?.();
 });
 ```

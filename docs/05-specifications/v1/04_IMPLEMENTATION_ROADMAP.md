@@ -1068,7 +1068,7 @@ NEO4J_PASSWORD=...
 PINECONE_API_KEY=...
 PINECONE_INDEX=autonomous-coding
 
-NATS_URL=nats://localhost:4222
+# ACP MessageBus is in-process, no URL needed
 
 DATABASE_URL=postgresql://...
 
@@ -1093,7 +1093,7 @@ pnpm run build
 pnpm run start:prod
 
 # 인프라 시작
-docker-compose up -d    # Neo4j, NATS, PostgreSQL
+docker-compose up -d    # Neo4j, PostgreSQL
 ```
 
 ### C. 참조 문서

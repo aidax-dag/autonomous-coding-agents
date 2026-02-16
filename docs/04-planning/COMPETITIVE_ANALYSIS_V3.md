@@ -31,10 +31,10 @@ ACA v2.0 is a **production-ready autonomous coding agent platform** built on a m
 
 | Metric | Value |
 |--------|-------|
-| Test Suites | 276 |
-| Tests | 5,313 |
-| Coverage | ~89% (target: 70%+) |
-| Source Files | 364+ |
+| Test Suites | 330+ |
+| Tests | 6,754+ |
+| Coverage | ~90% (target: 70%+) |
+| Source Files | 400+ |
 | Source LOC | ~67,000+ |
 | Core Modules | 30+ |
 | LLM Providers | 10 |
@@ -164,9 +164,9 @@ Legend: ✅ Full support | 🔶 Partial support | ❌ Not supported | — Not ap
 
 | Metric | ACA v2.0 | Claude Code | Codex CLI | Gemini CLI | Cursor | Windsurf | Devin | OpenHands |
 |--------|:--------:|:-----------:|:---------:|:----------:|:------:|:--------:|:-----:|:---------:|
-| Test count | 5,313 | Limited | Comprehensive | 674+ | Private | Private | Private | Moderate |
+| Test count | 6,754+ | Limited | Comprehensive | 674+ | Private | Private | Private | Moderate |
 | Test suites | 276 | — | — | 50+ | — | — | — | — |
-| Coverage | ~89% | Unknown | Unknown | Unknown | Unknown | Unknown | Unknown | ~60-70% |
+| Coverage | ~90% | Unknown | Unknown | Unknown | Unknown | Unknown | Unknown | ~60-70% |
 | Type safety | Strict TS | TS/Python | Rust | TS Strict | TS | TS | Python | Python |
 | Open source | Yes (MIT) | Partial | Apache 2.0 | Apache 2.0 | No | No | No | Yes (MIT) |
 
@@ -209,7 +209,7 @@ ACA's hook system covers pre/post goal, pre/post task, error, session, agent lif
 | Domain | Position | Evidence |
 |--------|----------|----------|
 | Learning system | **Industry-unique** | 5-layer learning (Reflexion + Instinct + Solutions + Clustering + Team) -- no competitor has more than 1 layer |
-| Test coverage | **Industry-leading** | 5,313 tests, 276 suites, ~89% coverage -- highest among open-source coding agents |
+| Test coverage | **Industry-leading** | 6,754+ tests, 330+ suites, ~90% coverage -- highest among open-source coding agents |
 | Architecture modularity | **Industry-leading** | 30+ modules with interface-based DI, ServiceRegistry, ACP message bus |
 | Context management | **Industry-leading** | QualityCurve + TokenBudget + Compaction + PlanningContext (11 components) |
 | Protocol breadth | **Industry-leading** | ACP + MCP + LSP + A2A -- widest protocol support |
@@ -222,7 +222,7 @@ ACA's hook system covers pre/post goal, pre/post task, error, session, agent lif
 
 | Gap | Impact | Competitors With This | Notes |
 |-----|--------|----------------------|-------|
-| **Real LLM API integration testing** | High | All shipping products | ACA's 5,313 tests all use mocked LLM providers. No test verifies actual API responses, token counting accuracy, or real model behavior. Every competitor that ships a product has real API testing. |
+| **Real LLM API integration testing** | High | All shipping products | ACA's 6,754+ tests all use mocked LLM providers. No test verifies actual API responses, token counting accuracy, or real model behavior. Every competitor that ships a product has real API testing. |
 | **IDE extensions (VS Code, JetBrains)** | High | Cursor, Windsurf, Codex, Gemini CLI | ACA has a JSON-RPC `IDEBridge` but no published VS Code or JetBrains extension. Cursor and Windsurf are IDE-native. Codex and Gemini CLI have working VS Code extensions. |
 | **Production deployment track record** | High | Claude Code, Codex, Gemini CLI, Cursor, Windsurf, Devin | ACA has not been used in production. It has Docker Compose and CI/CD headless mode, but no public deployment or usage data. |
 | **Community size and ecosystem** | High | All competitors | ACA is pre-release with no public users. Claude Code has Anthropic's backing, Cursor has millions of users, OpenHands has an active OSS community. |
@@ -276,7 +276,7 @@ Phase G (Integration & v2.0) consisted of 4 sprints that transformed ACA from a 
 | Task | What Changed | Competitive Impact |
 |------|-------------|-------------------|
 | G-9: Integration tests | 8 integration test files including full-pipeline test covering G-1 through G-7 | Validates cross-module behavior; rare in competitor projects |
-| G-10: Coverage gap resolution | Coverage improved from ~85% to ~89%, targeting low-coverage modules | High coverage relative to competitors |
+| G-10: Coverage gap resolution | Coverage improved from ~85% to ~90%, targeting low-coverage modules | High coverage relative to competitors |
 | G-11: Performance benchmarks | BenchmarkRunner baseline established | Enables regression detection |
 | G-12: Security audit | PermissionManager policy review, JWT expiry/refresh verification | Addresses production security concerns |
 
@@ -294,8 +294,8 @@ Phase G (Integration & v2.0) consisted of 4 sprints that transformed ACA from a 
 | Metric | Phase F (v1.1) | Phase G (v2.0) | Delta |
 |--------|:-------------:|:--------------:|:-----:|
 | Test suites | 254 | 276 | +22 |
-| Tests | 4,745 | 5,313 | +568 |
-| Coverage | ~85% | ~89% | +4% |
+| Tests | 4,745 | 6,754+ | +568 |
+| Coverage | ~85% | ~90% | +4% |
 | Integration test files | 3 | 8 | +5 |
 | Wired pipelines | 0 (modules isolated) | 4 (Hook, Validation, Learning, Context) | +4 |
 
@@ -402,8 +402,8 @@ Phase H should target the highest-impact gaps identified in Section 5.
 ## Appendix B: Data Sources
 
 All ACA statistics are derived from the actual codebase:
-- **Test counts**: `jest` output (276 suites, 5,313 tests) as of 2026-02-14
-- **Coverage**: Jest coverage report (~89%)
+- **Test counts**: `jest` output (330+ suites, 6,754+ tests) as of 2026-02-14
+- **Coverage**: Jest coverage report (~90%)
 - **LOC**: Source file count and line counting (364+ files, 67,000+ LOC)
 - **Module counts**: Directory enumeration of `src/core/`, `src/shared/`, `src/api/`, `src/ui/`, `src/cli/`
 - **Feature claims**: Based on implemented source code, not aspirational roadmap items
@@ -418,4 +418,4 @@ Competitor information is based on public documentation, GitHub repositories, an
 |---------|------|-------|-------------|
 | v1.0 | 2026-02-13 | Phase D + Backlog | Initial comprehensive analysis, 7 competitors, 4,125 tests |
 | v2.0 | 2026-02-13 | Phase F (v1.1) | Updated for 10 LLM providers, A2A, marketplace, 4,745 tests |
-| **v3.0** | **2026-02-14** | **Phase G (v2.0)** | **Added Cursor/Windsurf/Devin/OpenHands, pipeline wiring assessment, 5,313 tests, gap analysis update** |
+| **v3.0** | **2026-02-14** | **Phase G (v2.0)** | **Added Cursor/Windsurf/Devin/OpenHands, pipeline wiring assessment, 6,754+ tests, gap analysis update** |

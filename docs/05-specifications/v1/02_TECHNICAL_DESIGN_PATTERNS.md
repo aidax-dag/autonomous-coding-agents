@@ -50,7 +50,7 @@
 ┌────────────────────────────────▼────────────────────────────────────────────┐
 │                        Infrastructure Layer                                  │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │
-│  │  NATS   │ │PostgreSQL│ │  Neo4j  │ │ Vector  │ │  Redis  │ │   LLM   │  │
+│  │  ACP    │ │PostgreSQL│ │  Neo4j  │ │ Vector  │ │  Redis  │ │   LLM   │  │
 │  │JetStream│ │(Prisma)  │ │  Graph  │ │   DB    │ │  Cache  │ │   API   │  │
 │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘  │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -807,17 +807,13 @@ interface Subscription {
 }
 
 // Implementation
-class NATSEventEmitter implements EventEmitter {
-  private nc: NatsConnection
+class ACPEventEmitter implements EventEmitter {
+  private bus: ACPMessageBus
   private handlers: Map<string, Set<{ id: string; handler: EventHandler }>>
 
-  constructor(config: NATSConfig) {
+  constructor(options?: ACPMessageBusOptions) {
     this.handlers = new Map()
-  }
-
-  async connect(): Promise<void> {
-    this.nc = await connect(config)
-    // Set up NATS subscriptions for each event type
+    this.bus = new ACPMessageBus(options)
   }
 
   subscribe(eventType: string, handler: EventHandler): Subscription {
@@ -825,13 +821,9 @@ class NATSEventEmitter implements EventEmitter {
 
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, new Set())
-      // Create NATS subscription
-      this.nc.subscribe(eventType, {
-        callback: async (err, msg) => {
-          if (err) return
-          const event = JSON.parse(msg.data.toString())
-          await this.notifyHandlers(eventType, event)
-        }
+      // Create ACP MessageBus subscription
+      this.bus.on(eventType as ACPMessageType, async (message) => {
+        await this.notifyHandlers(eventType, message)
       })
     }
 
@@ -1441,9 +1433,8 @@ interface EventStore {
   subscribe(streamId: string, handler: EventHandler): Subscription
 }
 
-class NATSEventStore implements EventStore {
-  private nc: NatsConnection
-  private js: JetStreamClient
+class ACPEventStore implements EventStore {
+  private bus: ACPMessageBus
 
   async append(streamId: string, events: DomainEvent[], expectedVersion?: number): Promise<void> {
     for (const event of events) {

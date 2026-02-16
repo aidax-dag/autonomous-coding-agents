@@ -37,7 +37,7 @@
 | F006 | SolutionsCache | ✅ 구현됨 | 단위 테스트 존재 |
 | F007 | QualityCurve | ✅ 구현됨 | 단위 테스트 존재 |
 | F008 | Context Module 통합 | ✅ 구현됨 | `core/context` 통합 모듈 존재 |
-| F009 | Agent 통합 | ✅ 구현 완료 | teams/ 통합, _legacy/ 생성, 테스트 6,036개 통과 |
+| F009 | Agent 통합 | ✅ 구현 완료 | teams/ 통합, _legacy/ 생성, 테스트 6,754+개 통과 |
 
 ---
 

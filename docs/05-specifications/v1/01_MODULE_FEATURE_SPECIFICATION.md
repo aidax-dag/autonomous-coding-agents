@@ -66,7 +66,7 @@ autonomous-coding-agents/
 │   │   │   ├── circuit-breaker.ts
 │   │   │   └── self-healing.ts
 │   │   ├── messaging/             # 메시징
-│   │   │   ├── nats-client.ts     [기존]
+│   │   │   ├── acp-message-bus.ts  [ACP 전환]
 │   │   │   └── event-bus.ts
 │   │   ├── observability/         # 관측성
 │   │   │   ├── logger.ts

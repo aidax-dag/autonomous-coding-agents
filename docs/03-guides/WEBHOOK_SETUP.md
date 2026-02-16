@@ -157,7 +157,7 @@ HMAC Signature Verification
   ↓
 Event Type Router
   ↓
-NATS Message Bus
+ACP MessageBus
   ↓
 Agents (Coder/Reviewer/Repo Manager)
 ```
@@ -208,7 +208,7 @@ curl -X POST http://localhost:3001/webhook \
 ### Events not triggering actions
 
 **Check:**
-1. NATS connection: `curl http://localhost:8222/healthz`
+1. ACP MessageBus: Verify agents are initialized (in-process bus)
 2. Agents running: `pm2 status`
 3. Event type supported (see Supported Events)
 4. Check agent logs: `npm run logs`
@@ -277,7 +277,7 @@ Detailed logs in `logs/health-server-*.log`:
 ```
 [WEBHOOK] Received pull_request.opened for owner/repo#42
 [WEBHOOK] Signature verified
-[WEBHOOK] Published to NATS: pr.opened
+[WEBHOOK] Published to ACP MessageBus: pr.opened
 ```
 
 ---

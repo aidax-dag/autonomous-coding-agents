@@ -167,7 +167,7 @@ multi-agent health [--url http://localhost:3000]
 ```bash
 multi-agent health
 
-# Shows: Overall status, uptime, agent status (CODER/REVIEWER/REPO_MANAGER), NATS connection
+# Shows: Overall status, uptime, agent status (CODER/REVIEWER/REPO_MANAGER), ACP MessageBus status
 ```
 
 ---
@@ -249,9 +249,6 @@ CLI 도구가 지정되지 않으면 다음 순서로 자동 선택됩니다:
 ## Environment Variables
 
 ```bash
-# Required
-NATS_URL=nats://localhost:4222
-
 # Optional (for health/auto-fix)
 HEALTH_PORT=3000
 GITHUB_TOKEN=your_github_token
@@ -272,7 +269,7 @@ cp .env.example .env
 
 ## Troubleshooting
 
-**NATS connection error:** Ensure NATS is running (`curl http://localhost:8222/healthz`)
+**ACP MessageBus error:** Ensure agents are properly initialized (MessageBus is in-process)
 **Agents not responding:** Start agents with `npm run start:agents`
 **Health server unreachable:** Start with `npm run dev:health`
 
