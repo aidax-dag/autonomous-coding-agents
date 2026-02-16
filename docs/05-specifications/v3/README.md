@@ -23,6 +23,8 @@ v3는 기존 ACA v2 기반 위에 다음을 추가하는 프로그램 스펙이�
 | F025 | [F025-Feature-Management-Service.md](./F025-Feature-Management-Service.md) | Feature 관리 서비스 설계 |
 | F026 | [F026-Ticket-Feature-Runtime-and-MCP-Enforcement.md](./F026-Ticket-Feature-Runtime-and-MCP-Enforcement.md) | Ticket/Feature 런타임 구현 + MCP 필수 게이트 |
 | F027 | [F027-ACA-Platform-Final-Definition.md](./F027-ACA-Platform-Final-Definition.md) | 최종 범위 고정(v1/v1.1) + 제품 정체성/릴리스 경계 |
+| F028 | [F028-Feature-SaaS-Design.md](./F028-Feature-SaaS-Design.md) | Feature SaaS(DB/API/ACA 연동) 구현 전 설계 고정 |
+| F028A | [F028-Feature-SaaS-ERD.md](./F028-Feature-SaaS-ERD.md) | Feature SaaS DB ERD 상세본 |
 
 ## 스키마
 
@@ -31,6 +33,11 @@ v3는 문서형 스펙뿐 아니라 기계 판독 가능한 스키마를 함께 
 - `schemas/ticket.schema.json`
 - `schemas/feature.schema.json`
 - `schemas/a2a-economic-contract.schema.json`
+- `schemas/feature-mcp-tool-contract.schema.json`
+
+API 초안:
+
+- `docs/api/feature-saas.openapi.yaml`
 
 ## 현재 코드베이스와 연결 포인트
 

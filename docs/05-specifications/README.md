@@ -69,6 +69,8 @@ ACA를 Ticket 기반 Product Builder + 재사용 Feature 자산 + Agent Economy�
 | F025 | [Feature Management Service](./v3/F025-Feature-Management-Service.md) | Feature 카탈로그 운영 서비스 설계/구현 | 🟢 Implemented |
 | F026 | [Ticket/Feature Runtime + MCP Enforcement](./v3/F026-Ticket-Feature-Runtime-and-MCP-Enforcement.md) | Ticket/Feature 런타임 구현과 MCP 필수 정책 | 🟢 Implemented |
 | F027 | [ACA Platform Final Definition](./v3/F027-ACA-Platform-Final-Definition.md) | v1/v1.1 범위 고정 + 제품 정체성/게이트/로드맵 경계 | 🟢 Finalized |
+| F028 | [Feature SaaS Design](./v3/F028-Feature-SaaS-Design.md) | Feature DB 스키마/API/ACA 연동 설계(구현 전 게이트) | 🟡 Draft |
+| F028A | [Feature SaaS ERD](./v3/F028-Feature-SaaS-ERD.md) | Feature SaaS DB ERD 상세본 | 🟡 Draft |
 
 보조 문서:
 
@@ -76,6 +78,8 @@ ACA를 Ticket 기반 Product Builder + 재사용 Feature 자산 + Agent Economy�
 - `schemas/ticket.schema.json`
 - `schemas/feature.schema.json`
 - `schemas/a2a-economic-contract.schema.json`
+- `schemas/feature-mcp-tool-contract.schema.json`
+- `docs/api/feature-saas.openapi.yaml`
 
 ## Reading Order
 
@@ -95,6 +99,8 @@ ACA를 Ticket 기반 Product Builder + 재사용 Feature 자산 + Agent Economy�
 문서_정보:
   수정일: 2026-02-14
   변경_이력:
+    - "F028 부속 산출물 추가 (ERD 상세본, OpenAPI 초안, MCP tool contract schema)"
+    - "F028 Feature SaaS 설계 문서 추가 (DB/API/ACA 연동 설계 선행 게이트)"
     - "F027 최종 정의 문서 추가 (v1 Builder 고정, Jira v1.1, Remote Trust/Personal Agent 정책 확정)"
     - "v3 스펙 섹션 확장 (F021~F026)"
     - "P3 구조 통합 완료 (2026-02-08)"
