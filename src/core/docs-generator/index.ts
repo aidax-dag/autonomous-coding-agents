@@ -22,3 +22,5 @@ export {
   type DocsGeneratorConfig,
   type ContentAnalyzer,
 } from './docs-generator';
+
+export { createDefaultAnalyzer } from './code-analyzer';

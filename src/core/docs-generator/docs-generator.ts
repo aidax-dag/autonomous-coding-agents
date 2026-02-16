@@ -16,6 +16,7 @@ import type {
   MLDContent,
   LLDContent,
 } from './interfaces/docs-generator.interface';
+import { createDefaultAnalyzer } from './code-analyzer';
 
 /**
  * Content analyzer — pluggable analysis function
@@ -48,7 +49,7 @@ export class DocsGenerator implements IDocsGenerator {
   private readonly defaults: DocGeneratorOptions;
 
   constructor(config: DocsGeneratorConfig = {}) {
-    this.analyzer = config.analyzer;
+    this.analyzer = config.analyzer ?? createDefaultAnalyzer();
     this.defaults = config.defaults ?? { levels: ['HLD', 'MLD', 'LLD'] };
   }
 
