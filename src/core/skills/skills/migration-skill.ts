@@ -11,6 +11,7 @@ import type {
   SkillContext,
   SkillResult,
 } from '../interfaces/skill.interface';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * A migration change entry
@@ -123,6 +124,12 @@ export class MigrationSkill
       }
 
       // Default stub output
+      const fallback = createSkillFallback('migration', 'no_executor', {
+        from: input.from,
+        to: input.to,
+        fileCount: input.files.length,
+      });
+
       const changes: MigrationChange[] = input.files.map((file) => ({
         file,
         description: `Pending migration from ${input.from} to ${input.to}`,
@@ -138,7 +145,7 @@ export class MigrationSkill
         success: true,
         output,
         duration: Date.now() - start,
-        metadata: { dryRun: input.dryRun ?? false },
+        metadata: { dryRun: input.dryRun ?? false, fallback },
       };
     } catch (err) {
       return {

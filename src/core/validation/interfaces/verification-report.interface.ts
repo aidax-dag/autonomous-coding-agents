@@ -9,14 +9,46 @@
 import type { VerificationStage } from './validation.interface';
 
 /**
- * Stub detection result
+ * Severity level for stub detections
+ *
+ * - critical: Production code returning "Not implemented" or "placeholder" — must fix before deploy
+ * - error: Stubs that indicate incomplete implementation (legacy alias for critical-adjacent)
+ * - warning: Stub fallback in non-critical paths (TODOs, empty blocks)
+ * - info: Template-only output that could be enhanced
+ */
+export type StubSeverity = 'critical' | 'error' | 'warning' | 'info';
+
+/**
+ * Stub detection result (per-line match within a file)
  */
 export interface StubDetection {
   filePath: string;
   line: number;
   pattern: string;
   content: string;
-  severity: 'warning' | 'error';
+  severity: StubSeverity;
+}
+
+/**
+ * CI-friendly stub detection result (maps to the spec interface)
+ */
+export interface StubDetectionResult {
+  file: string;
+  line: number;
+  pattern: string;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+}
+
+/**
+ * CI-friendly stub detection report
+ */
+export interface StubDetectionReport {
+  results: StubDetectionResult[];
+  criticalCount: number;
+  warningCount: number;
+  infoCount: number;
+  passed: boolean;
 }
 
 /**

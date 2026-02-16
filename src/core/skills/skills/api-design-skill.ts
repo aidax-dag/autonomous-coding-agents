@@ -11,6 +11,7 @@ import type {
   SkillContext,
   SkillResult,
 } from '../interfaces/skill.interface';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * An API endpoint definition
@@ -112,6 +113,11 @@ export class ApiDesignSkill
 
       // Default stub output
       const apiType = input.type ?? 'rest';
+      const fallback = createSkillFallback('api-design', 'no_executor', {
+        name: input.name,
+        type: apiType,
+      });
+
       const endpoints: ApiEndpoint[] = (input.endpoints ?? []).map((ep) => ({
         method: ep.method,
         path: ep.path,
@@ -132,6 +138,7 @@ export class ApiDesignSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {

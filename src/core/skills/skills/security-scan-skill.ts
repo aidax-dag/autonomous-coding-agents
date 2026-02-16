@@ -11,6 +11,7 @@ import type {
   SkillContext,
   SkillResult,
 } from '../interfaces/skill.interface';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * Security finding from a scan
@@ -110,6 +111,11 @@ export class SecurityScanSkill
 
       // Default stub output — no findings, perfect score
       const checks = input.checks ?? ['injection', 'xss', 'auth', 'crypto'];
+      const fallback = createSkillFallback('security-scan', 'no_executor', {
+        files: input.files,
+        checks,
+      });
+
       const output: SecurityScanSkillOutput = {
         findings: [],
         summary: `Scanned ${input.files.length} file(s) for ${checks.join(', ')} vulnerabilities`,
@@ -120,6 +126,7 @@ export class SecurityScanSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {

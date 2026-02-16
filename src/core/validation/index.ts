@@ -71,7 +71,10 @@ export { VerificationStage } from './interfaces/validation.interface';
 // ============================================================================
 
 export type {
+  StubSeverity,
   StubDetection,
+  StubDetectionResult,
+  StubDetectionReport,
   FileVerificationReport,
   StageReport,
   VerificationReport,
@@ -82,7 +85,10 @@ export type {
 export {
   StubDetector,
   createStubDetector,
+  detectStubs,
   STUB_PATTERNS,
+  type StubPattern,
+  type DetectStubsOptions,
 } from './stub-detector';
 
 export {

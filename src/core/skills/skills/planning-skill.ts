@@ -12,6 +12,7 @@ import type {
   SkillResult,
 } from '../interfaces/skill.interface';
 import type { PlanningOutput } from '../../orchestrator/agents/planning-agent';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * Input for planning skill
@@ -84,6 +85,11 @@ export class PlanningSkill
       }
 
       // Default stub output (no LLM)
+      const fallback = createSkillFallback('planning', 'no_executor', {
+        goal: input.goal,
+        constraints: input.constraints,
+      });
+
       const output: PlanningOutput = {
         title: `Plan: ${input.goal}`,
         summary: `Decomposition of: ${input.goal}`,
@@ -102,6 +108,7 @@ export class PlanningSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {

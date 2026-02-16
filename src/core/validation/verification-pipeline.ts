@@ -98,7 +98,9 @@ export class VerificationPipeline implements IVerificationPipeline {
         substantive: substStage?.passed ?? true,
         wired: wiredStage?.passed ?? true,
         stubs,
-        issues: stubs.filter((s) => s.severity === 'error').map((s) => `${s.pattern} at line ${s.line}`),
+        issues: stubs
+          .filter((s) => s.severity === 'error' || s.severity === 'critical')
+          .map((s) => `${s.pattern} at line ${s.line}`),
       };
     } catch {
       return {

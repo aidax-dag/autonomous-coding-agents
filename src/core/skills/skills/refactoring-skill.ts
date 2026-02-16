@@ -15,6 +15,7 @@ import type {
   RefactoringOutput,
   RefactoringSuggestion,
 } from '../../orchestrator/agents/code-quality-agent';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * Input for refactoring skill
@@ -92,6 +93,10 @@ export class RefactoringSkill
       }
 
       // Default stub output
+      const fallback = createSkillFallback('refactoring', 'no_executor', {
+        files: input.files,
+      });
+
       const output: RefactoringOutput = {
         summary: `Analyzed ${input.files.length} file(s) for refactoring opportunities`,
         suggestions: [],
@@ -104,6 +109,7 @@ export class RefactoringSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {

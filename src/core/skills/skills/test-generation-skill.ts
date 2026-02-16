@@ -15,6 +15,7 @@ import type {
   TestGenerationOutput,
   GeneratedTestCase,
 } from '../../orchestrator/agents/code-quality-agent';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * Input for test generation skill
@@ -94,6 +95,11 @@ export class TestGenerationSkill
       }
 
       // Default stub output
+      const fallback = createSkillFallback('test-generation', 'no_executor', {
+        sourceFiles: input.sourceFiles,
+        testTypes: input.testTypes,
+      });
+
       const tests: GeneratedTestCase[] = input.sourceFiles.map((file) => ({
         name: `test ${file}`,
         type: 'unit' as const,
@@ -113,6 +119,7 @@ export class TestGenerationSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {

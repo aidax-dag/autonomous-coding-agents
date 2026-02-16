@@ -11,6 +11,7 @@ import type {
   SkillContext,
   SkillResult,
 } from '../interfaces/skill.interface';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * Input for git workflow skill
@@ -105,6 +106,10 @@ export class GitWorkflowSkill
       }
 
       // Default stub output
+      const fallback = createSkillFallback('git-workflow', 'no_executor', {
+        operation: input.operation,
+      });
+
       const output: GitWorkflowSkillOutput = {
         operation: input.operation,
         success: true,
@@ -116,6 +121,7 @@ export class GitWorkflowSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {

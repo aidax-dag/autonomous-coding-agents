@@ -15,6 +15,7 @@ import type {
   CodeReviewFinding,
   DeepReviewOutput,
 } from '../../orchestrator/agents/code-quality-agent';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * Input for code review skill
@@ -92,6 +93,11 @@ export class CodeReviewSkill
       }
 
       // Default stub output
+      const fallback = createSkillFallback('code-review', 'no_executor', {
+        files: input.files,
+        focus: input.focus,
+      });
+
       const findings: CodeReviewFinding[] = input.files.map((file) => ({
         type: 'best-practice' as const,
         severity: 'suggestion' as const,
@@ -114,6 +120,7 @@ export class CodeReviewSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {

@@ -11,6 +11,7 @@ import type {
   SkillContext,
   SkillResult,
 } from '../interfaces/skill.interface';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * A generated document entry
@@ -108,6 +109,11 @@ export class DocumentationSkill
 
       // Default stub output
       const format = input.format ?? 'markdown';
+      const fallback = createSkillFallback('documentation', 'no_executor', {
+        files: input.files,
+        format,
+      });
+
       const documents: GeneratedDocument[] = input.files.map((file) => ({
         path: file,
         content: `# Documentation for ${file}\n\nGenerated documentation stub.`,
@@ -123,6 +129,7 @@ export class DocumentationSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {

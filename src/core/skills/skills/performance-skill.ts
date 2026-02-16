@@ -11,6 +11,7 @@ import type {
   SkillContext,
   SkillResult,
 } from '../interfaces/skill.interface';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * A performance finding
@@ -111,6 +112,11 @@ export class PerformanceSkill
 
       // Default stub output — no issues found
       const metrics = input.metrics ?? ['time', 'memory', 'cpu', 'io'];
+      const fallback = createSkillFallback('performance', 'no_executor', {
+        files: input.files,
+        metrics,
+      });
+
       const output: PerformanceSkillOutput = {
         findings: [],
         overallScore: 100,
@@ -121,7 +127,7 @@ export class PerformanceSkill
         success: true,
         output,
         duration: Date.now() - start,
-        metadata: { metricsAnalyzed: metrics },
+        metadata: { metricsAnalyzed: metrics, fallback },
       };
     } catch (err) {
       return {

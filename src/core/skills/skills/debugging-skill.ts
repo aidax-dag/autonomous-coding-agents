@@ -11,6 +11,7 @@ import type {
   SkillContext,
   SkillResult,
 } from '../interfaces/skill.interface';
+import { createSkillFallback } from '../skill-fallback';
 
 /**
  * A suggested fix for a debugging issue
@@ -113,6 +114,11 @@ export class DebuggingSkill
       }
 
       // Default stub output
+      const fallback = createSkillFallback('debugging', 'no_executor', {
+        error: input.error,
+        hasStackTrace: !!input.stackTrace,
+      });
+
       const output: DebuggingSkillOutput = {
         rootCause: `Analysis pending for: ${input.error}`,
         hypothesis: ['Requires LLM analysis for hypothesis generation'],
@@ -128,6 +134,7 @@ export class DebuggingSkill
         success: true,
         output,
         duration: Date.now() - start,
+        metadata: { fallback },
       };
     } catch (err) {
       return {
