@@ -43,6 +43,8 @@
     "db:rollback": "tsx scripts/db-migrate.ts rollback",
     "db:status": "tsx scripts/db-migrate.ts status",
     "docs:api": "tsx scripts/generate-openapi.ts",
+    "docs:compact": "tsx scripts/build-docs-compact.ts",
+    "docs:query": "tsx scripts/query-docs-compact.ts",
     "verify:package": "tsx scripts/verify-package.ts",
     "analyze:bundle": "tsx scripts/bundle-analysis.ts",
     "prepublishOnly": "npm run build"
