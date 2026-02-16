@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-02-16T03:38:36.315Z",
+  "generatedAt": "2026-02-16T09:31:22.220Z",
   "sourceDir": "docs",
   "totals": {
     "docs": 147,
-    "bytes": 1380961,
-    "lines": 47328,
-    "estimatedTokens": 345301
+    "bytes": 1383152,
+    "lines": 47355,
+    "estimatedTokens": 345846
   },
   "sections": [
     {
@@ -41,8 +41,8 @@
     {
       "name": "04-planning",
       "docs": 5,
-      "bytes": 75522,
-      "estimatedTokens": 18883
+      "bytes": 76084,
+      "estimatedTokens": 19023
     },
     {
       "name": "02-architecture",
@@ -53,8 +53,8 @@
     {
       "name": "07-worklists",
       "docs": 8,
-      "bytes": 11129,
-      "estimatedTokens": 2786
+      "bytes": 12489,
+      "estimatedTokens": 3124
     },
     {
       "name": "root",
@@ -65,8 +65,8 @@
     {
       "name": "checklists",
       "docs": 4,
-      "bytes": 5346,
-      "estimatedTokens": 1338
+      "bytes": 5615,
+      "estimatedTokens": 1405
     }
   ],
   "entries": [
@@ -682,12 +682,12 @@
       "file": "04-planning/COMPETITIVE_ANALYSIS_AND_ENHANCEMENT_STRATEGY.md",
       "section": "04-planning",
       "ext": ".md",
-      "title": "Competitive Analysis & Enhancement Strategy (v6, Condensed)",
-      "lines": 151,
-      "bytes": 6629,
-      "estimatedTokens": 1658,
+      "title": "Competitive Analysis & Enhancement Strategy (v7, Condensed)",
+      "lines": 157,
+      "bytes": 7191,
+      "estimatedTokens": 1798,
       "headings": [
-        "Competitive Analysis & Enhancement Strategy (v6, Condensed)",
+        "Competitive Analysis & Enhancement Strategy (v7, Condensed)",
         "1. 문서 개편 이유",
         "2. 기준 문서",
         "3. v4 기준 Gap 6.6 재평가",
@@ -696,7 +696,7 @@
         "Sprint 3 (I-9~I-12): IDE 생태계",
         "Sprint 4 (I-13~I-16): 인프라 고도화"
       ],
-      "synopsis": "> ACA(Autonomous Coding Agents) 경쟁 분석 문서의 현행화/축약판 > > 작성일: 2026-02-15 > 버전: 6.0 (Phase B~J 전체 완료 기준, I-15/I-16 해소) > 목적: 대용량 원문을 유지하지 않고, 프로젝트 현황 중심으로 관리",
+      "synopsis": "> ACA(Autonomous Coding Agents) 경쟁 분석 문서의 현행화/축약판 > > 작성일: 2026-02-16 > 버전: 7.0 (Ticket/Feature 런타임 + MCP 게이트 + OpenAPI 구현 반영) > 목적: 대용량 원문을 유지하지 않고, 프로젝트 현황 중심으로 관리",
       "keywords": [
         "sprint",
         "기준",
@@ -706,10 +706,10 @@
         "competitive",
         "condensed",
         "enhancement",
-        "i-16",
-        "phase",
         "strategy",
-        "v6"
+        "v7",
+        "04-planning",
+        "2026-02-16"
       ]
     },
     {
@@ -4567,9 +4567,9 @@
       "section": "07-worklists",
       "ext": ".md",
       "title": "Status Baseline (2026-02-15)",
-      "lines": 42,
-      "bytes": 1674,
-      "estimatedTokens": 419,
+      "lines": 41,
+      "bytes": 1612,
+      "estimatedTokens": 403,
       "headings": [
         "Status Baseline (2026-02-15)",
         "Why this exists",
@@ -4599,9 +4599,9 @@
       "section": "07-worklists",
       "ext": ".md",
       "title": "Worklist: Runtime and Connectors",
-      "lines": 73,
-      "bytes": 1951,
-      "estimatedTokens": 488,
+      "lines": 78,
+      "bytes": 2338,
+      "estimatedTokens": 585,
       "headings": [
         "Worklist: Runtime and Connectors",
         "Scope",
@@ -4633,9 +4633,9 @@
       "section": "07-worklists",
       "ext": ".md",
       "title": "Worklist: Analyzer and Generator Implementation",
-      "lines": 45,
-      "bytes": 1357,
-      "estimatedTokens": 340,
+      "lines": 47,
+      "bytes": 1528,
+      "estimatedTokens": 382,
       "headings": [
         "Worklist: Analyzer and Generator Implementation",
         "Scope",
@@ -4666,9 +4666,9 @@
       "section": "07-worklists",
       "ext": ".md",
       "title": "Worklist: Benchmark and DeepWorker",
-      "lines": 57,
-      "bytes": 1636,
-      "estimatedTokens": 409,
+      "lines": 60,
+      "bytes": 1900,
+      "estimatedTokens": 475,
       "headings": [
         "Worklist: Benchmark and DeepWorker",
         "Scope",
@@ -4700,9 +4700,9 @@
       "section": "07-worklists",
       "ext": ".md",
       "title": "Worklist: Stub Productionization",
-      "lines": 50,
-      "bytes": 1462,
-      "estimatedTokens": 366,
+      "lines": 53,
+      "bytes": 1759,
+      "estimatedTokens": 440,
       "headings": [
         "Worklist: Stub Productionization",
         "Scope",
@@ -4734,9 +4734,9 @@
       "section": "07-worklists",
       "ext": ".md",
       "title": "Worklist: Doc Sync and Token Policy",
-      "lines": 48,
-      "bytes": 1209,
-      "estimatedTokens": 303,
+      "lines": 51,
+      "bytes": 1512,
+      "estimatedTokens": 378,
       "headings": [
         "Worklist: Doc Sync and Token Policy",
         "Scope",
@@ -4866,9 +4866,9 @@
       "section": "checklists",
       "ext": ".md",
       "title": "Gate Checklist (Sprint Cycle)",
-      "lines": 63,
-      "bytes": 1938,
-      "estimatedTokens": 485,
+      "lines": 69,
+      "bytes": 2207,
+      "estimatedTokens": 552,
       "headings": [
         "Gate Checklist (Sprint Cycle)",
         "A. 구현 전 필수 게이트",

@@ -25,6 +25,7 @@ Closes #
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] I have updated the documentation accordingly
 - [ ] My changes generate no new warnings
+- [ ] I have refreshed the compact doc index (`npm run docs:compact`) if docs/ changed
 
 ## Testing
 

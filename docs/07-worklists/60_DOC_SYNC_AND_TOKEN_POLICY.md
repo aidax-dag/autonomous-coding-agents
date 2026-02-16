@@ -8,7 +8,7 @@
 
 ### D1. Stale Document Sync
 
-- Status: `todo`
+- Status: `done`
 - Target:
   - `docs/04-planning/COMPETITIVE_ANALYSIS_AND_ENHANCEMENT_STRATEGY.md`
 - Objective:
@@ -19,7 +19,7 @@
 
 ### D2. Compact Index Refresh Rule
 
-- Status: `todo`
+- Status: `done`
 - Objective:
   - 문서 변경 시 compact index를 같이 갱신하는 규칙 확정
 - Acceptance:
@@ -28,7 +28,7 @@
 
 ### D3. Task Doc Update Rule
 
-- Status: `todo`
+- Status: `done`
 - Objective:
   - 구현 완료 시 해당 트랙 문서 Evidence만 업데이트하도록 표준화
 - Acceptance:
@@ -44,4 +44,7 @@ npm run docs:query -- "stale status ticket feature runtime"
 
 ## Evidence
 
-- Pending
+- D1: Strategy doc updated to v7, Ticket/Feature runtime + MCP gate + OpenAPI marked as implemented
+- D2: `.github/pull_request_template.md` updated with docs:compact check, `GATE_CHECKLIST.md` B4 section added
+- D3: All 5 track docs (20~60) Status/Evidence sections updated
+- All 7,149 tests passed (2026-02-16)

@@ -8,7 +8,7 @@
 
 ### A1. Brownfield Real Analyzer
 
-- Status: `todo`
+- Status: `done`
 - Current:
   - `src/core/brownfield/brownfield-analyzer.ts` 기본 metric/techDebt/pattern 값이 스텁
 - Deliverables:
@@ -21,7 +21,7 @@
 
 ### A2. DocsGenerator Analyzer Backend
 
-- Status: `todo`
+- Status: `done`
 - Current:
   - `src/core/docs-generator/docs-generator.ts` analyzer 미지정 시 템플릿 문서만 생성
 - Deliverables:
@@ -36,9 +36,11 @@
 
 ```bash
 npm test -- tests/unit/core/brownfield/brownfield-analyzer.test.ts
-npm test -- tests/unit/core/docs-generator/docs-generator.test.ts
+npm test -- tests/unit/core/docs-generator
 ```
 
 ## Evidence
 
-- Pending
+- A1: `src/core/brownfield/brownfield-analyzer.ts` (real FS scanner), 46 tests passed
+- A2: `src/core/docs-generator/code-analyzer.ts` (HLD/MLD/LLD), 41 tests passed
+- All 7,149 tests passed (2026-02-16)

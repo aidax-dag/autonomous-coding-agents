@@ -8,7 +8,7 @@
 
 ### B1. Benchmark Suite Loader
 
-- Status: `todo`
+- Status: `done`
 - Current:
   - `src/core/benchmark/benchmark-runner.ts` 기본 loader가 빈 배열 반환
 - Deliverables:
@@ -21,7 +21,7 @@
 
 ### B2. Benchmark Default Executor Policy
 
-- Status: `todo`
+- Status: `done`
 - Current:
   - executor 미설정 시 실패 결과만 반환
 - Deliverables:
@@ -33,7 +33,7 @@
 
 ### B3. PreExploration Non-LLM Fallback
 
-- Status: `todo`
+- Status: `done`
 - Current:
   - `src/core/deep-worker/pre-exploration.ts` 기본 relevantFiles/patterns/dependencies 비어 있음
 - Deliverables:
@@ -47,10 +47,13 @@
 ## Validation Commands
 
 ```bash
-npm test -- tests/unit/core/benchmark/benchmark-runner.test.ts
+npm test -- tests/unit/core/benchmark
 npm test -- tests/unit/core/deep-worker/pre-exploration.test.ts
 ```
 
 ## Evidence
 
-- Pending
+- B1: `src/core/benchmark/default-suite-loader.ts` + `benchmarks/sample-suite.json`, 15 tests passed
+- B2: `src/core/benchmark/dry-run-executor.ts`, 8 tests passed
+- B3: `src/core/deep-worker/pre-exploration.ts` (keyword/score/import analysis), 59 tests passed
+- All 7,149 tests passed (2026-02-16)

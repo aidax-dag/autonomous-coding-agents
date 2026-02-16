@@ -14,7 +14,7 @@ Ticket/Feature 사이클을 "로컬 JSON 저장" 수준에서 "운영 가능한 
 
 ### R1. External Sync Adapter (GitHub/Jira)
 
-- Status: `todo`
+- Status: `done`
 - Objective: Ticket 상태 전이를 외부 이슈 트래커와 동기화
 - Entry points:
   - `src/core/ticketing/ticket-feature-service.ts`
@@ -31,7 +31,7 @@ Ticket/Feature 사이클을 "로컬 JSON 저장" 수준에서 "운영 가능한 
 
 ### R2. Ticket/Feature Storage Abstraction
 
-- Status: `todo`
+- Status: `done`
 - Objective: `store.json` 직접 접근 제거, persistence 어댑터로 교체
 - Entry points:
   - `src/core/ticketing/ticket-feature-service.ts`
@@ -47,7 +47,7 @@ Ticket/Feature 사이클을 "로컬 JSON 저장" 수준에서 "운영 가능한 
 
 ### R3. MCP Gate Hardening
 
-- Status: `todo`
+- Status: `done`
 - Objective: MCP readiness 검증 사유를 관측 가능하게 확장
 - Entry points:
   - `src/core/ticketing/ticket-feature-service.ts`
@@ -64,9 +64,14 @@ Ticket/Feature 사이클을 "로컬 JSON 저장" 수준에서 "운영 가능한 
 
 ```bash
 npm test -- tests/unit/api/routes/ticket-feature-cycle.test.ts
-npm run docs:api
+npm test -- tests/unit/core/ticketing/repositories
+npm test -- tests/unit/core/ticketing/sync
+npm test -- tests/unit/core/ticketing/mcp-gate.test.ts
 ```
 
 ## Evidence
 
-- Pending
+- R1: `src/core/ticketing/sync/` (4 files), tests 41 passed
+- R2: `src/core/ticketing/repositories/` (4 files), `src/core/ticketing/interfaces/` (1 file), tests 30 passed
+- R3: `src/core/ticketing/mcp-gate.ts`, tests 21 passed
+- All 7,149 tests passed (2026-02-16)

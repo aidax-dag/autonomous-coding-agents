@@ -1,10 +1,10 @@
 # Docs Compact Index
 
-- Generated: 2026-02-16T03:38:36.315Z
+- Generated: 2026-02-16T09:31:22.220Z
 - Source: `docs`
 - Total docs: **147**
-- Total size: **1348.6 KB**
-- Estimated full-context cost: **~345,301 tokens**
+- Total size: **1350.7 KB**
+- Estimated full-context cost: **~345,846 tokens**
 
 ## Token-Efficient Workflow
 
@@ -47,11 +47,11 @@
 | `03-guides` | 11 | 168.9 | 43,245 |
 | `01-vision` | 3 | 167.6 | 42,916 |
 | `api` | 2 | 86.9 | 22,246 |
-| `04-planning` | 5 | 73.8 | 18,883 |
+| `04-planning` | 5 | 74.3 | 19,023 |
 | `02-architecture` | 4 | 48.8 | 12,489 |
-| `07-worklists` | 8 | 10.9 | 2,786 |
+| `07-worklists` | 8 | 12.2 | 3,124 |
 | `root` | 1 | 7.5 | 1,926 |
-| `checklists` | 4 | 5.2 | 1,338 |
+| `checklists` | 4 | 5.5 | 1,405 |
 
 ## All Documents (One-line Summary)
 
@@ -78,7 +78,7 @@
 | `04-planning/IMPLEMENTATION_PRIORITY_LIST.md` | 7,848 | > 버전: 3.1 (New P3 전체 완료) > 작성일: 2026-02-11 > 이전 버전: 3.0, 2.9, 2.8, 2.7, 2.6, 2.5, 2.4, 2.3, 2.2, 2.1, 2.0, 1.1 > 상태: Ne... |
 | `04-planning/COMPETITIVE_ANALYSIS_V3.md` | 6,535 | > Autonomous Coding Agents (ACA) competitive positioning after Phase G completion > > Date: 2026-02-14 > Version: 3.0 >... |
 | `04-planning/SPEC_DRIVEN_DEVELOPMENT.md` | 2,390 | > 버전: 1.0 > 작성일: 2026-02-07 > 목적: 체계적인 스펙 기반 개발 프로세스 정의 |
-| `04-planning/COMPETITIVE_ANALYSIS_AND_ENHANCEMENT_STRATEGY.md` | 1,658 | > ACA(Autonomous Coding Agents) 경쟁 분석 문서의 현행화/축약판 > > 작성일: 2026-02-15 > 버전: 6.0 (Phase B~J 전체 완료 기준, I-15/I-16 해소) > 목적... |
+| `04-planning/COMPETITIVE_ANALYSIS_AND_ENHANCEMENT_STRATEGY.md` | 1,798 | > ACA(Autonomous Coding Agents) 경쟁 분석 문서의 현행화/축약판 > > 작성일: 2026-02-16 > 버전: 7.0 (Ticket/Feature 런타임 + MCP 게이트 + OpenAPI... |
 | `04-planning/README.md` | 452 | > 프로젝트 계획, 경쟁 분석, 개선 전략 문서 |
 | `05-specifications/v1/02_TECHNICAL_DESIGN_PATTERNS.md` | 15,311 | > 작성일: 2026-01-25 > 버전: 1.0 > 목적: 상용 프로덕트 수준의 기술적 설계 및 아키텍처 패턴 정의 |
 | `05-specifications/v1/03_IMPLEMENTATION_DETAILS.md` | 15,094 | > 작성일: 2026-01-25 > 버전: 1.0 > 목적: 각 모듈의 구현 수준 상세 정의 (함수, 메서드, 알고리즘) |
@@ -189,17 +189,17 @@
 | `06-roadmap/tasks/e06-ticket-pack/README.md` | 244 | 기준 문서: - docs/06-roadmap/tasks/TASK2_EPIC_CAPABILITY_FEATURE_TICKET_TREE.md - docs/05-specifications/v3/F027-ACA-Platfo... |
 | `06-roadmap/tasks/e03-ticket-pack/README.md` | 214 | 기준 문서: - docs/06-roadmap/tasks/TASK2_EPIC_CAPABILITY_FEATURE_TICKET_TREE.md - docs/05-specifications/v3/F027-ACA-Platfo... |
 | `06-roadmap/NEXT_TASKS.md` | 154 | > 최종 수정: 2026-02-14 (Phase J 완료, v3.1 Production Polish) |
-| `07-worklists/20_RUNTIME_AND_CONNECTORS.md` | 488 | Ticket/Feature 사이클을 "로컬 JSON 저장" 수준에서 "운영 가능한 통합 런타임"으로 올린다. |
-| `07-worklists/10_STATUS_BASELINE.md` | 419 | 일부 계획 문서는 이미 구현된 기능을 미구현으로 표기하고 있다. 구현 전 기준선을 먼저 맞춘다. |
-| `07-worklists/40_BENCHMARK_AND_DEEPWORKER.md` | 409 | 벤치마크/사전탐색 모듈의 기본 동작을 "빈 결과"에서 "실행 가능한 기본값"으로 개선한다. |
-| `07-worklists/50_STUB_PRODUCTIONIZATION.md` | 366 | Agent/Skill 모듈의 기본 스텁 출력을 운영 기준으로 정리하고, LLM 미연결 상황에서도 품질 저하를 제한한다. |
-| `07-worklists/30_ANALYZER_AND_GENERATOR_IMPLEMENTATION.md` | 340 | 현재 스텁인 분석/문서생성 모듈을 실제 코드베이스 분석 결과를 반환하는 모듈로 전환한다. |
-| `07-worklists/60_DOC_SYNC_AND_TOKEN_POLICY.md` | 303 | 문서와 코드 상태 불일치를 줄이고, 이후 작업에서 토큰 사용을 지속적으로 제한한다. |
+| `07-worklists/20_RUNTIME_AND_CONNECTORS.md` | 585 | Ticket/Feature 사이클을 "로컬 JSON 저장" 수준에서 "운영 가능한 통합 런타임"으로 올린다. |
+| `07-worklists/40_BENCHMARK_AND_DEEPWORKER.md` | 475 | 벤치마크/사전탐색 모듈의 기본 동작을 "빈 결과"에서 "실행 가능한 기본값"으로 개선한다. |
+| `07-worklists/50_STUB_PRODUCTIONIZATION.md` | 440 | Agent/Skill 모듈의 기본 스텁 출력을 운영 기준으로 정리하고, LLM 미연결 상황에서도 품질 저하를 제한한다. |
+| `07-worklists/10_STATUS_BASELINE.md` | 403 | 일부 계획 문서는 이미 구현된 기능을 미구현으로 표기하고 있다. 구현 전 기준선을 먼저 맞춘다. |
+| `07-worklists/30_ANALYZER_AND_GENERATOR_IMPLEMENTATION.md` | 382 | 현재 스텁인 분석/문서생성 모듈을 실제 코드베이스 분석 결과를 반환하는 모듈로 전환한다. |
+| `07-worklists/60_DOC_SYNC_AND_TOKEN_POLICY.md` | 378 | 문서와 코드 상태 불일치를 줄이고, 이후 작업에서 토큰 사용을 지속적으로 제한한다. |
 | `07-worklists/00_WORKFLOW.md` | 236 | 프로젝트 완성을 위해 필요한 분석/구현 작업을, 최소 문서 읽기로 실행 가능하게 유지한다. |
 | `07-worklists/README.md` | 225 | > 목적: 전체 문서를 매번 읽지 않고, 미구현 기능 분석부터 구현 실행까지 바로 이어지는 작업 문서 허브 |
 | `api/openapi.yaml` | 18,413 | YAML definition with keys: openapi, info, title, description, version, contact, name, license, servers, tags |
 | `api/feature-saas.openapi.yaml` | 3,833 | YAML definition with keys: openapi, info, title, version, description, servers, tags, security, paths, post |
-| `checklists/GATE_CHECKLIST.md` | 485 | - [ ] 배경/문제가 명확히 정의되었다. - [ ] 목표/KPI가 측정 가능하다. - [ ] 범위/비범위가 정의되었다. - [ ] 제약사항이 기록되었다. - [ ] 승인 완료 (approved). |
+| `checklists/GATE_CHECKLIST.md` | 552 | - [ ] 배경/문제가 명확히 정의되었다. - [ ] 목표/KPI가 측정 가능하다. - [ ] 범위/비범위가 정의되었다. - [ ] 제약사항이 기록되었다. - [ ] 승인 완료 (approved). |
 | `checklists/IMPLEMENTATION_TEST_CHECKLIST.md` | 370 | - [ ] 구현 범위가 승인된 스펙과 일치한다. - [ ] 임시 코드/하드코딩/디버그 코드가 제거되었다. - [ ] 예외/에러 처리 경로가 정의되어 있다. - [ ] 로그/관찰성 정보가 필요한 수준으로 남아 있다.... |
 | `checklists/SPRINT_RESULT_ANALYSIS_CHECKLIST.md` | 323 | - [ ] 스프린트 목표 대비 달성률을 기록했다. - [ ] 완료/미완료 티켓 목록을 정리했다. - [ ] 주요 산출물 링크를 정리했다. |
 | `checklists/README.md` | 160 | 스프린트 게이트 기반 운영용 체크리스트 모음. |
