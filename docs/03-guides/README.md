@@ -14,6 +14,8 @@
 | [INTERACTIVE_MODE.md](./INTERACTIVE_MODE.md) | 인터랙티브 모드 명령어 | 사용자 |
 | [TESTING.md](./TESTING.md) | 테스트 가이드 및 패턴 | 개발자 |
 | [WEBHOOK_SETUP.md](./WEBHOOK_SETUP.md) | GitHub 웹훅 설정 | 운영자 |
+| [DATABASE_SETUP.md](./DATABASE_SETUP.md) | DB 엔진 설정 및 마이그레이션 | 운영자 |
+| [OBSERVABILITY_GUIDE.md](./OBSERVABILITY_GUIDE.md) | 모니터링 및 추적 운영 가이드 | 운영자 |
 
 ## 읽기 순서
 
@@ -29,7 +31,9 @@
 
 ### 운영자
 1. **[DEPLOYMENT.md](./DEPLOYMENT.md)** - 배포 설정 (15분)
-2. **[WEBHOOK_SETUP.md](./WEBHOOK_SETUP.md)** - 웹훅 구성 (10분)
+2. **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** - DB 설정 및 마이그레이션 (10분)
+3. **[OBSERVABILITY_GUIDE.md](./OBSERVABILITY_GUIDE.md)** - 모니터링 운영 (15분)
+4. **[WEBHOOK_SETUP.md](./WEBHOOK_SETUP.md)** - 웹훅 구성 (10분)
 
 ## 주요 CLI 명령어
 
