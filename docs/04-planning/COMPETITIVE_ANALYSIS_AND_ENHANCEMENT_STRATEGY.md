@@ -1,9 +1,9 @@
-# Competitive Analysis & Enhancement Strategy (v6, Condensed)
+# Competitive Analysis & Enhancement Strategy (v7, Condensed)
 
 > ACA(Autonomous Coding Agents) 경쟁 분석 문서의 현행화/축약판
 >
-> 작성일: 2026-02-15
-> 버전: 6.0 (Phase B~J 전체 완료 기준, I-15/I-16 해소)
+> 작성일: 2026-02-16
+> 버전: 7.0 (Ticket/Feature 런타임 + MCP 게이트 + OpenAPI 구현 반영)
 > 목적: 대용량 원문을 유지하지 않고, 프로젝트 현황 중심으로 관리
 
 ---
@@ -13,11 +13,12 @@
 - 기존 v4.0 문서는 작성 시점이 Phase H 완료 + Phase I Sprint 1 진행 기준이었다.
 - v5.0은 Phase I/J 완료 기준이나 I-15, I-16이 불명확 상태였다.
 - v6.0은 Phase B~J 전체 완료, I-15/I-16 해소, TUI React/Ink 전환 완료 기준이다.
+- v7.0은 Ticket/Feature 런타임, MCP 게이트, OpenAPI 반영이 구현된 상태를 반영한다.
 - 기존 본문은 2,127줄로 세션 토큰 비용이 크다.
-- 따라서 v6에서는 아래 원칙으로 축약한다.
+- 따라서 v7에서는 아래 원칙으로 축약한다.
   - 완료된 경쟁 분석 상세는 분리 문서 참조
   - 모든 항목이 완료되었으므로 본 문서는 현황 기록 역할로 전환
-  - 기존 분리 문서(`competitive-analysis/`)는 전 항목 완료 후 삭제됨 (git 이력 보존)
+  - 기존 분리 문서(`competitive-analysis/`, `tool-reviews/`)는 전 항목 완료 후 삭제됨 (git 이력 보존)
 
 ---
 
@@ -25,7 +26,7 @@
 
 - `docs/06-roadmap/ROADMAP.md` (Phase B~J 완료, 스프린트 결과)
 - `docs/06-roadmap/NEXT_TASKS.md` (Phase J 완료 상태)
-- `docs/04-planning/tool-reviews/` 도구 리뷰 문서
+- `docs/07-worklists/10_STATUS_BASELINE.md` (코드 기반 구현 상태 기준선)
 
 ---
 
@@ -77,16 +78,17 @@
 
 ---
 
-## 6. 핵심 갭 (Phase J 기준, 미구현)
+## 6. 핵심 갭 현황
 
-| # | 갭 | 상태 | 비고 |
+| # | 항목 | 상태 | 비고 |
 |---|---|---|---|
-| 1 | Ticket Cycle 런타임 | ⚠️ 스키마만 | Ticket CRUD + 상태전이 강제 API 미구현 |
-| 2 | Feature Catalog 런타임 | ⚠️ 스키마만 | Feature 등록/조회/리뷰/상태관리 API 미구현 |
-| 3 | MCP 필수 사용 강제 | ⚠️ optional | Ticket 수행 시 MCP 준비 상태 필수 게이트 미적용 |
+| 1 | Ticket Cycle 런타임 | ✅ 구현 완료 | `ticket-feature-service.ts` (905줄) — CRUD + 상태전이 + 검증 게이트 |
+| 2 | Feature Catalog 런타임 | ✅ 구현 완료 | Feature 등록/조회/리뷰/버전/롤백/사용추적 API 23개 엔드포인트 |
+| 3 | MCP 필수 사용 강제 | ✅ 구현 완료 | `assertMCPReady()` — Ticket 시작/완료 시 MCP 준비 상태 검사, 미충족 시 차단 |
 | 4 | 외부 티켓 동기화 | ❌ 미구현 | GitHub/Jira 양방향 상태 동기화 커넥터 |
+| 5 | Ticket/Feature DB 통합 | ⚠️ 미완료 | 현재 JSON 파일 기반(`data/ticket-cycle/store.json`), DB 영속화 미적용 |
 
-> 위 4개 항목은 CLAUDE.md에 정의된 "티켓 운영 표준" 및 "Feature 관리 원칙"의 런타임 구현에 해당. 현재 스키마/스펙은 있으나 API/서비스 계층이 부재.
+> 항목 1~3은 v7 기준 구현 완료. 남은 갭은 외부 동기화(4)와 DB 통합(5).
 
 ---
 
@@ -99,14 +101,14 @@
 3. Feature Catalog를 재사용 자산으로 운영
 4. MCP 사용을 Ticket 수행의 필수 게이트로 강제
 
-### 7.2 우선 구현 항목
+### 7.2 구현 항목 현황
 
 | # | 항목 | 상태 | 상세 |
 |---|------|------|------|
-| 1 | Ticket/Feature Service | ⚠️ 미구현 | Ticket CRUD + 상태전이 + 리뷰 + 검증 게이트. Feature 등록/조회/리뷰/상태관리 |
-| 2 | Ticket Cycle API | ⚠️ 미구현 | `/api/tickets/*`, `/api/features/*`. 완료 조건: 검증 충족 + 리뷰 승인 + 아티팩트 링크 |
-| 3 | MCP 필수 게이트 | ⚠️ 미구현 | Ticket 수행 시작/완료 전 MCP 준비 상태 검사. 미충족 시 상태전이 차단 |
-| 4 | OpenAPI 반영 | ⚠️ 미구현 | 신규 Ticket/Feature API를 endpoint registry에 반영 |
+| 1 | Ticket/Feature Service | ✅ 완료 | `src/core/ticketing/ticket-feature-service.ts` — CRUD + 상태전이 + 리뷰 + 검증 게이트 |
+| 2 | Ticket Cycle API | ✅ 완료 | `src/api/routes/ticket-feature-cycle.ts` — 23개 엔드포인트. 완료 조건 검증 포함 |
+| 3 | MCP 필수 게이트 | ✅ 완료 | `assertMCPReady()` — Ticket 시작/완료 전 MCP 상태 검사, 미충족 시 차단 |
+| 4 | OpenAPI 반영 | ✅ 완료 | `endpoint-registry.ts` 60+개 등록, `openapi.yaml` 50개 operation 반영 |
 
 ### 7.3 완료된 기반 작업
 
@@ -117,15 +119,17 @@
 | API 보안 기반 | ✅ | JWT + API Key + Rate Limiter |
 | DB 영속화 | ✅ | SQLite/PostgreSQL 드라이버 + Migration |
 | OpenAPI 생성기 | ✅ | endpoint-registry + spec-generator |
-| MCP 모듈 | ✅ | src/core/mcp/ (optional flag) |
+| MCP 모듈 | ✅ | src/core/mcp/ — `assertMCPReady()` 필수 게이트 적용 |
 
 ### 7.4 후속 항목
 
 | # | 항목 | 우선순위 | 비고 |
 |---|------|---------|------|
-| 1 | GitHub/Jira connector | P2 | 외부 티켓 시스템 양방향 동기화 |
-| 2 | MAL compatibility test pipeline | P2 | 다중 엔진 호환성 자동 검증 |
-| 3 | Agent Economy 결제/정산 모듈 | P3 | x402/escrow 기반 실제 트랜잭션 |
+| 1 | Ticket/Feature DB 통합 | P1 | JSON 파일 → SQLite/PostgreSQL 영속화 |
+| 2 | GitHub/Jira connector | P2 | 외부 티켓 시스템 양방향 동기화 |
+| 3 | MAL compatibility test pipeline | P2 | 다중 엔진 호환성 자동 검증 |
+| 4 | Agent Economy 결제/정산 모듈 | P3 | x402/escrow 기반 실제 트랜잭션 |
+| 5 | 스텁 모듈 실전화 | P2 | Brownfield analyzer, Docs generator, Benchmark runner, Pre-exploration |
 
 ---
 
@@ -141,10 +145,12 @@
 ## 9. 결론
 
 v4 기준 Gap 7개 전체가 Phase I/J에서 해소되었다.
-Phase J 완료 후 남은 미구현 항목은 §6의 핵심 갭 4개(Ticket/Feature 런타임, MCP 게이트, 외부 동기화)이며, §7에 개선 계획을 통합하였다.
+§6 핵심 갭 중 Ticket/Feature 런타임, MCP 게이트, OpenAPI 반영은 모두 구현 완료되었다.
+남은 갭은 외부 티켓 동기화(GitHub/Jira)와 Ticket/Feature DB 통합(JSON→DB) 2건이다.
 
-프로젝트 수치 (2026-02-15):
+프로젝트 수치 (2026-02-16):
 - 테스트 스위트: 330+, 테스트 케이스: 6,754+
 - 소스 파일: 400+, 코어 모듈: 30+, LLM 프로바이더: 10
+- API 엔드포인트: 50+ (OpenAPI 반영 완료)
 
 본 문서는 "프로젝트 현황 대시보드 + 개선 계획" 역할로 유지한다.

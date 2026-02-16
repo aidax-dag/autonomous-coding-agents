@@ -32,8 +32,7 @@
 
 ## Documents known to be stale
 
-- `docs/04-planning/COMPETITIVE_ANALYSIS_AND_ENHANCEMENT_STRATEGY.md`
-  - Ticket/Feature runtime, MCP gate, OpenAPI 반영을 미구현으로 표기하고 있음
+- (없음 — v7 업데이트로 모든 전략 문서가 코드 상태와 동기화됨, 2026-02-16)
 
 ## Baseline Rule
 
