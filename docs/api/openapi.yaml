@@ -4,7 +4,8 @@ info:
   description: |
     REST API for the Autonomous Coding Agents (ACA) system.
     Provides endpoints for task management, system health monitoring,
-    agent status tracking, and real-time event streaming.
+    agent status tracking, real-time event streaming, ticket lifecycle,
+    feature catalog, cost tracking, collaboration, and more.
   version: 1.0.0
   contact:
     name: ACA Team
@@ -18,24 +19,52 @@ servers:
     description: Production
 
 tags:
-  - name: Health
-    description: System health and status
-  - name: Tasks
-    description: Task submission and management
+  - name: System
+    description: Health checks and system status
+  - name: Auth
+    description: Authentication and token management
+  - name: Dashboard
+    description: HUD dashboard data
   - name: Agents
     description: Agent monitoring and status
+  - name: Tasks
+    description: Task submission via ACP message bus
+  - name: Tickets
+    description: Ticket lifecycle and working cycle management
+  - name: Features
+    description: Reusable feature catalog and versioning
   - name: SSE
-    description: Server-Sent Events for real-time updates
-  - name: Gateway
-    description: API Gateway (ACP message bridge)
+    description: Server-Sent Events client tracking
+  - name: MCP
+    description: Model Context Protocol server status
+  - name: Pool
+    description: Agent pool statistics
+  - name: Instincts
+    description: Learned instinct management and portability
+  - name: Analytics
+    description: Usage analytics and cost reporting
+  - name: Costs
+    description: Cost tracking, budget management, and spend history
+  - name: Collaboration
+    description: Real-time collaboration sessions and messaging
+  - name: Docs
+    description: API documentation endpoints
+
+security:
+  - BearerAuth: []
 
 paths:
+  # ════════════════════════════════════════════════════════════════════
+  # System
+  # ════════════════════════════════════════════════════════════════════
+
   /api/health:
     get:
-      tags: [Health]
-      summary: Get system health status
-      description: Returns the current health status of the system including dashboard metrics.
+      tags: [System]
+      summary: Health check
+      description: Returns system health status and overall health score. Unauthenticated for use by load balancers and monitoring.
       operationId: getHealth
+      security: []
       responses:
         '200':
           description: System health status
@@ -53,11 +82,125 @@ paths:
                     status: degraded
                     health: 50
 
+  /api/db/health:
+    get:
+      tags: [System]
+      summary: Database health check
+      description: |
+        Returns database connectivity status, engine type, and probe latency.
+        Designed for load balancers and monitoring systems. Unauthenticated.
+      operationId: getDBHealth
+      security: []
+      responses:
+        '200':
+          description: Database is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DBHealthResponse'
+        '503':
+          description: Database is unreachable or not connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DBHealthResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Auth
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: Authenticate with email and password to receive JWT access and refresh tokens.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Missing email or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Email and password are required
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Invalid credentials
+        '503':
+          description: Authentication not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh token
+      description: Exchange a valid refresh token for a new access token.
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  description: Previously issued refresh token
+      responses:
+        '200':
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '400':
+          description: Missing refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Refresh token is required
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Dashboard
+  # ════════════════════════════════════════════════════════════════════
+
   /api/snapshot:
     get:
-      tags: [Health]
-      summary: Get full dashboard snapshot
-      description: Returns the complete HUD dashboard snapshot including agents, metrics, and system health.
+      tags: [Dashboard]
+      summary: Dashboard snapshot
+      description: Returns the full HUD dashboard snapshot including agents, metrics, and system health.
       operationId: getSnapshot
       responses:
         '200':
@@ -73,11 +216,73 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # ════════════════════════════════════════════════════════════════════
+  # Agents
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/agents:
+    get:
+      tags: [Agents]
+      summary: List agents
+      description: Returns the list of all active and recent agents from the dashboard.
+      operationId: listAgents
+      responses:
+        '200':
+          description: Agent list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentListResponse'
+        '503':
+          description: Dashboard not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/agents/{agentId}:
+    get:
+      tags: [Agents]
+      summary: Get agent by ID
+      description: Returns detailed status for a specific agent identified by agentId.
+      operationId: getAgentById
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Agent identifier
+          example: planning-agent-1
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStatus'
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Dashboard not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Tasks
+  # ════════════════════════════════════════════════════════════════════
+
   /api/tasks:
     post:
       tags: [Tasks]
-      summary: Submit a new task
-      description: Submit a task to the orchestrator via the ACP message bus.
+      summary: Submit task
+      description: Submit a new task to the orchestrator via the ACP message bus.
       operationId: submitTask
       requestBody:
         required: true
@@ -116,65 +321,713 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/agents:
-    get:
-      tags: [Agents]
-      summary: List all agents
-      description: Returns status of all registered team agents.
-      operationId: listAgents
+  # ════════════════════════════════════════════════════════════════════
+  # Tickets
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/tickets:
+    post:
+      tags: [Tickets]
+      summary: Create ticket
+      description: Create a ticket with required planning context for the working cycle.
+      operationId: createTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketCreateRequest'
       responses:
-        '200':
-          description: Agent list
+        '201':
+          description: Ticket created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentListResponse'
-        '503':
-          description: Dashboard not configured
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [Tickets]
+      summary: List tickets
+      description: List tickets with optional status filter.
+      operationId: listTickets
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated ticket statuses to filter by
+          example: created,in_progress
+      responses:
+        '200':
+          description: Ticket list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketListResponse'
+
+  /api/tickets/{ticketId}:
+    get:
+      tags: [Tickets]
+      summary: Get ticket
+      description: Get a ticket by ticketId.
+      operationId: getTicket
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      responses:
+        '200':
+          description: Ticket detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '404':
+          description: Ticket not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/agents/{agentId}:
-    get:
-      tags: [Agents]
-      summary: Get agent details
-      description: Returns detailed status for a specific agent.
-      operationId: getAgentById
+  /api/tickets/{ticketId}/start:
+    put:
+      tags: [Tickets]
+      summary: Start ticket execution
+      description: Move a ticket to in_progress and register executor context. Validates MCP gate when configured.
+      operationId: startTicket
       parameters:
-        - name: agentId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Agent identifier
-          example: planning-agent-1
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                agentId:
+                  type: string
+                  description: ID of the agent executing the ticket
+                  example: executor-agent
       responses:
         '200':
-          description: Agent details
+          description: Ticket started
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentStatus'
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Invalid transition or MCP gate failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: Agent not found
+          description: Ticket not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '503':
-          description: Dashboard not configured
+
+  /api/tickets/{ticketId}/status:
+    put:
+      tags: [Tickets]
+      summary: Update ticket status
+      description: Update ticket status following lifecycle transition rules.
+      operationId: updateTicketStatus
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/TicketStatus'
+      responses:
+        '200':
+          description: Ticket updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Invalid transition or missing status
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tickets/{ticketId}/reviews:
+    post:
+      tags: [Tickets]
+      summary: Add ticket review
+      description: Record or update a reviewer decision for a ticket.
+      operationId: addTicketReview
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketReviewRequest'
+      responses:
+        '200':
+          description: Review recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tickets/{ticketId}/artifacts:
+    post:
+      tags: [Tickets]
+      summary: Add ticket artifact
+      description: Attach a ticket output artifact with URL and type for traceability.
+      operationId: addTicketArtifact
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketArtifactRequest'
+      responses:
+        '200':
+          description: Artifact added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tickets/{ticketId}/issues:
+    post:
+      tags: [Tickets]
+      summary: Add ticket issue
+      description: Record an issue or blocker raised during ticket execution.
+      operationId: addTicketIssue
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketIssueRequest'
+      responses:
+        '200':
+          description: Issue added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tickets/{ticketId}/complete:
+    put:
+      tags: [Tickets]
+      summary: Complete ticket
+      description: Finalize a ticket after verification and review gates. Optionally auto-registers a feature.
+      operationId: completeTicket
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                registerFeature:
+                  type: boolean
+                  description: Whether to auto-register a feature from ticket output
+                feature:
+                  type: object
+                  description: Partial feature creation input for auto-registration
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Ticket completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Completion gate failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tickets/{ticketId}/register-feature:
+    post:
+      tags: [Tickets, Features]
+      summary: Register feature from ticket
+      description: Create a reusable feature entry from a completed ticket output.
+      operationId: registerFeatureFromTicket
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Partial feature creation input to merge with ticket data
+              additionalProperties: true
+      responses:
+        '201':
+          description: Feature registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          description: Feature registration failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Features
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/features:
+    post:
+      tags: [Features]
+      summary: Create feature
+      description: Create a reusable feature catalog entry.
+      operationId: createFeature
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeatureCreateRequest'
+      responses:
+        '201':
+          description: Feature created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [Features]
+      summary: List features
+      description: List reusable features with optional filters.
+      operationId: listFeatures
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated feature statuses to filter by
+          example: draft,published
+        - name: label
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by label
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by language
+        - name: domain
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by domain
+      responses:
+        '200':
+          description: Feature list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureListResponse'
+
+  /api/features/labels:
+    get:
+      tags: [Features]
+      summary: List feature labels
+      description: List all unique labels used in the feature catalog.
+      operationId: listFeatureLabels
+      responses:
+        '200':
+          description: Label list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  labels:
+                    type: array
+                    items:
+                      type: string
+
+  /api/features/management/summary:
+    get:
+      tags: [Features]
+      summary: Feature management summary
+      description: Get feature counts by status and usage summary for the management dashboard.
+      operationId: getFeatureManagementSummary
+      responses:
+        '200':
+          description: Feature management summary
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/features/{featureId}:
+    get:
+      tags: [Features]
+      summary: Get feature
+      description: Get feature details by featureId.
+      operationId: getFeature
+      parameters:
+        - $ref: '#/components/parameters/FeatureId'
+      responses:
+        '200':
+          description: Feature detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '404':
+          description: Feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Features]
+      summary: Update feature
+      description: Update reusable feature content and metadata. Creates a new version snapshot.
+      operationId: updateFeature
+      parameters:
+        - $ref: '#/components/parameters/FeatureId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Partial feature fields to update, plus optional updatedBy and reason
+              properties:
+                updatedBy:
+                  type: string
+                  description: ID of actor performing the update
+                reason:
+                  type: string
+                  description: Reason for the update
+              additionalProperties: true
+      responses:
+        '200':
+          description: Feature updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/features/{featureId}/versions:
+    get:
+      tags: [Features]
+      summary: List feature versions
+      description: List version history snapshots of a feature.
+      operationId: listFeatureVersions
+      parameters:
+        - $ref: '#/components/parameters/FeatureId'
+      responses:
+        '200':
+          description: Feature versions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  versions:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        '404':
+          description: Feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/features/{featureId}/reviews:
+    post:
+      tags: [Features]
+      summary: Add feature review
+      description: Add a human or agent review decision for feature lifecycle.
+      operationId: addFeatureReview
+      parameters:
+        - $ref: '#/components/parameters/FeatureId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeatureReviewRequest'
+      responses:
+        '200':
+          description: Feature review recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '404':
+          description: Feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/features/{featureId}/labels:
+    put:
+      tags: [Features]
+      summary: Update feature labels
+      description: Add or remove labels for a specific feature.
+      operationId: updateFeatureLabels
+      parameters:
+        - $ref: '#/components/parameters/FeatureId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add:
+                  type: array
+                  items:
+                    type: string
+                  description: Labels to add
+                remove:
+                  type: array
+                  items:
+                    type: string
+                  description: Labels to remove
+      responses:
+        '200':
+          description: Feature labels updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '404':
+          description: Feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/features/{featureId}/use:
+    post:
+      tags: [Features]
+      summary: Mark feature usage
+      description: Record a feature usage event for reuse tracking.
+      operationId: markFeatureUsed
+      parameters:
+        - $ref: '#/components/parameters/FeatureId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actorId:
+                  type: string
+                  description: ID of the actor using the feature
+                reason:
+                  type: string
+                  description: Reason or context for usage
+      responses:
+        '200':
+          description: Feature usage updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '404':
+          description: Feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/features/{featureId}/rollback:
+    put:
+      tags: [Features]
+      summary: Rollback feature version
+      description: Rollback feature content to an existing version and create a new version snapshot.
+      operationId: rollbackFeatureVersion
+      parameters:
+        - $ref: '#/components/parameters/FeatureId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [toVersion]
+              properties:
+                toVersion:
+                  type: string
+                  description: Target version to rollback to
+                nextVersion:
+                  type: string
+                  description: Optional explicit version string for the new snapshot
+                updatedBy:
+                  type: string
+                  description: ID of actor performing the rollback
+                reason:
+                  type: string
+                  description: Reason for the rollback
+      responses:
+        '200':
+          description: Feature rolled back
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          description: toVersion is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/features/{featureId}/status:
+    put:
+      tags: [Features]
+      summary: Update feature status
+      description: Update the lifecycle status of a reusable feature.
+      operationId: updateFeatureStatus
+      parameters:
+        - $ref: '#/components/parameters/FeatureId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [draft, published, deprecated, archived]
+                  description: New feature lifecycle status
+      responses:
+        '200':
+          description: Feature status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          description: Missing status field
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Feature not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # SSE
+  # ════════════════════════════════════════════════════════════════════
 
   /api/sse/clients:
     get:
       tags: [SSE]
-      summary: Get SSE client count
-      description: Returns the number of connected SSE clients.
+      summary: SSE client count
+      description: Returns the number of currently connected SSE (Server-Sent Events) clients.
       operationId: getSSEClientCount
       responses:
         '200':
@@ -184,8 +1037,602 @@ paths:
               schema:
                 $ref: '#/components/schemas/SSEClientCountResponse'
 
+  # ════════════════════════════════════════════════════════════════════
+  # MCP
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/mcp/servers:
+    get:
+      tags: [MCP]
+      summary: MCP servers
+      description: Returns the status of all configured MCP (Model Context Protocol) servers and available tools.
+      operationId: getMCPServers
+      responses:
+        '200':
+          description: MCP server status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServersResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Pool
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/pool/stats:
+    get:
+      tags: [Pool]
+      summary: Agent pool stats
+      description: Returns agent pool statistics including pool size, utilization, and background task count.
+      operationId: getPoolStats
+      responses:
+        '200':
+          description: Pool statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolStatsResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Instincts
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/instincts:
+    get:
+      tags: [Instincts]
+      summary: List instincts
+      description: Returns all learned instincts from the instinct store.
+      operationId: listInstincts
+      responses:
+        '200':
+          description: Instinct list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstinctListResponse'
+
+  /api/instincts/export:
+    post:
+      tags: [Instincts]
+      summary: Export instincts
+      description: Export instincts as a portable bundle with optional filtering options.
+      operationId: exportInstincts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                domain:
+                  type: string
+                  description: Filter instincts by domain
+                minConfidence:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  description: Minimum confidence threshold for export
+      responses:
+        '200':
+          description: Exported instinct bundle
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                description: Portable instinct bundle
+        '503':
+          description: Instinct store not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/instincts/import:
+    post:
+      tags: [Instincts]
+      summary: Import instincts
+      description: Import an instinct bundle into the local instinct store.
+      operationId: importInstincts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bundle]
+              properties:
+                bundle:
+                  type: object
+                  additionalProperties: true
+                  description: Instinct bundle to import
+                options:
+                  type: object
+                  additionalProperties: true
+                  description: Import options (e.g. merge strategy)
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                description: Import summary with counts
+        '400':
+          description: Bundle is required in request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: Bundle is required in request body
+        '503':
+          description: Instinct store not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Analytics
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/analytics/summary:
+    get:
+      tags: [Analytics]
+      summary: Analytics summary
+      description: Returns a usage analytics summary with optional date range filtering.
+      operationId: getAnalyticsSummary
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start date filter (ISO 8601)
+        - name: until
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End date filter (ISO 8601)
+      responses:
+        '200':
+          description: Analytics summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                additionalProperties: true
+
+  /api/analytics/cost-report:
+    get:
+      tags: [Analytics]
+      summary: Cost report
+      description: Returns a cost analysis report with optional date range filtering.
+      operationId: getAnalyticsCostReport
+      parameters:
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Start date filter (ISO 8601)
+        - name: until
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: End date filter (ISO 8601)
+      responses:
+        '200':
+          description: Cost report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                additionalProperties: true
+
+  # ════════════════════════════════════════════════════════════════════
+  # Costs (Cost Dashboard)
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/costs/summary:
+    get:
+      tags: [Costs]
+      summary: Cost tracking summary
+      description: Returns aggregated cost data including totals and per-model breakdowns.
+      operationId: getCostSummary
+      responses:
+        '200':
+          description: Cost summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostSummaryResponse'
+
+  /api/costs/history:
+    get:
+      tags: [Costs]
+      summary: Cost history
+      description: Returns time-bucketed cost and token history for chart rendering.
+      operationId: getCostHistory
+      parameters:
+        - name: range
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ['24h', '7d', '30d']
+            default: '24h'
+          description: Time range for history buckets
+      responses:
+        '200':
+          description: Cost history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostHistoryResponse'
+        '400':
+          description: Invalid range parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'Invalid range: 1y. Use 24h, 7d, or 30d.'
+
+  /api/costs/budget:
+    get:
+      tags: [Costs]
+      summary: Get budget status
+      description: Returns current budget configuration and utilization for global and per-model scopes.
+      operationId: getBudgetStatus
+      responses:
+        '200':
+          description: Budget status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetStatusResponse'
+    post:
+      tags: [Costs]
+      summary: Set budget
+      description: Configure global and per-model budget limits with warning thresholds.
+      operationId: setBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetBudgetRequest'
+      responses:
+        '200':
+          description: Budget updated, returns new status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetStatusResponse'
+        '400':
+          description: Invalid budget configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Collaboration
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/collaboration/sessions:
+    get:
+      tags: [Collaboration]
+      summary: List collaboration sessions
+      description: Returns all active and recent collaboration sessions.
+      operationId: listCollaborationSessions
+      responses:
+        '200':
+          description: Session list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CollaborationSession'
+    post:
+      tags: [Collaboration]
+      summary: Create collaboration session
+      description: Create a new collaboration session with an id, name, and creator.
+      operationId: createCollaborationSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, name, createdBy]
+              properties:
+                id:
+                  type: string
+                  description: Unique session identifier
+                name:
+                  type: string
+                  description: Human-readable session name
+                createdBy:
+                  type: string
+                  description: ID of the user or agent creating the session
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollaborationSession'
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: 'id, name, and createdBy are required'
+        '503':
+          description: Collaboration not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/collaboration/sessions/{id}/join:
+    post:
+      tags: [Collaboration]
+      summary: Join collaboration session
+      description: Join an existing collaboration session by providing a userId.
+      operationId: joinCollaborationSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user joining
+      responses:
+        '200':
+          description: Joined session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollaborationSession'
+        '400':
+          description: userId is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found or inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Collaboration not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/collaboration/sessions/{id}/leave:
+    post:
+      tags: [Collaboration]
+      summary: Leave collaboration session
+      description: Leave a collaboration session.
+      operationId: leaveCollaborationSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  description: ID of the user leaving
+      responses:
+        '200':
+          description: Left session successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: userId is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Collaboration not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/collaboration/sessions/{id}/messages:
+    post:
+      tags: [Collaboration]
+      summary: Send collaboration message
+      description: Send a message (chat, cursor, edit, status, etc.) to a collaboration session.
+      operationId: sendCollaborationMessage
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollaborationMessageRequest'
+      responses:
+        '202':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [sent]
+        '400':
+          description: type and senderId are required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Collaboration not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [Collaboration]
+      summary: Get collaboration messages
+      description: Retrieve the message history for a specific collaboration session.
+      operationId: getCollaborationMessages
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Message history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CollaborationMessage'
+
+  # ════════════════════════════════════════════════════════════════════
+  # Docs
+  # ════════════════════════════════════════════════════════════════════
+
+  /api/docs:
+    get:
+      tags: [Docs]
+      summary: API documentation UI
+      description: Serves an interactive Swagger UI page for exploring the API.
+      operationId: getDocsUI
+      security: []
+      responses:
+        '200':
+          description: Swagger UI HTML page
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /api/docs/openapi.json:
+    get:
+      tags: [Docs]
+      summary: OpenAPI specification (JSON)
+      description: Returns the auto-generated OpenAPI 3.0 specification as JSON.
+      operationId: getOpenAPISpec
+      security: []
+      responses:
+        '200':
+          description: OpenAPI specification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+# ══════════════════════════════════════════════════════════════════════
+# Components
+# ══════════════════════════════════════════════════════════════════════
+
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from POST /api/login
+
+  parameters:
+    TicketId:
+      name: ticketId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Ticket identifier
+
+    FeatureId:
+      name: featureId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Feature identifier
+
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Collaboration session identifier
+
   schemas:
+    # ── Error ──────────────────────────────────────────────────────────
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Error message
+
+    # ── System ─────────────────────────────────────────────────────────
     HealthResponse:
       type: object
       required: [status]
@@ -200,6 +1647,78 @@ components:
           maximum: 100
           description: Health score (0-100)
 
+    DBHealthResponse:
+      type: object
+      required: [status, engine, connected, reachable, latencyMs, checkedAt]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Database health status
+        engine:
+          type: string
+          enum: [sqlite, postgres, memory]
+          description: Database engine type
+        connected:
+          type: boolean
+          description: Whether the database client is connected
+        reachable:
+          type: boolean
+          description: Whether the SELECT 1 probe succeeded
+        latencyMs:
+          type: number
+          description: Probe latency in milliseconds
+        checkedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the check
+        error:
+          type: string
+          description: Error message when unhealthy
+
+    # ── Auth ───────────────────────────────────────────────────────────
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Admin email address
+          example: admin@aca.local
+        password:
+          type: string
+          format: password
+          description: Admin password
+
+    LoginResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: JWT refresh token
+        expiresIn:
+          type: integer
+          description: Access token TTL in seconds
+          example: 3600
+
+    RefreshResponse:
+      type: object
+      required: [accessToken, expiresIn]
+      properties:
+        accessToken:
+          type: string
+          description: New JWT access token
+        expiresIn:
+          type: integer
+          description: Access token TTL in seconds
+          example: 3600
+
+    # ── Dashboard ──────────────────────────────────────────────────────
     DashboardSnapshot:
       type: object
       properties:
@@ -215,32 +1734,7 @@ components:
           type: number
           description: Overall system health percentage
 
-    SubmitTaskRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          description: Task name/title
-          example: Implement user authentication
-        description:
-          type: string
-          description: Detailed task description
-          example: Create JWT-based authentication with login and registration endpoints
-
-    SubmitTaskResponse:
-      type: object
-      required: [taskId, status]
-      properties:
-        taskId:
-          type: string
-          description: Generated task identifier
-          example: msg-abc123-1707840000000
-        status:
-          type: string
-          enum: [accepted]
-          description: Submission status
-
+    # ── Agents ─────────────────────────────────────────────────────────
     AgentListResponse:
       type: object
       properties:
@@ -288,6 +1782,284 @@ components:
           type: number
           description: Unix timestamp in milliseconds
 
+    # ── Tasks ──────────────────────────────────────────────────────────
+    SubmitTaskRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: Task name/title
+          example: Implement user authentication
+        description:
+          type: string
+          description: Detailed task description
+          example: Create JWT-based authentication with login and registration endpoints
+
+    SubmitTaskResponse:
+      type: object
+      required: [taskId, status]
+      properties:
+        taskId:
+          type: string
+          description: Generated task identifier
+          example: msg-abc123-1707840000000
+        status:
+          type: string
+          enum: [accepted]
+          description: Submission status
+
+    # ── Tickets ────────────────────────────────────────────────────────
+    TicketStatus:
+      type: string
+      enum: [created, in_progress, pending, reviewing, completed, cancelled]
+      description: Ticket lifecycle status
+
+    TicketCreateRequest:
+      type: object
+      required: [title, background, problem, workDescription, expectedArtifacts, verification, createdBy]
+      properties:
+        title:
+          type: string
+          description: Ticket title
+        background:
+          type: string
+          description: Context and background information
+        problem:
+          type: string
+          description: Problem statement
+        workDescription:
+          type: string
+          description: Detailed work description
+        expectedArtifacts:
+          type: array
+          items:
+            type: string
+          description: Expected output artifacts
+        verification:
+          type: object
+          description: Verification criteria, acceptance conditions, and checklist
+          additionalProperties: true
+        createdBy:
+          type: string
+          description: ID of the agent or user creating the ticket
+
+    Ticket:
+      type: object
+      description: Full ticket record with lifecycle data
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        background:
+          type: string
+        problem:
+          type: string
+        workDescription:
+          type: string
+        expectedArtifacts:
+          type: array
+          items:
+            type: string
+        verification:
+          type: object
+          additionalProperties: true
+        createdBy:
+          type: string
+        status:
+          $ref: '#/components/schemas/TicketStatus'
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketArtifactRequest'
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketIssueRequest'
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketReviewRequest'
+
+    TicketListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+
+    TicketReviewRequest:
+      type: object
+      required: [reviewerId, decision, comment]
+      properties:
+        reviewerId:
+          type: string
+          description: ID of the reviewer
+        decision:
+          type: string
+          enum: [approved, changes_requested]
+          description: Review decision
+        comment:
+          type: string
+          description: Review comment or feedback
+
+    TicketArtifactRequest:
+      type: object
+      required: [name, url, kind]
+      properties:
+        name:
+          type: string
+          description: Artifact name
+        url:
+          type: string
+          format: uri
+          description: Artifact URL or path
+        kind:
+          type: string
+          description: Artifact type (e.g. code, document, test)
+
+    TicketIssueRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: Issue or blocker description
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Issue severity level
+
+    # ── Features ───────────────────────────────────────────────────────
+    FeatureCreateRequest:
+      type: object
+      required: [title, requirements, artifactLinks, usageGuideLinks]
+      properties:
+        title:
+          type: string
+          description: Feature title
+        description:
+          type: string
+          description: Feature description
+        requirements:
+          type: array
+          items:
+            type: string
+          description: Feature requirements and constraints
+        artifactLinks:
+          type: array
+          items:
+            type: string
+          description: Links to artifact outputs
+        usageGuideLinks:
+          type: array
+          items:
+            type: string
+          description: Links to usage guides
+        labels:
+          type: array
+          items:
+            type: string
+          description: Categorization labels
+        options:
+          type: object
+          additionalProperties: true
+          description: Options such as language, domain, or constraints
+
+    Feature:
+      type: object
+      description: Full feature catalog record
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        requirements:
+          type: array
+          items:
+            type: string
+        artifactLinks:
+          type: array
+          items:
+            type: string
+        usageGuideLinks:
+          type: array
+          items:
+            type: string
+        labels:
+          type: array
+          items:
+            type: string
+        options:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum: [draft, published, deprecated, archived]
+        version:
+          type: string
+        usageCount:
+          type: integer
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureReviewRequest'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FeatureListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+
+    FeatureReviewRequest:
+      type: object
+      required: [reviewerType, reviewerId, decision, comment]
+      properties:
+        reviewerType:
+          type: string
+          description: Type of reviewer (human or agent)
+        reviewerId:
+          type: string
+          description: ID of the reviewer
+        decision:
+          type: string
+          description: Review decision
+        comment:
+          type: string
+          description: Review comment
+
+    # ── SSE ────────────────────────────────────────────────────────────
     SSEClientCountResponse:
       type: object
       required: [clients]
@@ -297,67 +2069,218 @@ components:
           minimum: 0
           description: Number of connected SSE clients
 
-    ErrorResponse:
-      type: object
-      required: [error]
-      properties:
-        error:
-          type: string
-          description: Error message
-
-    # Gateway API schemas (ACP bridge)
-    GatewaySubmitRequest:
-      type: object
-      required: [description]
-      properties:
-        description:
-          type: string
-          description: Task description
-        type:
-          type: string
-          description: Task type
-        targetTeam:
-          type: string
-          description: Target team for the task
-        projectContext:
-          type: string
-          description: Project context information
-        config:
-          type: object
-          additionalProperties: true
-          description: Additional configuration
-
-    GatewaySubmitResponse:
-      type: object
-      required: [taskId, status, message]
-      properties:
-        taskId:
-          type: string
-        status:
-          type: string
-          enum: [accepted]
-        message:
-          type: string
-
-    SystemHealthResponse:
+    # ── MCP ────────────────────────────────────────────────────────────
+    MCPServersResponse:
       type: object
       properties:
-        status:
-          type: string
-          enum: [healthy, degraded, unhealthy]
-        activeAgents:
+        enabled:
+          type: boolean
+          description: Whether MCP is enabled
+        servers:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Status of each MCP server
+        totalTools:
           type: integer
-        pendingTasks:
+          description: Total number of available MCP tools
+
+    # ── Pool ───────────────────────────────────────────────────────────
+    PoolStatsResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Whether the agent pool is enabled
+        backgroundTasks:
           type: integer
-        uptime:
+          description: Number of active background tasks
+      additionalProperties: true
+
+    # ── Instincts ──────────────────────────────────────────────────────
+    InstinctListResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Whether the instinct store is enabled
+        count:
+          type: integer
+          description: Number of instincts
+        instincts:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    # ── Costs ──────────────────────────────────────────────────────────
+    CostSummaryResponse:
+      type: object
+      properties:
+        totalCost:
           type: number
-          description: Uptime in seconds
-        components:
+          description: Total cost in USD
+        totalInputTokens:
+          type: integer
+          description: Aggregate input tokens
+        totalOutputTokens:
+          type: integer
+          description: Aggregate output tokens
+        totalRequests:
+          type: integer
+          description: Total number of requests
+        byModel:
           type: object
           additionalProperties:
             type: object
             properties:
-              status:
-                type: string
-              latency:
+              inputTokens:
+                type: integer
+              outputTokens:
+                type: integer
+              totalCost:
                 type: number
+              requests:
+                type: integer
+
+    CostHistoryResponse:
+      type: object
+      properties:
+        range:
+          type: string
+          description: Requested time range
+        recordCount:
+          type: integer
+          description: Number of records in range
+        buckets:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: number
+                description: Bucket start timestamp (Unix ms)
+              cost:
+                type: number
+                description: Cost in this bucket (USD)
+              tokens:
+                type: integer
+                description: Total tokens in this bucket
+
+    BudgetStatusResponse:
+      type: object
+      properties:
+        global:
+          $ref: '#/components/schemas/BudgetScope'
+        perModel:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/BudgetScope'
+
+    BudgetScope:
+      type: object
+      properties:
+        limit:
+          type: number
+          description: Maximum spend in USD
+        warningThreshold:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Fraction of limit at which a warning is emitted
+        spent:
+          type: number
+          description: Amount spent so far (USD)
+        remaining:
+          type: number
+          description: Remaining budget (USD)
+        utilization:
+          type: number
+          description: Fraction of budget used (0-1)
+        warning:
+          type: boolean
+          description: Whether the warning threshold has been reached
+        exceeded:
+          type: boolean
+          description: Whether the budget has been exceeded
+
+    SetBudgetRequest:
+      type: object
+      properties:
+        globalLimit:
+          type: number
+          minimum: 0
+          description: Global budget limit in USD
+        warningThreshold:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.8
+          description: Global warning threshold (0-1)
+        modelBudgets:
+          type: object
+          additionalProperties:
+            type: object
+            required: [limit]
+            properties:
+              limit:
+                type: number
+                minimum: 0
+                description: Per-model budget limit in USD
+              warningThreshold:
+                type: number
+                minimum: 0
+                maximum: 1
+                default: 0.8
+                description: Per-model warning threshold (0-1)
+
+    # ── Collaboration ──────────────────────────────────────────────────
+    CollaborationSession:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        createdBy:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CollaborationMessageRequest:
+      type: object
+      required: [type, senderId]
+      properties:
+        type:
+          type: string
+          enum: [cursor, edit, chat, status, task-update, agent-event]
+          description: Message type
+        senderId:
+          type: string
+          description: ID of the sender
+        payload:
+          description: Message-type-specific payload
+          nullable: true
+
+    CollaborationMessage:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [cursor, edit, chat, status, task-update, agent-event]
+        senderId:
+          type: string
+        sessionId:
+          type: string
+        payload: {}
+        timestamp:
+          type: string
+          format: date-time
