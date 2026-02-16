@@ -1,0 +1,24 @@
+{
+  "name": "Sample Suite",
+  "description": "Built-in sample benchmark suite",
+  "tasks": [
+    {
+      "id": "sample-1",
+      "name": "Hello World",
+      "description": "Generate a hello world function",
+      "language": "typescript"
+    },
+    {
+      "id": "sample-2",
+      "name": "FizzBuzz",
+      "description": "Implement FizzBuzz",
+      "language": "typescript"
+    },
+    {
+      "id": "sample-3",
+      "name": "Sort Array",
+      "description": "Implement array sort",
+      "language": "typescript"
+    }
+  ]
+}

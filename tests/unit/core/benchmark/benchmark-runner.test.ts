@@ -28,8 +28,14 @@ describe('BenchmarkRunner', () => {
   });
 
   describe('loadSuite', () => {
-    it('should return empty when no loader', async () => {
-      const runner = new BenchmarkRunner();
+    it('should use DefaultSuiteLoader when no loader provided', async () => {
+      // With no loader, the DefaultSuiteLoader is used. It will either
+      // find files in benchmarks/ or fall back to the built-in suite.
+      // Either way it should return a non-empty array of tasks.
+      const runner = new BenchmarkRunner({
+        // Provide a loader that returns empty to simulate old behavior
+        loader: async () => [],
+      });
       const tasks = await runner.loadSuite('swe-bench-lite');
       expect(tasks).toEqual([]);
     });
@@ -45,13 +51,19 @@ describe('BenchmarkRunner', () => {
   });
 
   describe('runTask', () => {
-    it('should return failure stub when no executor', async () => {
-      const runner = new BenchmarkRunner();
+    it('should use DryRunExecutor when no executor provided', async () => {
+      const runner = new BenchmarkRunner({
+        // Explicitly no executor — DryRunExecutor is the default
+      });
       const result = await runner.runTask(sampleTask);
 
       expect(result.taskId).toBe('task-001');
       expect(result.passed).toBe(false);
-      expect(result.error).toContain('No executor');
+      expect(result.error).toContain('Dry-run mode');
+      expect(result.error).toContain('DRY_RUN');
+      expect(result.tokensUsed).toBe(0);
+      expect(result.durationMs).toBe(0);
+      expect(result.llmCalls).toBe(0);
     });
 
     it('should use custom executor', async () => {
@@ -74,8 +86,9 @@ describe('BenchmarkRunner', () => {
   });
 
   describe('runSuite', () => {
-    it('should return empty suite result when no tasks', async () => {
-      const runner = new BenchmarkRunner();
+    it('should return empty suite result when loader returns no tasks', async () => {
+      const loader: SuiteLoader = async () => [];
+      const runner = new BenchmarkRunner({ loader });
       const result = await runner.runSuite('empty');
 
       expect(result.suiteName).toBe('empty');
@@ -152,6 +165,36 @@ describe('BenchmarkRunner', () => {
     it('should create via factory', () => {
       const runner = createBenchmarkRunner();
       expect(runner).toBeInstanceOf(BenchmarkRunner);
+    });
+  });
+
+  describe('default wiring', () => {
+    it('should wire DefaultSuiteLoader and DryRunExecutor by default', async () => {
+      // Use a non-existent benchmarks dir so we get the built-in suite
+      const runner = new BenchmarkRunner({
+        benchmarksDir: '/tmp/nonexistent-aca-benchmarks-dir',
+      });
+
+      // loadSuite should return the built-in fallback tasks
+      const tasks = await runner.loadSuite('any');
+      expect(tasks.length).toBeGreaterThan(0);
+      expect(tasks[0].id).toContain('builtin');
+
+      // runTask should use DryRunExecutor
+      const result = await runner.runTask(tasks[0]);
+      expect(result.passed).toBe(false);
+      expect(result.error).toContain('DRY_RUN');
+    });
+
+    it('should pass benchmarksDir to DefaultSuiteLoader', async () => {
+      const runner = new BenchmarkRunner({
+        benchmarksDir: '/tmp/does-not-exist-aca-test',
+      });
+
+      // Falls back to built-in suite since dir does not exist
+      const tasks = await runner.loadSuite('test');
+      expect(tasks.length).toBeGreaterThan(0);
+      expect(tasks.every((t) => t.tags.includes('builtin'))).toBe(true);
     });
   });
 });

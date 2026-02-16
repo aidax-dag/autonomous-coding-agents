@@ -3,6 +3,8 @@
  *
  * Executes benchmark tasks (SWE-bench style) and collects results.
  * Uses pluggable task executor and suite loader.
+ * Defaults to DefaultSuiteLoader and DryRunExecutor when no custom
+ * loader/executor is provided.
  *
  * @module core/benchmark
  */
@@ -13,6 +15,8 @@ import type {
   BenchmarkResult,
   BenchmarkSuiteResult,
 } from './interfaces/benchmark.interface';
+import { createDefaultSuiteLoader } from './default-suite-loader';
+import { createDryRunExecutor } from './dry-run-executor';
 
 /**
  * Task executor — pluggable function for running a benchmark task
@@ -36,49 +40,34 @@ export interface BenchmarkRunnerConfig {
   suites?: string[];
   /** Cost per 1K tokens (for estimation) */
   costPer1KTokens?: number;
+  /** Directory to scan for benchmark files (used by DefaultSuiteLoader) */
+  benchmarksDir?: string;
 }
 
 /**
  * Benchmark runner implementation
  */
 export class BenchmarkRunner implements IBenchmarkRunner {
-  private readonly executor?: TaskExecutor;
-  private readonly loader?: SuiteLoader;
+  private readonly executor: TaskExecutor;
+  private readonly loader: SuiteLoader;
   private readonly suites: string[];
   private readonly costPer1KTokens: number;
 
   constructor(config: BenchmarkRunnerConfig = {}) {
-    this.executor = config.executor;
-    this.loader = config.loader;
+    this.executor = config.executor ?? createDryRunExecutor();
+    this.loader = config.loader ?? createDefaultSuiteLoader({
+      benchmarksDir: config.benchmarksDir,
+    });
     this.suites = config.suites ?? ['swe-bench-lite'];
     this.costPer1KTokens = config.costPer1KTokens ?? 0.003;
   }
 
   async loadSuite(suiteName: string): Promise<BenchmarkTask[]> {
-    if (this.loader) {
-      return this.loader(suiteName);
-    }
-
-    // Default stub — returns empty task list
-    return [];
+    return this.loader(suiteName);
   }
 
   async runTask(task: BenchmarkTask): Promise<BenchmarkResult> {
-    if (this.executor) {
-      return this.executor(task);
-    }
-
-    // Default stub — reports failure (no actual execution)
-    return {
-      taskId: task.id,
-      passed: false,
-      testsPassedRatio: 0,
-      generatedPatch: '',
-      tokensUsed: 0,
-      durationMs: 0,
-      llmCalls: 0,
-      error: 'No executor configured',
-    };
+    return this.executor(task);
   }
 
   async runSuite(suiteName: string): Promise<BenchmarkSuiteResult> {

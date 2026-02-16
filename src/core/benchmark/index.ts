@@ -20,6 +20,18 @@ export {
 } from './benchmark-runner';
 
 export {
+  createDefaultSuiteLoader,
+  getBuiltinSuite,
+  type DefaultSuiteLoaderConfig,
+} from './default-suite-loader';
+
+export {
+  createDryRunExecutor,
+  DRY_RUN_REASON_CODE,
+  type DryRunExecutorConfig,
+} from './dry-run-executor';
+
+export {
   createOrchestratorTaskExecutor,
   type OrchestratorTaskExecutorConfig,
 } from './orchestrator-task-executor';
