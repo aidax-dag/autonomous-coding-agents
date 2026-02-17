@@ -124,7 +124,7 @@ export const WorkflowStepSchema = z.object({
   /** Task content or template */
   content: z.string(),
   /** Input configuration */
-  inputs: z.record(StepInputSchema).optional(),
+  inputs: z.record(z.string(), StepInputSchema).optional(),
   /** Condition for execution */
   condition: ConditionExpressionSchema.optional(),
   /** Dependencies (step IDs that must complete first) */
@@ -241,7 +241,7 @@ export const WorkflowDefinitionSchema = z.object({
   /** Global retry configuration */
   retry: RetryConfigSchema.optional(),
   /** Metadata */
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type WorkflowDefinition = z.infer<typeof WorkflowDefinitionSchema>;

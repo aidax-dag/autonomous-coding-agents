@@ -218,7 +218,7 @@ describe('TicketFeatureCycleAPI', () => {
 
     expect(res.status).toBe(400);
     const body = res.body as { error: string };
-    expect(body.error).toContain('Required');
+    expect(body.error).toMatch(/Required|invalid_type|too_small/i);
   });
 
   it('enforces MCP gate when starting ticket if MCP is required', async () => {

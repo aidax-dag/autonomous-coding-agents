@@ -114,7 +114,7 @@ export function parseTaskDocument(content: string, filePath?: string): TaskDocum
     const metadataResult = TaskMetadataSchema.safeParse(rawMetadata);
 
     if (!metadataResult.success) {
-      const errors = metadataResult.error.errors
+      const errors = metadataResult.error.issues
         .map((err) => `${err.path.join('.')}: ${err.message}`)
         .join(', ');
       throw new TaskDocumentParseError(`Invalid task metadata: ${errors}`);

@@ -91,7 +91,7 @@ export const RunnerConfigSchema = z.object({
   enableTelemetry: z.boolean().default(false),
 
   /** Per-provider concurrency limits (e.g. { claude: 3, openai: 5 }) */
-  providerLimits: z.record(z.number().int().positive()).optional(),
+  providerLimits: z.record(z.string(), z.number().int().positive()).optional(),
 
   /** Global concurrency cap across all providers */
   globalMax: z.number().int().positive().optional(),

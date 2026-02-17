@@ -108,7 +108,7 @@ const ConfigSchema = z.object({
     enabled: z.boolean().default(false),
     defaultProfile: z.string().default('balanced'),
     budgetLimit: z.number().optional(),
-    agentModelMap: z.record(z.string()).optional(),
+    agentModelMap: z.record(z.string(), z.string()).optional(),
   }).optional(),
 
   // MCP Configuration (P1-3: MCP protocol integration)
@@ -120,8 +120,8 @@ const ConfigSchema = z.object({
       command: z.string().optional(),
       args: z.array(z.string()).optional(),
       url: z.string().optional(),
-      headers: z.record(z.string()).optional(),
-      env: z.record(z.string()).optional(),
+      headers: z.record(z.string(), z.string()).optional(),
+      env: z.record(z.string(), z.string()).optional(),
       enabled: z.boolean().default(true),
     })).default([]),
   }).optional(),
@@ -135,7 +135,7 @@ const ConfigSchema = z.object({
       command: z.string().min(1),
       args: z.array(z.string()).optional(),
       rootUri: z.string().optional(),
-      initializationOptions: z.record(z.unknown()).optional(),
+      initializationOptions: z.record(z.string(), z.unknown()).optional(),
       enabled: z.boolean().default(true),
     })).default([]),
   }).optional(),
@@ -269,7 +269,7 @@ export function loadConfig(): Config {
     return config;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors
+      const errorMessages = error.issues
         .map((err) => `${err.path.join('.')}: ${err.message}`)
         .join('\n');
       throw new Error(`Configuration validation failed:\n${errorMessages}`);

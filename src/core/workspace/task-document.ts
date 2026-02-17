@@ -140,7 +140,7 @@ export const TaskMetadataSchema = z.object({
   tags: z.array(z.string()).default([]),
 
   // Arbitrary metadata
-  extra: z.record(z.unknown()).optional(),
+  extra: z.record(z.string(), z.unknown()).optional(),
 });
 export type TaskMetadata = z.infer<typeof TaskMetadataSchema>;
 
@@ -177,7 +177,7 @@ export const CreateTaskInputSchema = z.object({
   projectId: z.string().optional(),
   issueId: z.string().optional(),
   qualityMetrics: QualityMetricsSchema.optional(),
-  extra: z.record(z.unknown()).optional(),
+  extra: z.record(z.string(), z.unknown()).optional(),
 });
 // Use z.input for input type to make fields with defaults optional
 export type CreateTaskInput = z.input<typeof CreateTaskInputSchema>;

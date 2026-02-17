@@ -21,7 +21,7 @@ import { logger } from '../../shared/logging/logger';
  * Format Zod validation errors into a human-readable string.
  */
 function formatZodErrors(error: z.ZodError): string {
-  return error.errors
+  return error.issues
     .map(e => {
       const path = e.path.length > 0 ? `${e.path.join('.')}: ` : '';
       return `${path}${e.message}`;
