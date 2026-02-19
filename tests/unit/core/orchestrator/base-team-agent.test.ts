@@ -556,7 +556,7 @@ describe('BaseTeamAgent', () => {
         config: { taskTimeout: 50 },
       });
       agent.registerHandler(['bugfix'], async () => {
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise(() => {});
         return { success: true };
       });
       await agent.start();

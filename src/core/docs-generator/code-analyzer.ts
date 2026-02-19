@@ -20,6 +20,7 @@ import type {
   ModuleRelation,
 } from './interfaces/docs-generator.interface';
 import type { ContentAnalyzer } from './docs-generator';
+import { MAX_EXPORTED_SYMBOLS, MIN_COMPONENT_LOC } from './constants';
 
 /**
  * Parsed class/interface declaration
@@ -428,10 +429,10 @@ async function analyzeModule(
   }
 
   // Deduplicate exports (strip "* from ..." duplicates)
-  const uniqueExports = [...new Set(allExports)].slice(0, 30);
+  const uniqueExports = [...new Set(allExports)].slice(0, MAX_EXPORTED_SYMBOLS);
 
   // Resolve dependencies: look for imports that reference sibling modules
-  const dependencies = resolveModuleDependencies(allImportSources, modulePath, rootPath);
+  const dependencies = resolveModuleDependencies(allImportSources, modulePath);
 
   return {
     name,
@@ -448,8 +449,7 @@ async function analyzeModule(
  */
 function resolveModuleDependencies(
   importSources: string[],
-  _modulePath: string,
-  rootPath: string,
+  modulePath: string,
 ): string[] {
   const deps = new Set<string>();
 
@@ -474,7 +474,7 @@ function resolveModuleDependencies(
   }
 
   // Remove self-references
-  const selfName = basename(_modulePath);
+  const selfName = basename(modulePath);
   deps.delete(selfName);
 
   // Remove non-module references (e.g. 'interfaces', 'utils')
@@ -717,7 +717,7 @@ async function analyzeMLD(
   // If no subdirectories, create descriptors from individual files
   if (subComponents.length === 0) {
     for (const [relPath, info] of subComponentMap) {
-      if (info.exports.length > 0 || info.loc > 20) {
+      if (info.exports.length > 0 || info.loc > MIN_COMPONENT_LOC) {
         subComponents.push({
           name: basename(relPath, extname(relPath)),
           path: relPath,

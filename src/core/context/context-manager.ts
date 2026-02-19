@@ -433,6 +433,9 @@ export class ContextManager implements IContextManager {
       const level = this.getQualityLevel();
       this.monitor.check(stats, level);
     }, this.config.monitoring.checkInterval);
+    if (this.monitorInterval.unref) {
+      this.monitorInterval.unref();
+    }
   }
 
   /**

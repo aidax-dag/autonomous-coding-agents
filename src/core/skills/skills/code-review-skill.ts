@@ -6,16 +6,12 @@
  * @module core/skills/skills
  */
 
-import type {
-  ISkill,
-  SkillContext,
-  SkillResult,
-} from '../interfaces/skill.interface';
+import type { SkillContext } from '../interfaces/skill.interface';
 import type {
   CodeReviewFinding,
   DeepReviewOutput,
 } from '../../orchestrator/agents/code-quality-agent';
-import { createSkillFallback } from '../skill-fallback';
+import { BaseSkill } from '../base-skill';
 
 /**
  * Input for code review skill
@@ -32,103 +28,41 @@ export interface CodeReviewSkillInput {
 /**
  * Code review skill — analyzes code for patterns, security, performance issues
  */
-export class CodeReviewSkill
-  implements ISkill<CodeReviewSkillInput, DeepReviewOutput>
-{
+export class CodeReviewSkill extends BaseSkill<CodeReviewSkillInput, DeepReviewOutput> {
   readonly name = 'code-review';
   readonly description = 'Deep code review analyzing patterns, security, performance, and best practices';
   readonly tags = ['review', 'quality', 'security', 'analysis'] as const;
-  readonly version = '1.0.0';
-
-  private readonly executor?: (
-    input: CodeReviewSkillInput,
-    context: SkillContext,
-  ) => Promise<DeepReviewOutput>;
-
-  constructor(options?: {
-    executor?: (
-      input: CodeReviewSkillInput,
-      context: SkillContext,
-    ) => Promise<DeepReviewOutput>;
-  }) {
-    this.executor = options?.executor;
-  }
+  protected readonly validationError = 'Invalid input: files array is required';
 
   validate(input: CodeReviewSkillInput): boolean {
     return Array.isArray(input.files) && input.files.length > 0;
   }
 
-  canHandle(input: unknown): boolean {
-    const typed = input as CodeReviewSkillInput;
-    return (
-      typed !== null &&
-      typeof typed === 'object' &&
-      Array.isArray(typed.files) &&
-      typed.files.length > 0
-    );
+  protected createFallbackOutput(input: CodeReviewSkillInput): DeepReviewOutput {
+    const findings: CodeReviewFinding[] = input.files.map((file) => ({
+      type: 'best-practice' as const,
+      severity: 'suggestion' as const,
+      category: 'review',
+      message: `Review pending for ${file}`,
+      file,
+      lineStart: 1,
+    }));
+
+    return {
+      summary: `Review of ${input.files.length} file(s)`,
+      findings,
+      metrics: { complexity: 0, maintainability: 100, testability: 100, security: 100, overall: 100 },
+      approved: true,
+      reason: 'Stub review — no LLM executor configured',
+      actionItems: [],
+    };
   }
 
-  async execute(
-    input: CodeReviewSkillInput,
-    context: SkillContext,
-  ): Promise<SkillResult<DeepReviewOutput>> {
-    const start = Date.now();
-
-    if (!this.validate(input)) {
-      return {
-        success: false,
-        error: 'Invalid input: files array is required',
-        duration: Date.now() - start,
-      };
-    }
-
-    try {
-      if (this.executor) {
-        const output = await this.executor(input, context);
-        return {
-          success: true,
-          output,
-          duration: Date.now() - start,
-        };
-      }
-
-      // Default stub output
-      const fallback = createSkillFallback('code-review', 'no_executor', {
-        files: input.files,
-        focus: input.focus,
-      });
-
-      const findings: CodeReviewFinding[] = input.files.map((file) => ({
-        type: 'best-practice' as const,
-        severity: 'suggestion' as const,
-        category: 'review',
-        message: `Review pending for ${file}`,
-        file,
-        lineStart: 1,
-      }));
-
-      const output: DeepReviewOutput = {
-        summary: `Review of ${input.files.length} file(s)`,
-        findings,
-        metrics: { complexity: 0, maintainability: 100, testability: 100, security: 100, overall: 100 },
-        approved: true,
-        reason: 'Stub review — no LLM executor configured',
-        actionItems: [],
-      };
-
-      return {
-        success: true,
-        output,
-        duration: Date.now() - start,
-        metadata: { fallback },
-      };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-        duration: Date.now() - start,
-      };
-    }
+  protected createFallbackContext(input: CodeReviewSkillInput): Record<string, unknown> {
+    return {
+      files: input.files,
+      focus: input.focus,
+    };
   }
 }
 

@@ -137,7 +137,7 @@ export class RefactorEngine implements IRefactorEngine {
 
         // Find an extract function action from the response
         const extractAction = actions?.find(
-          (a) => a.kind?.startsWith('refactor.extract') && a.edit,
+          (action) => action.kind?.startsWith('refactor.extract') && action.edit,
         );
 
         if (extractAction?.edit) {

@@ -27,6 +27,12 @@ export {
   type ConfidenceCheckerOptions,
 } from './confidence-checker';
 
+export {
+  DEFAULT_PROCEED_THRESHOLD,
+  DEFAULT_ALTERNATIVES_THRESHOLD,
+  DANGER_SIGNAL_CONTEXT_CHARS,
+} from './constants';
+
 // ============================================================================
 // F002: SelfCheckProtocol
 // ============================================================================

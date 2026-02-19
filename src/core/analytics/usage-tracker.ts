@@ -110,66 +110,72 @@ export class UsageTracker {
     let filtered = this.records;
 
     if (options.since) {
-      filtered = filtered.filter((r) => r.timestamp >= options.since!);
+      filtered = filtered.filter((record) => record.timestamp >= options.since!);
     }
     if (options.until) {
-      filtered = filtered.filter((r) => r.timestamp <= options.until!);
+      filtered = filtered.filter((record) => record.timestamp <= options.until!);
     }
 
-    const totalInput = filtered.reduce((sum, r) => sum + r.inputTokens, 0);
-    const totalOutput = filtered.reduce((sum, r) => sum + r.outputTokens, 0);
-    const totalCost = filtered.reduce((sum, r) => sum + r.cost, 0);
-    const totalDuration = filtered.reduce((sum, r) => sum + r.durationMs, 0);
-    const successCount = filtered.filter((r) => r.success).length;
+    const totalInput = filtered.reduce((sum, record) => sum + record.inputTokens, 0);
+    const totalOutput = filtered.reduce((sum, record) => sum + record.outputTokens, 0);
+    const totalCost = filtered.reduce((sum, record) => sum + record.cost, 0);
+    const totalDuration = filtered.reduce((sum, record) => sum + record.durationMs, 0);
+    const successCount = filtered.filter((record) => record.success).length;
 
     const byAgent: Record<string, AgentUsage> = {};
     const byModel: Record<string, ModelUsage> = {};
     const byProvider: Record<string, ProviderUsageInternal> = {};
 
-    for (const r of filtered) {
+    for (const record of filtered) {
       // By agent
-      if (!byAgent[r.agentId]) {
-        byAgent[r.agentId] = { requests: 0, tokens: 0, cost: 0, averageDurationMs: 0 };
+      if (!byAgent[record.agentId]) {
+        byAgent[record.agentId] = { requests: 0, tokens: 0, cost: 0, averageDurationMs: 0 };
       }
-      const a = byAgent[r.agentId];
-      a.requests++;
-      a.tokens += r.inputTokens + r.outputTokens;
-      a.cost += r.cost;
-      a.averageDurationMs += r.durationMs;
+      const agentUsage = byAgent[record.agentId];
+      agentUsage.requests++;
+      agentUsage.tokens += record.inputTokens + record.outputTokens;
+      agentUsage.cost += record.cost;
+      agentUsage.averageDurationMs += record.durationMs;
 
       // By model
-      if (!byModel[r.modelId]) {
-        byModel[r.modelId] = { requests: 0, tokens: 0, cost: 0 };
+      if (!byModel[record.modelId]) {
+        byModel[record.modelId] = { requests: 0, tokens: 0, cost: 0 };
       }
-      const m = byModel[r.modelId];
-      m.requests++;
-      m.tokens += r.inputTokens + r.outputTokens;
-      m.cost += r.cost;
+      const modelUsage = byModel[record.modelId];
+      modelUsage.requests++;
+      modelUsage.tokens += record.inputTokens + record.outputTokens;
+      modelUsage.cost += record.cost;
 
       // By provider
-      if (!byProvider[r.provider]) {
-        byProvider[r.provider] = { requests: 0, tokens: 0, cost: 0, errorRate: 0, errors: 0 };
+      if (!byProvider[record.provider]) {
+        byProvider[record.provider] = { requests: 0, tokens: 0, cost: 0, errorRate: 0, errors: 0 };
       }
-      const p = byProvider[r.provider];
-      p.requests++;
-      p.tokens += r.inputTokens + r.outputTokens;
-      p.cost += r.cost;
-      if (!r.success) p.errors++;
+      const providerUsage = byProvider[record.provider];
+      providerUsage.requests++;
+      providerUsage.tokens += record.inputTokens + record.outputTokens;
+      providerUsage.cost += record.cost;
+      if (!record.success) providerUsage.errors++;
     }
 
     // Calculate agent average durations
-    for (const a of Object.values(byAgent)) {
-      a.averageDurationMs = a.requests > 0 ? Math.round(a.averageDurationMs / a.requests) : 0;
+    for (const agentUsage of Object.values(byAgent)) {
+      agentUsage.averageDurationMs =
+        agentUsage.requests > 0
+          ? Math.round(agentUsage.averageDurationMs / agentUsage.requests)
+          : 0;
     }
 
     // Calculate provider error rates and strip internal fields
     const byProviderClean: Record<string, ProviderUsage> = {};
-    for (const [key, p] of Object.entries(byProvider)) {
+    for (const [key, providerUsage] of Object.entries(byProvider)) {
       byProviderClean[key] = {
-        requests: p.requests,
-        tokens: p.tokens,
-        cost: p.cost,
-        errorRate: p.requests > 0 ? p.errors / p.requests : 0,
+        requests: providerUsage.requests,
+        tokens: providerUsage.tokens,
+        cost: providerUsage.cost,
+        errorRate:
+          providerUsage.requests > 0
+            ? providerUsage.errors / providerUsage.requests
+            : 0,
       };
     }
 

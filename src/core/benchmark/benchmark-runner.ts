@@ -17,6 +17,7 @@ import type {
 } from './interfaces/benchmark.interface';
 import { createDefaultSuiteLoader } from './default-suite-loader';
 import { createDryRunExecutor } from './dry-run-executor';
+import { DEFAULT_COST_PER_1K_TOKENS } from './constants';
 
 /**
  * Task executor — pluggable function for running a benchmark task
@@ -59,7 +60,7 @@ export class BenchmarkRunner implements IBenchmarkRunner {
       benchmarksDir: config.benchmarksDir,
     });
     this.suites = config.suites ?? ['swe-bench-lite'];
-    this.costPer1KTokens = config.costPer1KTokens ?? 0.003;
+    this.costPer1KTokens = config.costPer1KTokens ?? DEFAULT_COST_PER_1K_TOKENS;
   }
 
   async loadSuite(suiteName: string): Promise<BenchmarkTask[]> {

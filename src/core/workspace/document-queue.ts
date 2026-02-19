@@ -240,6 +240,9 @@ export class DocumentQueue extends EventEmitter {
         this.emit('error', error instanceof Error ? error : new Error(String(error)));
       }
     }, options.pollingInterval || 5000);
+    if (interval.unref) {
+      interval.unref();
+    }
 
     this.pollingIntervals.set(team, interval);
   }

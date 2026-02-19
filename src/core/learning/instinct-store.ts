@@ -10,9 +10,10 @@
  * Source: everything-claude-code (Instinct System)
  */
 
-import * as fs from 'fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import type { IFileSystem } from '@/shared/fs/file-system';
+import { nodeFileSystem } from '@/shared/fs/file-system';
 import type {
   IInstinctStore,
   Instinct,
@@ -104,6 +105,8 @@ export const MATCHING_CONFIG = {
 export interface InstinctStoreOptions {
   /** Custom storage path */
   storagePath?: string;
+  /** Optional filesystem adapter for testing/mocking */
+  fileSystem?: IFileSystem;
   /** Custom confidence config */
   confidenceConfig?: Partial<{
     reinforceAmount: number;
@@ -126,6 +129,7 @@ export class InstinctStore implements IInstinctStore {
   private instincts: Map<string, Instinct> = new Map();
   private storagePath: string;
   private indexPath: string;
+  private readonly fileSystem: IFileSystem;
   private initialized: boolean = false;
   private confidenceConfig: {
     reinforceAmount: number;
@@ -137,6 +141,7 @@ export class InstinctStore implements IInstinctStore {
   constructor(options?: InstinctStoreOptions) {
     this.storagePath = options?.storagePath ?? path.join(process.cwd(), 'docs/memory/instincts');
     this.indexPath = path.join(this.storagePath, INSTINCT_STORAGE_CONFIG.INDEX_FILE);
+    this.fileSystem = options?.fileSystem ?? nodeFileSystem;
     this.confidenceConfig = {
       reinforceAmount: options?.confidenceConfig?.reinforceAmount ?? CONFIDENCE_ADJUSTMENTS.REINFORCE_INCREMENT,
       correctAmount: options?.confidenceConfig?.correctAmount ?? CONFIDENCE_ADJUSTMENTS.CORRECT_DECREMENT,
@@ -154,8 +159,8 @@ export class InstinctStore implements IInstinctStore {
     }
 
     try {
-      await fs.mkdir(this.storagePath, { recursive: true });
-      const content = await fs.readFile(this.indexPath, 'utf-8');
+      await this.fileSystem.mkdir(this.storagePath, { recursive: true });
+      const content = await this.fileSystem.readFile(this.indexPath, 'utf-8');
       const data = JSON.parse(content) as Instinct[];
 
       for (const instinct of data) {
@@ -707,9 +712,9 @@ export class InstinctStore implements IInstinctStore {
    * Save all instincts to file
    */
   private async saveToFile(): Promise<void> {
-    await fs.mkdir(this.storagePath, { recursive: true });
+    await this.fileSystem.mkdir(this.storagePath, { recursive: true });
     const data = Array.from(this.instincts.values());
-    await fs.writeFile(this.indexPath, JSON.stringify(data, null, 2));
+    await this.fileSystem.writeFile(this.indexPath, JSON.stringify(data, null, 2));
   }
 }
 

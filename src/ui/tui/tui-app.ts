@@ -5,6 +5,7 @@
  */
 
 import type { ITUIApp, ITUIComponent, TUIComponentType, TUIRenderOutput, TUIAppConfig } from './interfaces/tui.interface';
+import { DEFAULT_REFRESH_INTERVAL_MS, DEFAULT_MAX_LOG_LINES, DEFAULT_MAX_DIFF_LINES } from './constants';
 
 export class TUIApp implements ITUIApp {
   private components: Map<TUIComponentType, ITUIComponent> = new Map();
@@ -15,9 +16,9 @@ export class TUIApp implements ITUIApp {
 
   constructor(config?: TUIAppConfig) {
     this.config = {
-      refreshIntervalMs: config?.refreshIntervalMs ?? 1000,
-      maxLogLines: config?.maxLogLines ?? 50,
-      maxDiffLines: config?.maxDiffLines ?? 100,
+      refreshIntervalMs: config?.refreshIntervalMs ?? DEFAULT_REFRESH_INTERVAL_MS,
+      maxLogLines: config?.maxLogLines ?? DEFAULT_MAX_LOG_LINES,
+      maxDiffLines: config?.maxDiffLines ?? DEFAULT_MAX_DIFF_LINES,
       showCosts: config?.showCosts ?? true,
       showMetrics: config?.showMetrics ?? true,
     };
@@ -35,6 +36,9 @@ export class TUIApp implements ITUIApp {
           }
         }
       }, this.config.refreshIntervalMs);
+      if (this.refreshTimer.unref) {
+        this.refreshTimer.unref();
+      }
     }
   }
 

@@ -120,7 +120,7 @@ describe('ParallelExecutor', () => {
     const timeoutExecutor = new ParallelExecutor({ maxConcurrency: 3, taskTimeout: 50 });
     const tasks = [mockTask('t1')];
     const executorFn = jest.fn(
-      () => new Promise<WorkflowResult>((resolve) => setTimeout(() => resolve(mockResult('t1')), 200)),
+      () => new Promise<WorkflowResult>(() => {}),
     );
 
     const results = await timeoutExecutor.execute(tasks, { executeTask: executorFn });

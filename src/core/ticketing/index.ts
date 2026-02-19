@@ -1,4 +1,28 @@
 export {
+  IdGenerator,
+  createIdGenerator,
+  type IIdGenerator,
+} from './id-generator';
+
+export {
+  VersionManager,
+  createVersionManager,
+  type IVersionManager,
+  type VersionMeta,
+  type VersionHistoryEntry,
+} from './version-manager';
+
+export {
+  TicketLifecycleService,
+  createTicketLifecycleService,
+} from './ticket-lifecycle-service';
+
+export {
+  FeatureLifecycleService,
+  createFeatureLifecycleService,
+} from './feature-lifecycle-service';
+
+export {
   TicketFeatureService,
   createTicketFeatureService,
   type TicketStatus,
@@ -36,6 +60,12 @@ export {
   createSqliteTicketFeatureRepository,
   type SqliteTicketFeatureRepositoryOptions,
 } from './repositories/sqlite-repository';
+
+export {
+  createDefaultTicketFeatureRepository,
+  type TicketFeatureRepositoryFactory,
+  type TicketFeatureRepositoryFactoryOptions,
+} from './repositories/repository-factory';
 
 // External sync
 export {

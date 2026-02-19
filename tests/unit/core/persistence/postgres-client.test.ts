@@ -17,7 +17,7 @@ jest.mock('pg', () => ({
     end: mockPoolEnd,
     connect: mockPoolConnect,
   })),
-}), { virtual: true });
+}));
 
 jest.mock('../../../../src/shared/logging/logger', () => ({
   createAgentLogger: () => ({

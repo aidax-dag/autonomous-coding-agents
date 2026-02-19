@@ -57,7 +57,7 @@ export class MCPServer implements IMCPServer {
   }
 
   getRegisteredTools(): MCPToolDefinition[] {
-    return Array.from(this.tools.values()).map((t) => t.definition);
+    return Array.from(this.tools.values()).map((toolEntry) => toolEntry.definition);
   }
 
   private handleRequest(req: IncomingMessage, res: ServerResponse): void {
@@ -71,8 +71,8 @@ export class MCPServer implements IMCPServer {
     req.on('data', (chunk) => (body += chunk));
     req.on('end', async () => {
       try {
-        const msg = JSON.parse(body) as JsonRpcMessage;
-        const result = await this.processMessage(msg);
+        const message = JSON.parse(body) as JsonRpcMessage;
+        const result = await this.processMessage(message);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
       } catch (error) {
@@ -88,10 +88,10 @@ export class MCPServer implements IMCPServer {
     });
   }
 
-  private async processMessage(msg: JsonRpcMessage): Promise<JsonRpcMessage> {
-    const response: JsonRpcMessage = { jsonrpc: '2.0', id: msg.id };
+  private async processMessage(message: JsonRpcMessage): Promise<JsonRpcMessage> {
+    const response: JsonRpcMessage = { jsonrpc: '2.0', id: message.id };
 
-    switch (msg.method) {
+    switch (message.method) {
       case 'initialize':
         response.result = {
           protocolVersion: '2024-11-05',
@@ -102,12 +102,12 @@ export class MCPServer implements IMCPServer {
 
       case 'tools/list':
         response.result = {
-          tools: Array.from(this.tools.values()).map((t) => t.definition),
+          tools: Array.from(this.tools.values()).map((toolEntry) => toolEntry.definition),
         };
         break;
 
       case 'tools/call': {
-        const params = msg.params as { name: string; arguments: Record<string, unknown> };
+        const params = message.params as { name: string; arguments: Record<string, unknown> };
         const tool = this.tools.get(params.name);
         if (!tool) {
           response.error = { code: -32602, message: `Unknown tool: ${params.name}` };
@@ -126,7 +126,7 @@ export class MCPServer implements IMCPServer {
       }
 
       default:
-        response.error = { code: -32601, message: `Method not found: ${msg.method}` };
+        response.error = { code: -32601, message: `Method not found: ${message.method}` };
     }
 
     return response;

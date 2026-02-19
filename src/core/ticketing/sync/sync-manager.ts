@@ -21,6 +21,7 @@ import type {
 } from './external-sync.interface';
 import { createDefaultSyncConfig } from './external-sync.interface';
 import { GitHubSyncAdapter } from './github-sync-adapter';
+import { calculateBackoffDelay } from '../constants';
 
 // ============================================================================
 // Logger Interface (minimal, avoids hard dependency on shared logger)
@@ -43,6 +44,47 @@ const noopLogger: SyncLogger = {
   debug: () => {},
 };
 
+type SyncProvider = ExternalSyncConfig['provider'];
+type SyncAdapterFactory = (
+  config: ExternalSyncConfig,
+  logger: SyncLogger,
+) => IExternalSyncAdapter | null;
+
+function createDefaultAdapterFactories(): Map<SyncProvider, SyncAdapterFactory> {
+  return new Map<SyncProvider, SyncAdapterFactory>([
+    [
+      'github',
+      (config, logger) => {
+        const githubConfig = config.github;
+        if (!githubConfig) {
+          logger.error('GitHub sync enabled but no github config provided');
+          return null;
+        }
+
+        try {
+          return new GitHubSyncAdapter(githubConfig);
+        } catch (err) {
+          logger.error('Failed to create GitHub sync adapter', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+          return null;
+        }
+      },
+    ],
+    [
+      'jira',
+      (_config, logger) => {
+        logger.warn('Jira sync adapter is not yet implemented');
+        return null;
+      },
+    ],
+    [
+      'none',
+      () => null,
+    ],
+  ]);
+}
+
 // ============================================================================
 // Sync Manager
 // ============================================================================
@@ -51,10 +93,12 @@ export class ExternalSyncManager {
   private config: ExternalSyncConfig;
   private adapter: IExternalSyncAdapter | null = null;
   private readonly logger: SyncLogger;
+  private readonly adapterFactories: Map<SyncProvider, SyncAdapterFactory>;
 
   constructor(config?: Partial<ExternalSyncConfig>, logger?: SyncLogger) {
     this.config = { ...createDefaultSyncConfig(), ...config };
     this.logger = logger ?? noopLogger;
+    this.adapterFactories = createDefaultAdapterFactories();
 
     if (this.config.enabled && this.config.provider !== 'none') {
       this.adapter = this.createAdapter();
@@ -109,6 +153,10 @@ export class ExternalSyncManager {
     this.logger.info('Custom sync adapter injected', {
       provider: adapter.provider,
     });
+  }
+
+  registerProvider(provider: SyncProvider, factory: SyncAdapterFactory): void {
+    this.adapterFactories.set(provider, factory);
   }
 
   // --------------------------------------------------------------------------
@@ -244,7 +292,7 @@ export class ExternalSyncManager {
         }
 
         // Wait with exponential backoff + jitter
-        const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 100;
+        const delay = calculateBackoffDelay(attempt, baseDelay);
         this.logger.debug(`Sync ${operationName} retrying`, {
           ...context,
           attempt,
@@ -272,7 +320,7 @@ export class ExternalSyncManager {
           break;
         }
 
-        const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 100;
+        const delay = calculateBackoffDelay(attempt, baseDelay);
         await this.sleep(delay);
       }
     }
@@ -308,36 +356,13 @@ export class ExternalSyncManager {
   }
 
   private createAdapter(): IExternalSyncAdapter | null {
-    switch (this.config.provider) {
-      case 'github': {
-        const githubConfig = this.config.github;
-        if (!githubConfig) {
-          this.logger.error(
-            'GitHub sync enabled but no github config provided',
-          );
-          return null;
-        }
-        try {
-          return new GitHubSyncAdapter(githubConfig);
-        } catch (err) {
-          this.logger.error('Failed to create GitHub sync adapter', {
-            error: err instanceof Error ? err.message : String(err),
-          });
-          return null;
-        }
-      }
-
-      case 'jira':
-        this.logger.warn('Jira sync adapter is not yet implemented');
-        return null;
-
-      case 'none':
-        return null;
-
-      default:
-        this.logger.warn(`Unknown sync provider: ${this.config.provider}`);
-        return null;
+    const factory = this.adapterFactories.get(this.config.provider);
+    if (!factory) {
+      this.logger.warn(`Unknown sync provider: ${this.config.provider}`);
+      return null;
     }
+
+    return factory(this.config, this.logger);
   }
 
   private sleep(ms: number): Promise<void> {

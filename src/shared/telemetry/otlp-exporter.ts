@@ -83,6 +83,9 @@ export class OTLPTraceExporter {
           logger.error('Periodic flush failed', err),
         );
       }, this.config.exportIntervalMs);
+      if (this.timer.unref) {
+        this.timer.unref();
+      }
     }
     logger.info(`OTLP exporter started -> ${this.config.endpoint}`);
   }
@@ -109,14 +112,16 @@ export class OTLPTraceExporter {
 
     const spans = this.buffer.splice(0, this.config.batchSize);
     const payload = this.buildPayload(spans);
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      this.config.timeoutMs,
+    );
+    if (timeout.unref) {
+      timeout.unref();
+    }
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(
-        () => controller.abort(),
-        this.config.timeoutMs,
-      );
-
       const response = await fetch(this.config.endpoint, {
         method: 'POST',
         headers: {
@@ -126,8 +131,6 @@ export class OTLPTraceExporter {
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
-
-      clearTimeout(timeout);
 
       if (!response.ok) {
         this.errorCount++;
@@ -143,6 +146,8 @@ export class OTLPTraceExporter {
       this.errorCount++;
       logger.warn(`OTLP export error: ${(error as Error).message}`);
       this.buffer.unshift(...spans);
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

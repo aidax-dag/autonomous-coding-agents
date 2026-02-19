@@ -68,6 +68,19 @@ export interface RoutingDecision {
 }
 
 /**
+ * Routing strategy contract
+ *
+ * Strategy implementations can be registered at runtime to extend routing
+ * behavior without modifying TaskRouter internals.
+ */
+export interface IRoutingStrategy {
+  /** Strategy identifier */
+  readonly type: RoutingStrategy;
+  /** Resolve a routing decision for a task context */
+  route(taskType: TaskType, priority: TaskPriority): RoutingDecision | null;
+}
+
+/**
  * Router events
  */
 export interface RouterEvents {
@@ -103,6 +116,64 @@ const PRIORITY_TEAM_ORDER: Record<TaskPriority, TeamType[]> = {
   low: ['development', 'pm'],
 };
 
+interface RoutingStrategyDeps {
+  routeByCapability: (taskType: TaskType) => RoutingDecision | null;
+  routeByLoad: (taskType: TaskType) => RoutingDecision | null;
+  routeByPriority: (taskType: TaskType, priority: TaskPriority) => RoutingDecision | null;
+  routeRoundRobin: (taskType: TaskType) => RoutingDecision | null;
+}
+
+class CapabilityMatchStrategy implements IRoutingStrategy {
+  readonly type = RoutingStrategy.CAPABILITY_MATCH;
+
+  constructor(private readonly deps: RoutingStrategyDeps) {}
+
+  route(taskType: TaskType, _priority: TaskPriority): RoutingDecision | null {
+    return this.deps.routeByCapability(taskType);
+  }
+}
+
+class LoadBalancedStrategy implements IRoutingStrategy {
+  readonly type = RoutingStrategy.LOAD_BALANCED;
+
+  constructor(private readonly deps: RoutingStrategyDeps) {}
+
+  route(taskType: TaskType, _priority: TaskPriority): RoutingDecision | null {
+    return this.deps.routeByLoad(taskType);
+  }
+}
+
+class PriorityBasedStrategy implements IRoutingStrategy {
+  readonly type = RoutingStrategy.PRIORITY_BASED;
+
+  constructor(private readonly deps: RoutingStrategyDeps) {}
+
+  route(taskType: TaskType, priority: TaskPriority): RoutingDecision | null {
+    return this.deps.routeByPriority(taskType, priority);
+  }
+}
+
+class RoundRobinStrategy implements IRoutingStrategy {
+  readonly type = RoutingStrategy.ROUND_ROBIN;
+
+  constructor(private readonly deps: RoutingStrategyDeps) {}
+
+  route(taskType: TaskType, _priority: TaskPriority): RoutingDecision | null {
+    return this.deps.routeRoundRobin(taskType);
+  }
+}
+
+function createRoutingStrategies(deps: RoutingStrategyDeps): Map<RoutingStrategy, IRoutingStrategy> {
+  const strategies: IRoutingStrategy[] = [
+    new CapabilityMatchStrategy(deps),
+    new LoadBalancedStrategy(deps),
+    new PriorityBasedStrategy(deps),
+    new RoundRobinStrategy(deps),
+  ];
+
+  return new Map(strategies.map((strategy) => [strategy.type, strategy]));
+}
+
 /**
  * Task Router
  */
@@ -112,6 +183,7 @@ export class TaskRouter extends EventEmitter {
   private readonly queue: DocumentQueue;
   private readonly config: TaskRouterConfig;
   private roundRobinIndex: Map<TaskType, number> = new Map();
+  private readonly strategyRegistry: Map<RoutingStrategy, IRoutingStrategy>;
 
   constructor(
     registry: ITeamRegistry,
@@ -128,6 +200,13 @@ export class TaskRouter extends EventEmitter {
       routingRetryDelay: config?.routingRetryDelay ?? 1000,
       loadThreshold: config?.loadThreshold ?? 0.8,
     };
+
+    this.strategyRegistry = createRoutingStrategies({
+      routeByCapability: (taskType) => this.routeByCapability(taskType),
+      routeByLoad: (taskType) => this.routeByLoad(taskType),
+      routeByPriority: (taskType, priority) => this.routeByPriority(taskType, priority),
+      routeRoundRobin: (taskType) => this.routeRoundRobin(taskType),
+    });
   }
 
   /**
@@ -195,18 +274,22 @@ export class TaskRouter extends EventEmitter {
     priority: TaskPriority = 'medium',
     strategy: RoutingStrategy = this.config.defaultStrategy
   ): RoutingDecision | null {
-    switch (strategy) {
-      case RoutingStrategy.CAPABILITY_MATCH:
-        return this.routeByCapability(taskType);
-      case RoutingStrategy.LOAD_BALANCED:
-        return this.routeByLoad(taskType);
-      case RoutingStrategy.PRIORITY_BASED:
-        return this.routeByPriority(taskType, priority);
-      case RoutingStrategy.ROUND_ROBIN:
-        return this.routeRoundRobin(taskType);
-      default:
-        return this.routeByCapability(taskType);
+    const selectedStrategy = this.strategyRegistry.get(strategy)
+      ?? this.strategyRegistry.get(this.config.defaultStrategy)
+      ?? this.strategyRegistry.get(RoutingStrategy.CAPABILITY_MATCH);
+
+    if (!selectedStrategy) {
+      return null;
     }
+
+    return selectedStrategy.route(taskType, priority);
+  }
+
+  /**
+   * Register or override a routing strategy implementation.
+   */
+  registerStrategy(strategy: IRoutingStrategy): void {
+    this.strategyRegistry.set(strategy.type, strategy);
   }
 
   /**
@@ -236,52 +319,71 @@ export class TaskRouter extends EventEmitter {
    * Route by load balancing
    */
   private routeByLoad(taskType: TaskType): RoutingDecision | null {
-    const results = this.registry.findTeamsForTaskType(taskType);
-
-    if (results.length === 0) {
+    const teamCandidates = this.registry.findTeamsForTaskType(taskType);
+    if (teamCandidates.length === 0) {
       return this.routeByDefaultMapping(taskType, RoutingStrategy.LOAD_BALANCED);
     }
 
-    // Filter by available teams under load threshold
-    const available = results.filter(
-      (r) =>
-        r.team.getLoad() < this.config.loadThreshold &&
-        (r.team.status === TeamAgentStatus.IDLE ||
-          r.team.status === TeamAgentStatus.PROCESSING)
-    );
-
-    if (available.length === 0) {
-      // All teams are loaded, pick the least loaded
-      const sorted = results.sort((a, b) => a.team.getLoad() - b.team.getLoad());
-      const best = sorted[0];
-
-      return {
-        targetTeam: best.team.teamType,
-        strategy: RoutingStrategy.LOAD_BALANCED,
-        confidence: 0.5,
-        alternatives: sorted.slice(1).map((r) => r.team.teamType),
-        reason: `All teams loaded, picked least loaded: ${best.team.teamType} (${Math.round(best.team.getLoad() * 100)}%)`,
-      };
+    const availableCandidates = teamCandidates.filter((candidate) => this.isCandidateAvailable(candidate));
+    if (availableCandidates.length === 0) {
+      return this.createOverloadedDecision(teamCandidates);
     }
 
-    // Sort by load (lowest first) then by capability score
-    const sorted = available.sort((a, b) => {
-      const loadDiff = a.team.getLoad() - b.team.getLoad();
+    return this.createAvailableDecision(availableCandidates);
+  }
+
+  private isCandidateAvailable(candidate: ReturnType<ITeamRegistry['findTeamsForTaskType']>[number]): boolean {
+    return candidate.team.getLoad() < this.config.loadThreshold
+      && (candidate.team.status === TeamAgentStatus.IDLE
+      || candidate.team.status === TeamAgentStatus.PROCESSING);
+  }
+
+  private sortCandidatesByLoad(
+    candidates: ReturnType<ITeamRegistry['findTeamsForTaskType']>,
+  ): ReturnType<ITeamRegistry['findTeamsForTaskType']> {
+    return [...candidates].sort((candidateA, candidateB) => candidateA.team.getLoad() - candidateB.team.getLoad());
+  }
+
+  private sortAvailableCandidates(
+    candidates: ReturnType<ITeamRegistry['findTeamsForTaskType']>,
+  ): ReturnType<ITeamRegistry['findTeamsForTaskType']> {
+    return [...candidates].sort((candidateA, candidateB) => {
+      const loadDiff = candidateA.team.getLoad() - candidateB.team.getLoad();
       if (Math.abs(loadDiff) < 0.1) {
         // Similar load, prefer higher capability score
-        return b.score - a.score;
+        return candidateB.score - candidateA.score;
       }
       return loadDiff;
     });
+  }
 
-    const best = sorted[0];
+  private createOverloadedDecision(
+    candidates: ReturnType<ITeamRegistry['findTeamsForTaskType']>,
+  ): RoutingDecision {
+    const sortedCandidates = this.sortCandidatesByLoad(candidates);
+    const selectedCandidate = sortedCandidates[0];
 
     return {
-      targetTeam: best.team.teamType,
+      targetTeam: selectedCandidate.team.teamType,
       strategy: RoutingStrategy.LOAD_BALANCED,
-      confidence: (1 - best.team.getLoad()) * (best.score / 100),
-      alternatives: sorted.slice(1).map((r) => r.team.teamType),
-      reason: `Load balanced selection: ${best.team.teamType} (${Math.round(best.team.getLoad() * 100)}% load)`,
+      confidence: 0.5,
+      alternatives: sortedCandidates.slice(1).map((candidate) => candidate.team.teamType),
+      reason: `All teams loaded, picked least loaded: ${selectedCandidate.team.teamType} (${Math.round(selectedCandidate.team.getLoad() * 100)}%)`,
+    };
+  }
+
+  private createAvailableDecision(
+    availableCandidates: ReturnType<ITeamRegistry['findTeamsForTaskType']>,
+  ): RoutingDecision {
+    const sortedCandidates = this.sortAvailableCandidates(availableCandidates);
+    const selectedCandidate = sortedCandidates[0];
+
+    return {
+      targetTeam: selectedCandidate.team.teamType,
+      strategy: RoutingStrategy.LOAD_BALANCED,
+      confidence: (1 - selectedCandidate.team.getLoad()) * (selectedCandidate.score / 100),
+      alternatives: sortedCandidates.slice(1).map((candidate) => candidate.team.teamType),
+      reason: `Load balanced selection: ${selectedCandidate.team.teamType} (${Math.round(selectedCandidate.team.getLoad() * 100)}% load)`,
     };
   }
 

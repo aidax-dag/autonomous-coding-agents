@@ -9,6 +9,11 @@
  * - Threshold-based recommendations (proceed/alternatives/stop)
  */
 
+import {
+  DEFAULT_PROCEED_THRESHOLD,
+  DEFAULT_ALTERNATIVES_THRESHOLD,
+} from './constants';
+
 // ============================================================================
 // Interfaces
 // ============================================================================
@@ -183,8 +188,8 @@ export class ConfidenceChecker implements IConfidenceChecker {
 
   constructor(options: ConfidenceCheckerOptions = {}) {
     this.checkItems = options.checkItems ?? [...DEFAULT_CHECK_ITEMS];
-    this.proceedThreshold = options.proceedThreshold ?? 90;
-    this.alternativesThreshold = options.alternativesThreshold ?? 70;
+    this.proceedThreshold = options.proceedThreshold ?? DEFAULT_PROCEED_THRESHOLD;
+    this.alternativesThreshold = options.alternativesThreshold ?? DEFAULT_ALTERNATIVES_THRESHOLD;
 
     // Validate initial configuration
     if (options.checkItems) {

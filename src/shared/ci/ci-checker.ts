@@ -16,6 +16,7 @@ import {
   CICheckConfig,
 } from './types';
 import { createAgentLogger } from '../logging/logger';
+import { CI_TIMEOUT_MS, CI_POLL_INTERVAL_MS, COVERAGE_GOOD_PCT } from '../constants';
 
 type OctokitCheckRun = RestEndpointMethodTypes['checks']['listForRef']['response']['data']['check_runs'][number];
 
@@ -32,9 +33,9 @@ export class CIChecker {
     this.octokit = new Octokit({ auth: token });
     this.config = {
       provider: 'github-actions',
-      timeout: 600000, // 10 minutes
-      pollInterval: 10000, // 10 seconds
-      minCoverage: 80,
+      timeout: CI_TIMEOUT_MS,
+      pollInterval: CI_POLL_INTERVAL_MS,
+      minCoverage: COVERAGE_GOOD_PCT,
       ...config,
     };
   }

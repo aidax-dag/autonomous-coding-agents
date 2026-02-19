@@ -59,6 +59,7 @@ export class WindowsSandbox implements IOSSandbox {
     const timeoutMs = policy.timeoutMs ?? 30_000;
 
     return new Promise<SandboxResult>((resolve) => {
+      let killTimer: ReturnType<typeof setTimeout> | undefined;
       const child = execFile(
         'powershell.exe',
         ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script],
@@ -68,6 +69,10 @@ export class WindowsSandbox implements IOSSandbox {
           env: { ...process.env, ...this.buildEnvironment(policy) },
         },
         (error, stdout, stderr) => {
+          if (killTimer) {
+            clearTimeout(killTimer);
+            killTimer = undefined;
+          }
           const timedOut = error !== null
             && 'killed' in error
             && (error as { killed?: boolean }).killed === true;
@@ -89,11 +94,14 @@ export class WindowsSandbox implements IOSSandbox {
 
       // Safety: kill if the child is still running past timeout
       if (timeoutMs > 0) {
-        setTimeout(() => {
+        killTimer = setTimeout(() => {
           if (child.exitCode === null) {
             child.kill('SIGKILL');
           }
         }, timeoutMs + 1000);
+        if (killTimer.unref) {
+          killTimer.unref();
+        }
       }
     });
   }

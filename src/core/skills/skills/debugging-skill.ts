@@ -6,12 +6,8 @@
  * @module core/skills/skills
  */
 
-import type {
-  ISkill,
-  SkillContext,
-  SkillResult,
-} from '../interfaces/skill.interface';
-import { createSkillFallback } from '../skill-fallback';
+import type { SkillContext } from '../interfaces/skill.interface';
+import { BaseSkill } from '../base-skill';
 
 /**
  * A suggested fix for a debugging issue
@@ -53,96 +49,31 @@ export interface DebuggingSkillOutput {
 /**
  * Debugging skill — analyzes errors and suggests fixes
  */
-export class DebuggingSkill
-  implements ISkill<DebuggingSkillInput, DebuggingSkillOutput>
-{
+export class DebuggingSkill extends BaseSkill<DebuggingSkillInput, DebuggingSkillOutput> {
   readonly name = 'debugging';
   readonly description = 'Analyzes errors and stack traces to identify root causes and suggest fixes';
   readonly tags = ['debug', 'troubleshoot', 'error-analysis'] as const;
-  readonly version = '1.0.0';
-
-  private readonly executor?: (
-    input: DebuggingSkillInput,
-    context: SkillContext,
-  ) => Promise<DebuggingSkillOutput>;
-
-  constructor(options?: {
-    executor?: (
-      input: DebuggingSkillInput,
-      context: SkillContext,
-    ) => Promise<DebuggingSkillOutput>;
-  }) {
-    this.executor = options?.executor;
-  }
+  protected readonly validationError = 'Invalid input: error message is required';
 
   validate(input: DebuggingSkillInput): boolean {
     return typeof input.error === 'string' && input.error.length > 0;
   }
 
-  canHandle(input: unknown): boolean {
-    const typed = input as DebuggingSkillInput;
-    return (
-      typed !== null &&
-      typeof typed === 'object' &&
-      typeof typed.error === 'string' &&
-      typed.error.length > 0
-    );
+  protected createFallbackOutput(input: DebuggingSkillInput): DebuggingSkillOutput {
+    return {
+      rootCause: `Analysis pending for: ${input.error}`,
+      hypothesis: ['Requires LLM analysis for hypothesis generation'],
+      suggestedFixes: [
+        {
+          description: 'Review the error context and stack trace for detailed diagnosis',
+        },
+      ],
+      confidence: 0,
+    };
   }
 
-  async execute(
-    input: DebuggingSkillInput,
-    context: SkillContext,
-  ): Promise<SkillResult<DebuggingSkillOutput>> {
-    const start = Date.now();
-
-    if (!this.validate(input)) {
-      return {
-        success: false,
-        error: 'Invalid input: error message is required',
-        duration: Date.now() - start,
-      };
-    }
-
-    try {
-      if (this.executor) {
-        const output = await this.executor(input, context);
-        return {
-          success: true,
-          output,
-          duration: Date.now() - start,
-        };
-      }
-
-      // Default stub output
-      const fallback = createSkillFallback('debugging', 'no_executor', {
-        error: input.error,
-        hasStackTrace: !!input.stackTrace,
-      });
-
-      const output: DebuggingSkillOutput = {
-        rootCause: `Analysis pending for: ${input.error}`,
-        hypothesis: ['Requires LLM analysis for hypothesis generation'],
-        suggestedFixes: [
-          {
-            description: 'Review the error context and stack trace for detailed diagnosis',
-          },
-        ],
-        confidence: 0,
-      };
-
-      return {
-        success: true,
-        output,
-        duration: Date.now() - start,
-        metadata: { fallback },
-      };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-        duration: Date.now() - start,
-      };
-    }
+  protected createFallbackContext(input: DebuggingSkillInput): Record<string, unknown> {
+    return { error: input.error, hasStackTrace: !!input.stackTrace };
   }
 }
 

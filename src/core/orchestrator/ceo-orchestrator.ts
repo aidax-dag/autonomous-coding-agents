@@ -30,6 +30,7 @@ import { WorkspaceManager } from '../workspace/workspace-manager';
 import { TeamRegistry, ITeamRegistry } from './team-registry';
 import { TaskRouter, RoutingStrategy, RoutingDecision } from './task-router';
 import { ITeamAgent, TeamAgentStatus, TaskHandlerResult } from './team-agent';
+import { DEFAULT_TASK_TIMEOUT_MS, HEALTH_CHECK_INTERVAL_MS } from './constants';
 
 /**
  * Orchestrator status
@@ -107,8 +108,8 @@ export interface CEOEvents {
 const DEFAULT_CONFIG: CEOOrchestratorConfig = {
   routingStrategy: RoutingStrategy.LOAD_BALANCED,
   maxConcurrentTasks: 20,
-  taskTimeout: 300000, // 5 minutes
-  healthCheckInterval: 30000, // 30 seconds
+  taskTimeout: DEFAULT_TASK_TIMEOUT_MS,
+  healthCheckInterval: HEALTH_CHECK_INTERVAL_MS,
   autoStartTeams: true,
   enableDecomposition: true,
 };
@@ -212,9 +213,11 @@ export class CEOOrchestrator extends EventEmitter {
    * Stop the orchestrator
    */
   async stop(): Promise<void> {
-    if (this.status === CEOStatus.STOPPED) {
+    if (this.status === CEOStatus.STOPPING) {
       return;
     }
+
+    const shouldEmitStopped = this.status !== CEOStatus.STOPPED;
 
     try {
       this.status = CEOStatus.STOPPING;
@@ -229,7 +232,9 @@ export class CEOOrchestrator extends EventEmitter {
       await this.queue.stop();
 
       this.status = CEOStatus.STOPPED;
-      this.emit('stopped');
+      if (shouldEmitStopped) {
+        this.emit('stopped');
+      }
     } catch (error) {
       this.status = CEOStatus.ERROR;
       this.emit('error', error instanceof Error ? error : new Error(String(error)));
@@ -551,6 +556,9 @@ export class CEOOrchestrator extends EventEmitter {
         this.emit('error', error instanceof Error ? error : new Error(String(error)));
       }
     }, this.config.healthCheckInterval);
+    if (this.healthCheckTimer.unref) {
+      this.healthCheckTimer.unref();
+    }
   }
 
   /**

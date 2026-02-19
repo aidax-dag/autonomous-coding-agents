@@ -1,11 +1,20 @@
-import path from 'path';
 import { z } from 'zod';
 import { ServiceRegistry } from '@/core/services/service-registry';
-import { checkMCPReadiness, type MCPGateResult, MCPGateReasonCode } from './mcp-gate';
+import { checkMCPReadiness, type MCPGateResult } from './mcp-gate';
 import type { ITicketFeatureRepository, TicketFeatureStore } from './interfaces/ticket-feature-repository.interface';
-import { JsonTicketFeatureRepository } from './repositories/json-repository';
+import {
+  createDefaultTicketFeatureRepository,
+  type TicketFeatureRepositoryFactory,
+} from './repositories/repository-factory';
 import type { ExternalSyncConfig } from './sync/external-sync.interface';
 import { ExternalSyncManager } from './sync/sync-manager';
+import {
+  TOP_LABELS_LIMIT,
+} from './constants';
+import { createIdGenerator, type IIdGenerator } from './id-generator';
+import { createVersionManager, type IVersionManager } from './version-manager';
+import { createTicketLifecycleService, TicketLifecycleService } from './ticket-lifecycle-service';
+import { createFeatureLifecycleService, FeatureLifecycleService } from './feature-lifecycle-service';
 
 const ticketStatusSchema = z.enum([
   'created',
@@ -161,10 +170,19 @@ export interface TicketFeatureServiceOptions {
   requireMCP?: boolean;
   /** Pluggable storage backend. Defaults to JsonTicketFeatureRepository. */
   repository?: ITicketFeatureRepository;
+  /**
+   * Factory used when repository is not explicitly provided.
+   * Allows DI without concrete repository construction in this service.
+   */
+  repositoryFactory?: TicketFeatureRepositoryFactory;
   /** External sync configuration. Disabled by default. */
   syncConfig?: Partial<ExternalSyncConfig>;
   /** Pre-configured sync manager instance (overrides syncConfig). */
   syncManager?: ExternalSyncManager;
+  /** ID generation strategy for ticket/feature identifiers. */
+  idGenerator?: IIdGenerator;
+  /** Version utility for semantic version bumps and history entries. */
+  versionManager?: IVersionManager;
 }
 
 export interface TicketListFilter {
@@ -207,31 +225,30 @@ const DEFAULT_STORE: TicketFeatureStore = {
   features: [],
 };
 
-const TICKET_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
-  created: ['in_progress', 'pending', 'cancelled'],
-  in_progress: ['pending', 'reviewing', 'cancelled'],
-  pending: ['in_progress', 'reviewing', 'cancelled'],
-  reviewing: ['in_progress', 'completed', 'cancelled'],
-  completed: [],
-  cancelled: [],
-};
-
 export class TicketFeatureService {
   private readonly repository: ITicketFeatureRepository;
   private readonly requireMCP: boolean;
   private readonly syncManager: ExternalSyncManager;
+  private readonly idGenerator: IIdGenerator;
+  private readonly versionManager: IVersionManager;
+  private readonly ticketLifecycle: TicketLifecycleService;
+  private readonly featureLifecycle: FeatureLifecycleService;
   private store: TicketFeatureStore = structuredClone(DEFAULT_STORE);
   private loaded = false;
 
   constructor(options: TicketFeatureServiceOptions = {}) {
-    this.repository = options.repository ?? new JsonTicketFeatureRepository({
-      filePath: path.join(
-        options.dataDir ?? path.join(process.cwd(), 'data', 'ticket-cycle'),
-        'store.json',
-      ),
-    });
+    const repositoryFactory = options.repositoryFactory ?? createDefaultTicketFeatureRepository;
+    this.repository =
+      options.repository ??
+      repositoryFactory({
+        dataDir: options.dataDir,
+      });
     this.requireMCP = options.requireMCP ?? process.env.ACA_REQUIRE_MCP_FOR_TICKET_CYCLE !== 'false';
     this.syncManager = options.syncManager ?? new ExternalSyncManager(options.syncConfig);
+    this.idGenerator = options.idGenerator ?? createIdGenerator();
+    this.versionManager = options.versionManager ?? createVersionManager();
+    this.ticketLifecycle = createTicketLifecycleService(this.idGenerator);
+    this.featureLifecycle = createFeatureLifecycleService(this.idGenerator, this.versionManager);
   }
 
   /**
@@ -242,310 +259,174 @@ export class TicketFeatureService {
   }
 
   async createTicket(input: TicketCreateInput): Promise<TicketRecord> {
-    await this.ensureLoaded();
-    const parsed = ticketCreateSchema.parse(input);
-    const now = new Date().toISOString();
+    return this.withLoaded(async () => {
+      const parsed = ticketCreateSchema.parse(input);
+      const ticket = this.ticketLifecycle.createTicket(this.store, parsed);
+      await this.persist();
 
-    this.store.counters.ticket += 1;
-    this.store.counters.management += 1;
+      // Fire-and-forget: sync to external system
+      this.fireAndForgetSync(() => this.syncManager.onTicketCreated(ticket));
 
-    const ticket: TicketRecord = {
-      ...parsed,
-      ticketId: this.generateTicketId(this.store.counters.ticket),
-      managementNumber:
-        parsed.managementNumber ?? this.generateManagementNumber(this.store.counters.management),
-      status: 'created',
-      createdAt: now,
-      updatedAt: now,
-      artifacts: [],
-      issues: [],
-      reviews: [],
-    };
-
-    this.store.tickets.push(ticket);
-    await this.persist();
-
-    // Fire-and-forget: sync to external system
-    this.fireAndForgetSync(() => this.syncManager.onTicketCreated(ticket));
-
-    return structuredClone(ticket);
+      return structuredClone(ticket);
+    });
   }
 
   async listTickets(filter: TicketListFilter = {}): Promise<TicketRecord[]> {
-    await this.ensureLoaded();
-    const filtered = this.store.tickets.filter((ticket) => {
-      if (filter.status && filter.status.length > 0 && !filter.status.includes(ticket.status)) {
-        return false;
-      }
-      return true;
+    return this.withLoaded(async () => {
+      const filtered = this.ticketLifecycle.listTickets(this.store, filter);
+      return structuredClone(filtered);
     });
-
-    return structuredClone(filtered);
   }
 
   async getTicket(ticketId: string): Promise<TicketRecord> {
-    await this.ensureLoaded();
-    return structuredClone(this.mustGetTicket(ticketId));
+    return this.withLoaded(async () => structuredClone(this.ticketLifecycle.getTicket(this.store, ticketId)));
   }
 
   async startTicket(ticketId: string, agentId: string): Promise<TicketRecord> {
     this.assertNonEmpty(agentId, 'agentId');
-    await this.ensureLoaded();
-    this.assertMCPReady();
+    return this.withLoaded(async () => {
+      this.assertMCPReady();
 
-    const ticket = this.mustGetTicket(ticketId);
-    const oldStatus = ticket.status;
-    this.assertTransition(ticket.status, 'in_progress');
+      const { ticket, oldStatus } = this.ticketLifecycle.startTicket(this.store, ticketId, agentId);
 
-    const now = new Date().toISOString();
-    ticket.status = 'in_progress';
-    ticket.startedAt = ticket.startedAt ?? now;
-    ticket.updatedAt = now;
+      await this.persist();
 
-    const hasExecutor = ticket.assignees.some((a) => a.agentId === agentId && a.role === 'executor');
-    if (!hasExecutor) {
-      ticket.assignees.push({ agentId, role: 'executor' });
-    }
+      // Fire-and-forget: sync status change to external system
+      this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, oldStatus, 'in_progress'));
 
-    await this.persist();
-
-    // Fire-and-forget: sync status change to external system
-    this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, oldStatus, 'in_progress'));
-
-    return structuredClone(ticket);
+      return structuredClone(ticket);
+    });
   }
 
   async updateTicketStatus(ticketId: string, status: TicketStatus): Promise<TicketRecord> {
-    await this.ensureLoaded();
-    const parsed = ticketStatusSchema.parse(status);
+    return this.withLoaded(async () => {
+      const parsed = ticketStatusSchema.parse(status);
+      const { ticket, oldStatus } = this.ticketLifecycle.updateTicketStatus(this.store, ticketId, parsed);
 
-    const ticket = this.mustGetTicket(ticketId);
-    const oldStatus = ticket.status;
-    this.assertTransition(ticket.status, parsed);
+      await this.persist();
 
-    ticket.status = parsed;
-    ticket.updatedAt = new Date().toISOString();
-    if (parsed === 'cancelled') {
-      ticket.endedAt = ticket.updatedAt;
-    }
+      // Fire-and-forget: sync status change to external system
+      this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, oldStatus, parsed));
 
-    await this.persist();
-
-    // Fire-and-forget: sync status change to external system
-    this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, oldStatus, parsed));
-
-    return structuredClone(ticket);
+      return structuredClone(ticket);
+    });
   }
 
   async addArtifact(ticketId: string, artifact: TicketArtifact): Promise<TicketRecord> {
-    await this.ensureLoaded();
-    const parsed = ticketArtifactSchema.parse(artifact);
-
-    const ticket = this.mustGetTicket(ticketId);
-    ticket.artifacts.push(parsed);
-    ticket.updatedAt = new Date().toISOString();
-
-    await this.persist();
-    return structuredClone(ticket);
+    return this.withLoaded(async () => {
+      const parsed = ticketArtifactSchema.parse(artifact);
+      const ticket = this.ticketLifecycle.addArtifact(this.store, ticketId, parsed);
+      await this.persist();
+      return structuredClone(ticket);
+    });
   }
 
   async addIssue(ticketId: string, issue: TicketIssue): Promise<TicketRecord> {
-    await this.ensureLoaded();
-    const parsed = ticketIssueSchema.parse(issue);
-
-    const ticket = this.mustGetTicket(ticketId);
-    ticket.issues.push({
-      message: parsed.message,
-      severity: parsed.severity,
-      createdAt: parsed.createdAt ?? new Date().toISOString(),
+    return this.withLoaded(async () => {
+      const parsed = ticketIssueSchema.parse(issue);
+      const ticket = this.ticketLifecycle.addIssue(this.store, ticketId, parsed);
+      await this.persist();
+      return structuredClone(ticket);
     });
-    ticket.updatedAt = new Date().toISOString();
-
-    await this.persist();
-    return structuredClone(ticket);
   }
 
   async addReview(ticketId: string, review: TicketReview): Promise<TicketRecord> {
-    await this.ensureLoaded();
-    const parsed = ticketReviewSchema.parse(review);
+    return this.withLoaded(async () => {
+      const parsed = ticketReviewSchema.parse(review);
+      const ticket = this.ticketLifecycle.addReview(this.store, ticketId, parsed);
+      await this.persist();
 
-    const ticket = this.mustGetTicket(ticketId);
-    const updatedAt = parsed.updatedAt ?? new Date().toISOString();
+      // Fire-and-forget: sync review to external system
+      this.fireAndForgetSync(() => this.syncManager.onReviewAdded(ticketId, parsed));
 
-    const existingIndex = ticket.reviews.findIndex((r) => r.reviewerId === parsed.reviewerId);
-    const normalized = {
-      reviewerId: parsed.reviewerId,
-      decision: parsed.decision,
-      comment: parsed.comment,
-      updatedAt,
-    };
-
-    if (existingIndex >= 0) {
-      ticket.reviews[existingIndex] = normalized;
-    } else {
-      ticket.reviews.push(normalized);
-    }
-
-    ticket.updatedAt = updatedAt;
-    await this.persist();
-
-    // Fire-and-forget: sync review to external system
-    this.fireAndForgetSync(() => this.syncManager.onReviewAdded(ticketId, parsed));
-
-    return structuredClone(ticket);
+      return structuredClone(ticket);
+    });
   }
 
   async completeTicket(
     ticketId: string,
     options: CompleteTicketOptions = {},
   ): Promise<{ ticket: TicketRecord; feature?: FeatureRecord }> {
-    await this.ensureLoaded();
-    this.assertMCPReady();
+    return this.withLoaded(async () => {
+      this.assertMCPReady();
+      const { ticket, oldStatus } = this.ticketLifecycle.completeTicket(this.store, ticketId);
 
-    const ticket = this.mustGetTicket(ticketId);
-
-    if (ticket.status !== 'reviewing') {
-      throw new Error('Ticket can only be completed from reviewing status');
-    }
-
-    if (ticket.artifacts.length === 0) {
-      throw new Error('At least one artifact is required before completion');
-    }
-
-    if (ticket.reviews.length === 0) {
-      throw new Error('At least one review is required before completion');
-    }
-
-    const hasRejectedReview = ticket.reviews.some((review) => review.decision === 'changes_requested');
-    if (hasRejectedReview) {
-      throw new Error('Cannot complete ticket while reviews request changes');
-    }
-
-    const reviewerAssignees = ticket.assignees.filter((assignee) => assignee.role === 'reviewer');
-    if (reviewerAssignees.length > 0) {
-      const approvedReviewers = new Set(ticket.reviews.map((r) => r.reviewerId));
-      for (const reviewer of reviewerAssignees) {
-        if (!approvedReviewers.has(reviewer.agentId)) {
-          throw new Error(`Reviewer ${reviewer.agentId} approval is required`);
-        }
+      let feature: FeatureRecord | undefined;
+      if (options.registerFeature) {
+        feature = await this.registerFeatureFromTicket(ticketId, options.feature);
+      } else {
+        await this.persist();
       }
-    }
 
-    const now = new Date().toISOString();
-    ticket.status = 'completed';
-    ticket.endedAt = now;
-    ticket.updatedAt = now;
+      // Fire-and-forget: sync status change to external system
+      this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, oldStatus, 'completed'));
 
-    let feature: FeatureRecord | undefined;
-    if (options.registerFeature) {
-      feature = await this.registerFeatureFromTicket(ticketId, options.feature);
-    } else {
-      await this.persist();
-    }
-
-    // Fire-and-forget: sync status change to external system
-    this.fireAndForgetSync(() => this.syncManager.onStatusChange(ticketId, 'reviewing', 'completed'));
-
-    return {
-      ticket: structuredClone(ticket),
-      ...(feature ? { feature: structuredClone(feature) } : {}),
-    };
+      return {
+        ticket: structuredClone(ticket),
+        ...(feature ? { feature: structuredClone(feature) } : {}),
+      };
+    });
   }
 
   async registerFeatureFromTicket(
     ticketId: string,
     input: Partial<FeatureCreateInput> = {},
   ): Promise<FeatureRecord> {
-    await this.ensureLoaded();
+    return this.withLoaded(async () => {
+      const ticket = this.ticketLifecycle.getTicket(this.store, ticketId);
+      if (ticket.artifacts.length === 0) {
+        throw new Error('Ticket requires artifacts before feature registration');
+      }
 
-    const ticket = this.mustGetTicket(ticketId);
-    if (ticket.artifacts.length === 0) {
-      throw new Error('Ticket requires artifacts before feature registration');
-    }
+      const usageGuideLinks = input.usageGuideLinks ?? this.extractUsageGuideLinks(ticket.artifacts);
+      if (usageGuideLinks.length === 0) {
+        throw new Error('Feature registration requires usageGuideLinks');
+      }
 
-    const usageGuideLinks = input.usageGuideLinks ?? this.extractUsageGuideLinks(ticket.artifacts);
-    if (usageGuideLinks.length === 0) {
-      throw new Error('Feature registration requires usageGuideLinks');
-    }
+      const featureInput: FeatureCreateInput = {
+        title: input.title ?? ticket.title,
+        background: input.background ?? ticket.background,
+        problem: input.problem ?? ticket.problem,
+        requirements: input.requirements ?? [ticket.workDescription],
+        verificationChecklist: input.verificationChecklist ?? ticket.verification.checklist,
+        artifactLinks: input.artifactLinks ?? ticket.artifacts,
+        usageGuideLinks,
+        labels: input.labels ?? [],
+        options:
+          input.options ??
+          {
+            languages: [],
+            applicableDomains: [],
+            constraints: [],
+          },
+        version: input.version ?? '1.0.0',
+        status: input.status ?? 'draft',
+        reviews: input.reviews ?? [],
+        sourceTickets: [...new Set([...(input.sourceTickets ?? []), ticket.ticketId])],
+      };
 
-    const featureInput: FeatureCreateInput = {
-      title: input.title ?? ticket.title,
-      background: input.background ?? ticket.background,
-      problem: input.problem ?? ticket.problem,
-      requirements: input.requirements ?? [ticket.workDescription],
-      verificationChecklist: input.verificationChecklist ?? ticket.verification.checklist,
-      artifactLinks: input.artifactLinks ?? ticket.artifacts,
-      usageGuideLinks,
-      labels: input.labels ?? [],
-      options:
-        input.options ??
-        {
-          languages: [],
-          applicableDomains: [],
-          constraints: [],
-        },
-      version: input.version ?? '1.0.0',
-      status: input.status ?? 'draft',
-      reviews: input.reviews ?? [],
-      sourceTickets: [...new Set([...(input.sourceTickets ?? []), ticket.ticketId])],
-    };
-
-    return this.createFeature(featureInput);
+      return this.createFeature(featureInput);
+    });
   }
 
   async createFeature(input: FeatureCreateInput): Promise<FeatureRecord> {
-    await this.ensureLoaded();
-    const parsed = featureCreateSchema.parse(input);
-    const now = new Date().toISOString();
-
-    this.store.counters.feature += 1;
-    const feature: FeatureRecord = {
-      ...parsed,
-      featureId: this.generateFeatureId(this.store.counters.feature),
-      managementNumber: this.generateFeatureManagementNumber(this.store.counters.feature),
-      usageCount: 0,
-      versionHistory: [
-        {
-          version: parsed.version,
-          updatedAt: now,
-          reason: 'initial create',
-          snapshot: parsed,
-        },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.store.features.push(feature);
-    await this.persist();
-    return structuredClone(feature);
+    return this.withLoaded(async () => {
+      const parsed = featureCreateSchema.parse(input);
+      const feature = this.featureLifecycle.createFeature(this.store, parsed);
+      await this.persist();
+      return structuredClone(feature);
+    });
   }
 
   async listFeatures(filter: FeatureListFilter = {}): Promise<FeatureRecord[]> {
-    await this.ensureLoaded();
-
-    const filtered = this.store.features.filter((feature) => {
-      if (filter.status && filter.status.length > 0 && !filter.status.includes(feature.status)) {
-        return false;
-      }
-      if (filter.label && !feature.labels.includes(filter.label)) {
-        return false;
-      }
-      if (filter.language && !feature.options.languages.includes(filter.language)) {
-        return false;
-      }
-      if (filter.domain && !feature.options.applicableDomains.includes(filter.domain)) {
-        return false;
-      }
-      return true;
+    return this.withLoaded(async () => {
+      const filtered = this.featureLifecycle.listFeatures(this.store, filter);
+      return structuredClone(filtered);
     });
-
-    return structuredClone(filtered);
   }
 
   async getFeature(featureId: string): Promise<FeatureRecord> {
-    await this.ensureLoaded();
-    return structuredClone(this.mustGetFeature(featureId));
+    return this.withLoaded(async () => structuredClone(this.featureLifecycle.getFeature(this.store, featureId)));
   }
 
   async updateFeature(
@@ -553,204 +434,91 @@ export class TicketFeatureService {
     patch: Partial<FeatureCreateInput>,
     meta: FeatureUpdateMeta = {},
   ): Promise<FeatureRecord> {
-    await this.ensureLoaded();
-
-    const feature = this.mustGetFeature(featureId);
-    const nextVersion = patch.version ?? this.bumpPatchVersion(feature.version);
-    if (nextVersion === feature.version) {
-      throw new Error('version must change when updating feature');
-    }
-
-    const next: FeatureCreateInput = {
-      title: patch.title ?? feature.title,
-      background: patch.background ?? feature.background,
-      problem: patch.problem ?? feature.problem,
-      requirements: patch.requirements ?? feature.requirements,
-      verificationChecklist: patch.verificationChecklist ?? feature.verificationChecklist,
-      artifactLinks: patch.artifactLinks ?? feature.artifactLinks,
-      usageGuideLinks: patch.usageGuideLinks ?? feature.usageGuideLinks,
-      labels: patch.labels ?? feature.labels,
-      options: patch.options ?? feature.options,
-      version: nextVersion,
-      status: patch.status ?? feature.status,
-      reviews: patch.reviews ?? feature.reviews,
-      sourceTickets: patch.sourceTickets ?? feature.sourceTickets,
-    };
-
-    const parsed = featureCreateSchema.parse(next);
-    const now = new Date().toISOString();
-    Object.assign(feature, parsed, { updatedAt: now });
-    feature.versionHistory.push({
-      version: parsed.version,
-      updatedAt: now,
-      ...(meta.updatedBy ? { updatedBy: meta.updatedBy } : {}),
-      ...(meta.reason ? { reason: meta.reason } : {}),
-      snapshot: parsed,
+    return this.withLoaded(async () => {
+      const feature = this.featureLifecycle.updateFeature(
+        this.store,
+        featureId,
+        patch,
+        (nextInput) => featureCreateSchema.parse(nextInput),
+        meta,
+      );
+      await this.persist();
+      return structuredClone(feature);
     });
-
-    await this.persist();
-    return structuredClone(feature);
   }
 
   async setFeatureStatus(
     featureId: string,
     status: FeatureRecord['status'],
   ): Promise<FeatureRecord> {
-    await this.ensureLoaded();
-    const feature = this.mustGetFeature(featureId);
-    feature.status = featureStatusSchema.parse(status);
-    feature.updatedAt = new Date().toISOString();
-    await this.persist();
-    return structuredClone(feature);
+    return this.withLoaded(async () => {
+      const parsedStatus = featureStatusSchema.parse(status);
+      const feature = this.featureLifecycle.setFeatureStatus(this.store, featureId, parsedStatus);
+      await this.persist();
+      return structuredClone(feature);
+    });
   }
 
   async addFeatureReview(featureId: string, review: FeatureReview): Promise<FeatureRecord> {
-    await this.ensureLoaded();
-    const parsed = featureReviewSchema.parse(review);
-    const feature = this.mustGetFeature(featureId);
-    const updatedAt = parsed.updatedAt ?? new Date().toISOString();
-
-    const existingIndex = feature.reviews.findIndex((r) => r.reviewerId === parsed.reviewerId);
-    const normalized = {
-      reviewerType: parsed.reviewerType,
-      reviewerId: parsed.reviewerId,
-      decision: parsed.decision,
-      comment: parsed.comment,
-      updatedAt,
-    };
-
-    if (existingIndex >= 0) {
-      feature.reviews[existingIndex] = normalized;
-    } else {
-      feature.reviews.push(normalized);
-    }
-
-    feature.updatedAt = updatedAt;
-    await this.persist();
-    return structuredClone(feature);
+    return this.withLoaded(async () => {
+      const parsed = featureReviewSchema.parse(review);
+      const feature = this.featureLifecycle.addFeatureReview(this.store, featureId, parsed);
+      await this.persist();
+      return structuredClone(feature);
+    });
   }
 
   async listFeatureLabels(): Promise<string[]> {
-    await this.ensureLoaded();
-    const uniqueLabels = new Set<string>();
-    for (const feature of this.store.features) {
-      for (const label of feature.labels) {
-        uniqueLabels.add(label);
-      }
-    }
-    return Array.from(uniqueLabels).sort((a, b) => a.localeCompare(b));
+    return this.withLoaded(async () => this.featureLifecycle.listFeatureLabels(this.store));
   }
 
   async updateFeatureLabels(
     featureId: string,
     options: { add?: string[]; remove?: string[] },
   ): Promise<FeatureRecord> {
-    await this.ensureLoaded();
-    const feature = this.mustGetFeature(featureId);
-    const add = (options.add ?? []).map((item) => item.trim()).filter(Boolean);
-    const remove = new Set((options.remove ?? []).map((item) => item.trim()).filter(Boolean));
-
-    const labels = new Set(feature.labels);
-    for (const label of add) {
-      labels.add(label);
-    }
-    for (const label of remove) {
-      labels.delete(label);
-    }
-
-    feature.labels = Array.from(labels).sort((a, b) => a.localeCompare(b));
-    feature.updatedAt = new Date().toISOString();
-    await this.persist();
-    return structuredClone(feature);
+    return this.withLoaded(async () => {
+      const feature = this.featureLifecycle.updateFeatureLabels(this.store, featureId, options);
+      await this.persist();
+      return structuredClone(feature);
+    });
   }
 
   async listFeatureVersions(featureId: string): Promise<FeatureVersionRecord[]> {
-    await this.ensureLoaded();
-    const feature = this.mustGetFeature(featureId);
-    return structuredClone(feature.versionHistory);
+    return this.withLoaded(async () => structuredClone(this.featureLifecycle.listFeatureVersions(this.store, featureId)));
   }
 
   async rollbackFeatureVersion(
     featureId: string,
     options: { toVersion: string; nextVersion?: string; updatedBy?: string; reason?: string },
   ): Promise<FeatureRecord> {
-    await this.ensureLoaded();
-    this.assertNonEmpty(options.toVersion, 'toVersion');
-
-    const feature = this.mustGetFeature(featureId);
-    const target = feature.versionHistory.find((entry) => entry.version === options.toVersion);
-    if (!target) {
-      throw new Error(`Feature version not found: ${options.toVersion}`);
-    }
-
-    const nextVersion = options.nextVersion ?? this.bumpPatchVersion(feature.version);
-    if (nextVersion === feature.version) {
-      throw new Error('nextVersion must differ from current version');
-    }
-
-    const currentVersion = feature.version;
-    const restored: FeatureCreateInput = featureCreateSchema.parse({
-      ...target.snapshot,
-      version: nextVersion,
+    return this.withLoaded(async () => {
+      this.assertNonEmpty(options.toVersion, 'toVersion');
+      const feature = this.featureLifecycle.rollbackFeatureVersion(
+        this.store,
+        featureId,
+        options,
+        (nextInput) => featureCreateSchema.parse(nextInput),
+      );
+      await this.persist();
+      return structuredClone(feature);
     });
-
-    const now = new Date().toISOString();
-    Object.assign(feature, restored, { updatedAt: now });
-    feature.versionHistory.push({
-      version: restored.version,
-      updatedAt: now,
-      ...(options.updatedBy ? { updatedBy: options.updatedBy } : {}),
-      reason: options.reason ?? `rollback from ${currentVersion} to ${options.toVersion}`,
-      snapshot: restored,
-    });
-
-    await this.persist();
-    return structuredClone(feature);
   }
 
   async markFeatureUsed(featureId: string, usage: FeatureUsageInput = {}): Promise<FeatureRecord> {
-    await this.ensureLoaded();
-    const feature = this.mustGetFeature(featureId);
-    feature.usageCount += 1;
-    feature.lastUsedAt = new Date().toISOString();
-    feature.updatedAt = feature.lastUsedAt;
-    void usage;
-
-    await this.persist();
-    return structuredClone(feature);
+    return this.withLoaded(async () => {
+      const feature = this.featureLifecycle.markFeatureUsed(this.store, featureId, usage);
+      await this.persist();
+      return structuredClone(feature);
+    });
   }
 
   async getFeatureManagementSummary(): Promise<FeatureManagementSummary> {
+    return this.withLoaded(async () => this.featureLifecycle.getFeatureManagementSummary(this.store, TOP_LABELS_LIMIT));
+  }
+
+  private async withLoaded<T>(operation: () => Promise<T>): Promise<T> {
     await this.ensureLoaded();
-    const byStatus: Record<FeatureRecord['status'], number> = {
-      draft: 0,
-      published: 0,
-      deprecated: 0,
-      archived: 0,
-    };
-
-    const labelCount = new Map<string, number>();
-    let totalUsageCount = 0;
-
-    for (const feature of this.store.features) {
-      byStatus[feature.status] += 1;
-      totalUsageCount += feature.usageCount;
-      for (const label of feature.labels) {
-        labelCount.set(label, (labelCount.get(label) ?? 0) + 1);
-      }
-    }
-
-    const topLabels = Array.from(labelCount.entries())
-      .map(([label, count]) => ({ label, count }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
-      .slice(0, 20);
-
-    return {
-      totalFeatures: this.store.features.length,
-      byStatus,
-      totalUsageCount,
-      topLabels,
-    };
+    return operation();
   }
 
   private async ensureLoaded(): Promise<void> {
@@ -777,46 +545,6 @@ export class TicketFeatureService {
 
   private async persist(): Promise<void> {
     await this.repository.save(this.store);
-  }
-
-  private mustGetTicket(ticketId: string): TicketRecord {
-    const ticket = this.store.tickets.find((item) => item.ticketId === ticketId);
-    if (!ticket) {
-      throw new Error(`Ticket not found: ${ticketId}`);
-    }
-    return ticket;
-  }
-
-  private mustGetFeature(featureId: string): FeatureRecord {
-    const feature = this.store.features.find((item) => item.featureId === featureId);
-    if (!feature) {
-      throw new Error(`Feature not found: ${featureId}`);
-    }
-    return feature;
-  }
-
-  private generateTicketId(counter: number): string {
-    return `ticket-${new Date().getFullYear()}-${String(counter).padStart(6, '0')}`;
-  }
-
-  private generateFeatureId(counter: number): string {
-    return `feature-${new Date().getFullYear()}-${String(counter).padStart(6, '0')}`;
-  }
-
-  private generateFeatureManagementNumber(counter: number): string {
-    return `FEAT-${new Date().getFullYear()}-${String(counter).padStart(5, '0')}`;
-  }
-
-  private generateManagementNumber(counter: number): string {
-    return `ACA-${new Date().getFullYear()}-${String(counter).padStart(5, '0')}`;
-  }
-
-  private bumpPatchVersion(version: string): string {
-    const [major, minor, patch] = version.split('.').map((value) => Number.parseInt(value, 10));
-    if (![major, minor, patch].every((part) => Number.isInteger(part) && part >= 0)) {
-      throw new Error(`Invalid version format: ${version}`);
-    }
-    return `${major}.${minor}.${patch + 1}`;
   }
 
   private normalizeFeatureRecord(raw: unknown, index: number): FeatureRecord {
@@ -860,8 +588,8 @@ export class TicketFeatureService {
       });
     }
 
-    const featureId = asObject.featureId ?? this.generateFeatureId(index + 1);
-    const managementNumber = asObject.managementNumber ?? this.generateFeatureManagementNumber(index + 1);
+    const featureId = asObject.featureId ?? this.idGenerator.generateFeatureId(index + 1);
+    const managementNumber = asObject.managementNumber ?? this.idGenerator.generateFeatureManagementNumber(index + 1);
     const usageCount = typeof asObject.usageCount === 'number' && asObject.usageCount >= 0
       ? asObject.usageCount
       : 0;
@@ -876,12 +604,6 @@ export class TicketFeatureService {
       createdAt: asObject.createdAt ?? now,
       updatedAt: asObject.updatedAt ?? now,
     };
-  }
-
-  private assertTransition(from: TicketStatus, to: TicketStatus): void {
-    if (!TICKET_TRANSITIONS[from].includes(to)) {
-      throw new Error(`Invalid status transition: ${from} -> ${to}`);
-    }
   }
 
   private extractUsageGuideLinks(artifacts: TicketArtifact[]): Array<{ name: string; url: string }> {

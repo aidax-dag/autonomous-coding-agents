@@ -49,6 +49,7 @@ export class WeaviateAdapter implements IVectorStore {
    */
   async add(id: string, vector: number[], metadata?: Record<string, unknown>): Promise<void> {
     await this.ensureSchema();
+    this.assertVectorDimension(vector);
 
     const properties = this.toWeaviateProperties(id, metadata);
 
@@ -69,6 +70,9 @@ export class WeaviateAdapter implements IVectorStore {
     }
 
     await this.ensureSchema();
+    for (const item of items) {
+      this.assertVectorDimension(item.vector);
+    }
 
     const objects = items.map((item) => ({
       class: this.className,
@@ -89,6 +93,7 @@ export class WeaviateAdapter implements IVectorStore {
     filter?: Record<string, unknown>,
   ): Promise<VectorSearchResult[]> {
     await this.ensureSchema();
+    this.assertVectorDimension(query);
 
     let whereClause = '';
     if (filter && Object.keys(filter).length > 0) {
@@ -384,6 +389,14 @@ export class WeaviateAdapter implements IVectorStore {
 
     // Format as UUID: 8-4-4-4-12
     return `${h1}-${h2.slice(0, 4)}-4${h2.slice(5, 8)}-8${h1.slice(1, 4)}-${h1}${h2.slice(0, 4)}`;
+  }
+
+  private assertVectorDimension(vector: number[]): void {
+    if (vector.length !== this.dimension) {
+      throw new Error(
+        `Vector dimension mismatch: expected ${this.dimension}, got ${vector.length}`,
+      );
+    }
   }
 
   /**

@@ -38,7 +38,7 @@ export class HttpTransport implements IMCPTransport {
   private readonly extraHeaders: Record<string, string>;
   private readonly timeoutMs: number;
   private connected = false;
-  private messageHandler: ((msg: JsonRpcMessage) => void) | null = null;
+  private messageHandler: ((message: JsonRpcMessage) => void) | null = null;
   private sessionId: string | null = null;
   private sseAbort: AbortController | null = null;
 
@@ -104,7 +104,7 @@ export class HttpTransport implements IMCPTransport {
       } else if (contentType.includes('application/json')) {
         const data = (await response.json()) as JsonRpcMessage | JsonRpcMessage[];
         if (Array.isArray(data)) {
-          for (const msg of data) this.messageHandler?.(msg);
+          for (const message of data) this.messageHandler?.(message);
         } else {
           this.messageHandler?.(data);
         }
@@ -199,15 +199,15 @@ export class HttpTransport implements IMCPTransport {
   private parseSSEBlock(block: string): void {
     const dataLine = block
       .split('\n')
-      .find((l) => l.startsWith('data:'));
+      .find((line) => line.startsWith('data:'));
     if (!dataLine) return;
 
     const raw = dataLine.slice(5).trim();
     if (!raw) return;
 
     try {
-      const msg = JSON.parse(raw) as JsonRpcMessage;
-      this.messageHandler?.(msg);
+      const message = JSON.parse(raw) as JsonRpcMessage;
+      this.messageHandler?.(message);
     } catch {
       // Invalid JSON — skip
     }

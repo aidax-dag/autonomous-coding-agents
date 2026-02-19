@@ -40,6 +40,15 @@ import { logger } from '@/shared/logging/logger';
 import { wrapError, ErrorCode } from '@/shared/errors/custom-errors';
 import { TaskExecutor } from './task-executor';
 import { RunnerLifecycle } from './runner-lifecycle';
+import {
+  DEFAULT_MAX_CONCURRENT_TASKS,
+  DEFAULT_TASK_TIMEOUT_MS,
+  MIN_CONFIDENCE_THRESHOLD,
+  DEFAULT_PARALLEL_CONCURRENCY,
+  GLOBAL_AGENT_POOL_MAX,
+  MAX_TASK_RETRIES,
+  generateUniqueId,
+} from './constants';
 
 /**
  * Runner status
@@ -99,9 +108,9 @@ export interface GoalResult {
 }
 
 /**
- * Runner configuration
+ * Core execution/runtime configuration.
  */
-export interface OrchestratorRunnerConfig {
+export interface OrchestratorRunnerCoreConfig {
   /** LLM client for agent execution */
   llmClient: ILLMClient;
   /** Per-agent model overrides (e.g. { planning: 'claude-opus-4-6' }) */
@@ -120,12 +129,44 @@ export interface OrchestratorRunnerConfig {
   projectContext?: string;
   /** Use real quality tools (CodeQualityHook, TestResultParser) instead of mock/LLM */
   useRealQualityTools?: boolean;
+}
+
+/**
+ * Validation and recovery configuration.
+ */
+export interface OrchestratorRunnerValidationConfig {
   /** Enable pre/post validation hooks (default: false) */
   enableValidation?: boolean;
   /** Minimum confidence threshold for task validation (0-100, default: 70) */
   minConfidenceThreshold?: number;
   /** Enable error learning hooks (default: false) */
   enableLearning?: boolean;
+  /** Enable error recovery pipeline with retry logic (default: false) */
+  enableErrorRecovery?: boolean;
+  /** Maximum retries per task when error recovery is enabled (default: 2) */
+  maxRetries?: number;
+}
+
+/**
+ * Parallel/background execution configuration.
+ */
+export interface OrchestratorRunnerParallelConfig {
+  /** Enable parallel task execution (default: false) */
+  enableParallelExecution?: boolean;
+  /** Max parallel concurrency */
+  parallelConcurrency?: number;
+  /** Per-provider concurrency limits (e.g. { claude: 3, openai: 5 }) */
+  providerLimits?: Record<string, number>;
+  /** Global concurrency cap across all providers */
+  globalMax?: number;
+  /** Enable fire-and-forget goal execution via BackgroundManager (default: false) */
+  enableBackgroundGoals?: boolean;
+}
+
+/**
+ * Feature-toggle configuration.
+ */
+export interface OrchestratorRunnerFeatureToggleConfig {
   /** Enable context management hooks (default: false) */
   enableContextManagement?: boolean;
   /** Enable security module - SandboxEscalation (default: false) */
@@ -144,22 +185,80 @@ export interface OrchestratorRunnerConfig {
   enablePlanningContext?: boolean;
   /** Enable expanded agent set (architecture, security, debugging, docs, exploration, integration) */
   enableExpandedAgents?: boolean;
-  /** Enable parallel task execution (default: false) */
-  enableParallelExecution?: boolean;
-  /** Max parallel concurrency */
-  parallelConcurrency?: number;
   /** Enable OpenTelemetry tracing (default: false) */
   enableTelemetry?: boolean;
-  /** Per-provider concurrency limits (e.g. { claude: 3, openai: 5 }) */
-  providerLimits?: Record<string, number>;
-  /** Global concurrency cap across all providers */
-  globalMax?: number;
-  /** Enable fire-and-forget goal execution via BackgroundManager (default: false) */
-  enableBackgroundGoals?: boolean;
-  /** Enable error recovery pipeline with retry logic (default: false) */
-  enableErrorRecovery?: boolean;
-  /** Maximum retries per task when error recovery is enabled (default: 2) */
-  maxRetries?: number;
+}
+
+/**
+ * Runner configuration (composed from focused config groups).
+ */
+export interface OrchestratorRunnerConfig
+  extends OrchestratorRunnerCoreConfig,
+  OrchestratorRunnerValidationConfig,
+  OrchestratorRunnerParallelConfig,
+  OrchestratorRunnerFeatureToggleConfig {}
+
+type ResolvedOrchestratorRunnerConfig =
+  Required<OrchestratorRunnerCoreConfig> &
+  Required<OrchestratorRunnerValidationConfig> &
+  Required<OrchestratorRunnerParallelConfig> &
+  Required<OrchestratorRunnerFeatureToggleConfig>;
+
+type TraceSpan = ReturnType<ReturnType<OTelProvider['getTraceManager']>['startSpan']> | undefined;
+
+function resolveCoreConfig(config: OrchestratorRunnerCoreConfig): Required<OrchestratorRunnerCoreConfig> {
+  return {
+    llmClient: config.llmClient,
+    agentModelMap: config.agentModelMap ?? {},
+    workspaceDir: config.workspaceDir || process.cwd(),
+    routingStrategy: config.routingStrategy || RoutingStrategy.LOAD_BALANCED,
+    maxConcurrentTasks: config.maxConcurrentTasks || DEFAULT_MAX_CONCURRENT_TASKS,
+    taskTimeout: config.taskTimeout || DEFAULT_TASK_TIMEOUT_MS,
+    enableLLM: config.enableLLM ?? true,
+    projectContext: config.projectContext || '',
+    useRealQualityTools: config.useRealQualityTools ?? false,
+  };
+}
+
+function resolveValidationConfig(
+  config: OrchestratorRunnerValidationConfig,
+): Required<OrchestratorRunnerValidationConfig> {
+  return {
+    enableValidation: config.enableValidation ?? false,
+    minConfidenceThreshold: config.minConfidenceThreshold ?? MIN_CONFIDENCE_THRESHOLD,
+    enableLearning: config.enableLearning ?? false,
+    enableErrorRecovery: config.enableErrorRecovery ?? false,
+    maxRetries: config.maxRetries ?? MAX_TASK_RETRIES,
+  };
+}
+
+function resolveParallelConfig(
+  config: OrchestratorRunnerParallelConfig,
+): Required<OrchestratorRunnerParallelConfig> {
+  return {
+    enableParallelExecution: config.enableParallelExecution ?? false,
+    parallelConcurrency: config.parallelConcurrency ?? DEFAULT_PARALLEL_CONCURRENCY,
+    providerLimits: config.providerLimits ?? {},
+    globalMax: config.globalMax ?? GLOBAL_AGENT_POOL_MAX,
+    enableBackgroundGoals: config.enableBackgroundGoals ?? false,
+  };
+}
+
+function resolveFeatureToggleConfig(
+  config: OrchestratorRunnerFeatureToggleConfig,
+): Required<OrchestratorRunnerFeatureToggleConfig> {
+  return {
+    enableContextManagement: config.enableContextManagement ?? false,
+    enableSecurity: config.enableSecurity ?? false,
+    enableSession: config.enableSession ?? false,
+    enableMCP: config.enableMCP ?? false,
+    enableLSP: config.enableLSP ?? false,
+    enablePlugins: config.enablePlugins ?? false,
+    pluginsDir: config.pluginsDir ?? 'plugins',
+    enablePlanningContext: config.enablePlanningContext ?? false,
+    enableExpandedAgents: config.enableExpandedAgents ?? false,
+    enableTelemetry: config.enableTelemetry ?? false,
+  };
 }
 
 /**
@@ -199,7 +298,7 @@ export interface RunnerEvents {
  */
 // eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class OrchestratorRunner extends EventEmitter {
-  private readonly config: Required<OrchestratorRunnerConfig>;
+  private readonly config: ResolvedOrchestratorRunnerConfig;
   private readonly orchestrator: CEOOrchestrator;
   private readonly workspace: WorkspaceManager;
   private readonly queue: DocumentQueue;
@@ -218,40 +317,17 @@ export class OrchestratorRunner extends EventEmitter {
   private readonly taskExecutor: TaskExecutor;
   /** Delegates session/context lifecycle (extracted module) */
   private readonly lifecycle: RunnerLifecycle;
+  /** Guards one-time bootstrap to avoid duplicate team registration */
+  private bootstrapComplete: boolean = false;
 
   constructor(config: OrchestratorRunnerConfig) {
     super();
 
     this.config = {
-      llmClient: config.llmClient,
-      agentModelMap: config.agentModelMap ?? {},
-      workspaceDir: config.workspaceDir || process.cwd(),
-      routingStrategy: config.routingStrategy || RoutingStrategy.LOAD_BALANCED,
-      maxConcurrentTasks: config.maxConcurrentTasks || 10,
-      taskTimeout: config.taskTimeout || 300000,
-      enableLLM: config.enableLLM ?? true,
-      projectContext: config.projectContext || '',
-      useRealQualityTools: config.useRealQualityTools ?? false,
-      enableValidation: config.enableValidation ?? false,
-      minConfidenceThreshold: config.minConfidenceThreshold ?? 70,
-      enableLearning: config.enableLearning ?? false,
-      enableContextManagement: config.enableContextManagement ?? false,
-      enableSecurity: config.enableSecurity ?? false,
-      enableSession: config.enableSession ?? false,
-      enableMCP: config.enableMCP ?? false,
-      enableLSP: config.enableLSP ?? false,
-      enablePlugins: config.enablePlugins ?? false,
-      pluginsDir: config.pluginsDir ?? 'plugins',
-      enablePlanningContext: config.enablePlanningContext ?? false,
-      enableExpandedAgents: config.enableExpandedAgents ?? false,
-      enableParallelExecution: config.enableParallelExecution ?? false,
-      parallelConcurrency: config.parallelConcurrency ?? 5,
-      enableTelemetry: config.enableTelemetry ?? false,
-      providerLimits: config.providerLimits ?? {},
-      globalMax: config.globalMax ?? 10,
-      enableBackgroundGoals: config.enableBackgroundGoals ?? false,
-      enableErrorRecovery: config.enableErrorRecovery ?? false,
-      maxRetries: config.maxRetries ?? 2,
+      ...resolveCoreConfig(config),
+      ...resolveValidationConfig(config),
+      ...resolveParallelConfig(config),
+      ...resolveFeatureToggleConfig(config),
     };
 
     this.telemetry = this.config.enableTelemetry
@@ -392,64 +468,14 @@ export class OrchestratorRunner extends EventEmitter {
     try {
       this.stateManager.setStatus(RunnerStatus.INITIALIZING);
 
-      await this.workspace.initialize();
-      await this.queue.initialize();
+      await this.initializeWorkspace();
+      await this.initializeAgentsAndIntegrations();
 
-      // Delegate agent creation to factory (passes llmClient for per-agent routing)
-      await createAndRegisterAgents(
-        {
-          llmClient: this.config.llmClient,
-          agentModelMap: this.config.agentModelMap,
-          queue: this.queue,
-          maxConcurrentTasks: this.config.maxConcurrentTasks,
-          enableLLM: this.config.enableLLM,
-          projectContext: this.config.projectContext,
-          useRealQualityTools: this.config.useRealQualityTools,
-          workspaceDir: this.config.workspaceDir,
-          enableExpandedAgents: this.config.enableExpandedAgents,
-        },
-        this.orchestrator,
-      );
-      // Delegate integration module setup
-      // Create a skill-dedicated LLM adapter when LLM is enabled
-      const skillLLMAdapter = this.config.enableLLM
-        ? createTeamAgentLLMAdapter({
-            client: this.config.llmClient,
-            agentRole: 'code-quality',
-            model: this.config.agentModelMap?.['skill'],
-          })
-        : undefined;
-
-      await initializeIntegrations(
-        {
-          enableValidation: this.config.enableValidation,
-          enableLearning: this.config.enableLearning,
-          enableContextManagement: this.config.enableContextManagement,
-          enableSecurity: this.config.enableSecurity,
-          enableSession: this.config.enableSession,
-          enableMCP: this.config.enableMCP,
-          enableLSP: this.config.enableLSP,
-          enablePlugins: this.config.enablePlugins,
-          pluginsDir: this.config.pluginsDir,
-          enablePlanningContext: this.config.enablePlanningContext,
-          useRealQualityTools: this.config.useRealQualityTools,
-          llmAdapter: skillLLMAdapter,
-          projectContext: this.config.projectContext || undefined,
-        },
-        this.hookRegistry,
-        this.config.workspaceDir,
-        this,
-      );
-
-      // Wire session lifecycle via delegate
       await this.lifecycle.startSession();
-
-      // Wire context monitoring via delegate
       this.lifecycle.wireContextMonitoring();
 
       await this.orchestrator.start();
 
-      // AGENT_STARTED Hook via delegate
       await this.lifecycle.fireAgentStartedHook(this.orchestrator.teams.getAll().length);
 
       this.stateManager.markStarted();
@@ -523,116 +549,15 @@ export class OrchestratorRunner extends EventEmitter {
       throw new Error(`Runner is not running (status: ${this.stateManager.getStatus()})`);
     }
 
-    const goalId = `goal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const goalId = generateUniqueId('goal');
     const startTime = Date.now();
-    const goalSpan = this.telemetry?.getTraceManager().startSpan('executeGoal');
-    if (goalSpan) {
-      goalSpan.attributes['goal.id'] = goalId;
-      goalSpan.attributes['goal.title'] = title;
-    }
-
+    const goalSpan = this.createGoalSpan(goalId, title);
     this.emit('goal:started', goalId);
 
     try {
-      const tasks = await this.orchestrator.submitGoal(title, description, {
-        priority: options?.priority,
-        projectId: options?.projectId,
-        tags: options?.tags,
-      });
-
-      // WORKFLOW_START Hook
-      if (this.hookRegistry.count() > 0) {
-        await this.hookExecutor.executeHooks(
-          HookEvent.WORKFLOW_START,
-          { goal: description, tasks, goalId },
-        ).catch((e) => {
-          logger.warn('WORKFLOW_START hook failed', { goalId, error: e instanceof Error ? e.message : String(e) });
-        });
-      }
-
-      const results: WorkflowResult[] = [];
-
-      if (options?.waitForCompletion !== false) {
-        if (this.parallelExecutor && this.config.enableParallelExecution) {
-          const parallelResults = await this.parallelExecutor.execute(tasks, this);
-          results.push(...parallelResults);
-        } else {
-          for (const task of tasks) {
-            const result = await this.executeTask(task);
-            results.push(result);
-          }
-        }
-      } else {
-        for (const task of tasks) {
-          results.push({
-            success: true,
-            taskId: task.metadata.id,
-            duration: 0,
-            teamType: task.metadata.to,
-          });
-        }
-      }
-
-      let verification: GoalBackwardResult | undefined;
-      if (this.config.enableValidation && results.every((r) => r.success)) {
-        verification = await this.taskExecutor.verifyGoal(description, tasks).catch((e) => {
-          logger.warn('Goal verification failed', { goalId, error: e instanceof Error ? e.message : String(e) });
-          return undefined;
-        });
-        if (verification) {
-          this.emit('goal:verification', goalId, verification);
-        }
-      }
-
-      const goalResult: GoalResult = {
-        success: results.every((r) => r.success),
-        goalId,
-        tasks: results,
-        totalDuration: Date.now() - startTime,
-        completedTasks: results.filter((r) => r.success).length,
-        failedTasks: results.filter((r) => !r.success).length,
-        verification,
-      };
-
-      // WORKFLOW_END Hook
-      if (this.hookRegistry.count() > 0) {
-        await this.hookExecutor.executeHooks(
-          HookEvent.WORKFLOW_END,
-          { goal: description, results, verification, goalId },
-        ).catch((e) => {
-          logger.warn('WORKFLOW_END hook failed', { goalId, error: e instanceof Error ? e.message : String(e) });
-        });
-      }
-
-      if (goalSpan) this.telemetry!.getTraceManager().endSpan(goalSpan, goalResult.success ? 'ok' : 'error');
-      this.emit('goal:completed', goalResult);
-      return goalResult;
+      return await this.executeGoalWorkflow(goalId, startTime, goalSpan, title, description, options);
     } catch (error) {
-      const err = wrapError(error, undefined, ErrorCode.WORKFLOW_ERROR);
-      logger.error('Goal execution failed', { goalId, error: err.message, code: err.code });
-
-      // WORKFLOW_ERROR Hook
-      if (this.hookRegistry.count() > 0) {
-        await this.hookExecutor.executeHooks(
-          HookEvent.WORKFLOW_ERROR,
-          { goal: description, error: err, goalId },
-        ).catch((e) => {
-          logger.warn('WORKFLOW_ERROR hook failed', { goalId, error: e instanceof Error ? e.message : String(e) });
-        });
-      }
-
-      const goalResult: GoalResult = {
-        success: false,
-        goalId,
-        tasks: [],
-        totalDuration: Date.now() - startTime,
-        completedTasks: 0,
-        failedTasks: 1,
-        error: err.message,
-      };
-      if (goalSpan) this.telemetry!.getTraceManager().endSpan(goalSpan, 'error');
-      this.emit('error', err);
-      return goalResult;
+      return this.handleGoalExecutionError(goalId, description, startTime, goalSpan, error);
     }
   }
 
@@ -660,7 +585,7 @@ export class OrchestratorRunner extends EventEmitter {
           result: goalResult,
         };
       },
-      `goal-${Date.now()}`,
+      generateUniqueId('goal-bg'),
     );
   }
 
@@ -708,7 +633,7 @@ export class OrchestratorRunner extends EventEmitter {
       throw new Error(`Runner is not running (status: ${this.stateManager.getStatus()})`);
     }
 
-    const goalId = `xmlplan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const goalId = generateUniqueId('xmlplan');
     const startTime = Date.now();
 
     this.emit('goal:started', goalId);
@@ -785,32 +710,245 @@ export class OrchestratorRunner extends EventEmitter {
     }
   }
 
+  private async initializeWorkspace(): Promise<void> {
+    await this.workspace.ensureInitialized();
+    await this.queue.start();
+  }
+
+  private async initializeAgentsAndIntegrations(): Promise<void> {
+    if (this.bootstrapComplete) {
+      return;
+    }
+
+    const llmAdapter = this.config.enableLLM
+      ? createTeamAgentLLMAdapter({ client: this.config.llmClient })
+      : undefined;
+
+    await createAndRegisterAgents({
+      llmAdapter,
+      llmClient: this.config.llmClient,
+      agentModelMap: this.config.agentModelMap,
+      queue: this.queue,
+      maxConcurrentTasks: this.config.maxConcurrentTasks,
+      enableLLM: this.config.enableLLM,
+      projectContext: this.config.projectContext,
+      useRealQualityTools: this.config.useRealQualityTools,
+      workspaceDir: this.config.workspaceDir,
+      enableExpandedAgents: this.config.enableExpandedAgents,
+    }, this.orchestrator);
+
+    await initializeIntegrations({
+      enableValidation: this.config.enableValidation,
+      enableLearning: this.config.enableLearning,
+      enableContextManagement: this.config.enableContextManagement,
+      enableSecurity: this.config.enableSecurity,
+      enableSession: this.config.enableSession,
+      useRealQualityTools: this.config.useRealQualityTools,
+      enableMCP: this.config.enableMCP,
+      enableLSP: this.config.enableLSP,
+      enablePlugins: this.config.enablePlugins,
+      pluginsDir: this.config.pluginsDir,
+      enablePlanningContext: this.config.enablePlanningContext,
+      llmAdapter,
+      projectContext: this.config.projectContext,
+    }, this.hookRegistry, this.config.workspaceDir, this);
+
+    this.bootstrapComplete = true;
+  }
+
+  private async runWorkflowHook(event: HookEvent, data: Record<string, unknown>): Promise<void> {
+    if (this.hookRegistry.count() === 0) {
+      return;
+    }
+
+    await this.hookExecutor.executeHooks(event, data).catch((err: unknown) => {
+      logger.warn(`${event} hook failed`, { error: err instanceof Error ? err.message : String(err) });
+    });
+  }
+
+  private async executeTasks(
+    tasks: TaskDocument[],
+    waitForCompletion: boolean = true,
+  ): Promise<WorkflowResult[]> {
+    if (!waitForCompletion) {
+      logger.debug('waitForCompletion=false requested; executing synchronously until background goal flow is enabled');
+    }
+
+    if (this.config.enableParallelExecution && this.parallelExecutor) {
+      return this.parallelExecutor.execute(tasks, {
+        executeTask: async (task) => this.executeTask(task),
+      });
+    }
+
+    const results: WorkflowResult[] = [];
+    for (const task of tasks) {
+      results.push(await this.executeTask(task));
+    }
+    return results;
+  }
+
+  private async runGoalVerification(
+    goalId: string,
+    goalDescription: string,
+    tasks: TaskDocument[],
+    results: WorkflowResult[],
+  ): Promise<GoalBackwardResult | undefined> {
+    if (!this.config.enableValidation) {
+      return undefined;
+    }
+
+    if (results.some((result) => !result.success)) {
+      return undefined;
+    }
+
+    const verification = await this.taskExecutor.verifyGoal(goalDescription, tasks);
+    if (verification) {
+      this.emit('goal:verification', goalId, verification);
+    }
+    return verification;
+  }
+
+  private buildGoalResult(
+    goalId: string,
+    tasks: WorkflowResult[],
+    startTime: number,
+    verification?: GoalBackwardResult,
+    error?: string,
+  ): GoalResult {
+    const failedTasks = tasks.filter((task) => !task.success).length;
+    const completedTasks = tasks.length - failedTasks;
+
+    return {
+      success: !error && failedTasks === 0,
+      goalId,
+      tasks,
+      totalDuration: Date.now() - startTime,
+      completedTasks,
+      failedTasks,
+      error,
+      verification,
+    };
+  }
+
+  private createGoalSpan(goalId: string, goalTitle: string): TraceSpan {
+    const span = this.telemetry?.getTraceManager().startSpan('executeGoal');
+    if (!span) {
+      return undefined;
+    }
+
+    span.attributes['goal.id'] = goalId;
+    span.attributes['goal.title'] = goalTitle;
+    return span;
+  }
+
+  private endGoalSpan(span: TraceSpan, status: 'ok' | 'error'): void {
+    if (!span || !this.telemetry) {
+      return;
+    }
+    this.telemetry.getTraceManager().endSpan(span, status);
+  }
+
+  private async executeGoalWorkflow(
+    goalId: string,
+    startTime: number,
+    goalSpan: TraceSpan,
+    title: string,
+    description: string,
+    options?: {
+      priority?: TaskPriority;
+      projectId?: string;
+      tags?: string[];
+      waitForCompletion?: boolean;
+    },
+  ): Promise<GoalResult> {
+    const tasks = await this.orchestrator.submitGoal(title, description, {
+      priority: options?.priority,
+      projectId: options?.projectId,
+      tags: options?.tags,
+    });
+
+    await this.runWorkflowHook(HookEvent.WORKFLOW_START, { goal: description, tasks, goalId });
+
+    const results = await this.executeTasks(tasks, options?.waitForCompletion);
+    const verification = await this.runGoalVerification(goalId, description, tasks, results);
+    const goalResult = this.buildGoalResult(goalId, results, startTime, verification);
+
+    await this.runWorkflowHook(HookEvent.WORKFLOW_END, { goal: description, results, verification, goalId });
+
+    this.endGoalSpan(goalSpan, goalResult.success ? 'ok' : 'error');
+    this.emit('goal:completed', goalResult);
+    return goalResult;
+  }
+
+  private async handleGoalExecutionError(
+    goalId: string,
+    description: string,
+    startTime: number,
+    goalSpan: TraceSpan,
+    originalError: unknown,
+  ): Promise<GoalResult> {
+    const wrappedError = wrapError(originalError, undefined, ErrorCode.WORKFLOW_ERROR);
+    logger.error('Goal execution failed', {
+      goalId,
+      error: wrappedError.message,
+      code: wrappedError.code,
+    });
+
+    await this.runWorkflowHook(HookEvent.WORKFLOW_ERROR, {
+      goal: description,
+      error: wrappedError,
+      goalId,
+    });
+
+    const goalResult = this.buildGoalResult(goalId, [], startTime, undefined, wrappedError.message);
+    this.endGoalSpan(goalSpan, 'error');
+    this.emit('error', wrappedError);
+    return goalResult;
+  }
+
   private setupEventHandlers(): void {
     this.orchestrator.on('task:completed', (task, result) => {
-      const workflowResult: WorkflowResult = {
-        success: result.success,
-        taskId: task.metadata.id,
-        result: result.result,
-        duration: 0,
-        teamType: task.metadata.to,
-      };
+      const workflowResult = this.createWorkflowResult(
+        task.metadata.id,
+        task.metadata.to,
+        result.success,
+        0,
+        { result: result.result },
+      );
       this.stateManager.recordResult(task.metadata.id, workflowResult);
     });
 
     this.orchestrator.on('task:failed', (task, error) => {
-      const workflowResult: WorkflowResult = {
-        success: false,
-        taskId: task.metadata.id,
-        error: error.message,
-        duration: 0,
-        teamType: task.metadata.to,
-      };
+      const workflowResult = this.createWorkflowResult(
+        task.metadata.id,
+        task.metadata.to,
+        false,
+        0,
+        { error: error.message },
+      );
       this.stateManager.recordResult(task.metadata.id, workflowResult);
     });
 
     this.orchestrator.on('error', (error) => {
       this.emit('error', error);
     });
+  }
+
+  private createWorkflowResult(
+    taskId: string,
+    teamType: TeamType,
+    success: boolean,
+    duration: number,
+    payload?: { result?: unknown; error?: string },
+  ): WorkflowResult {
+    return {
+      success,
+      taskId,
+      duration,
+      teamType,
+      result: payload?.result,
+      error: payload?.error,
+    };
   }
 }
 

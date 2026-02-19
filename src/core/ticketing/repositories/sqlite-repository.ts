@@ -248,10 +248,10 @@ export class SqliteTicketFeatureRepository implements ITicketFeatureRepository {
     }
 
     return {
-      version: parseInt(meta.get('version') ?? '1', 10),
-      ticket: parseInt(meta.get('counter_ticket') ?? '0', 10),
-      feature: parseInt(meta.get('counter_feature') ?? '0', 10),
-      management: parseInt(meta.get('counter_management') ?? '0', 10),
+      version: parseInt(meta.get('version') ?? String(DEFAULT_STORE.version), 10),
+      ticket: parseInt(meta.get('counter_ticket') ?? String(DEFAULT_STORE.counters.ticket), 10),
+      feature: parseInt(meta.get('counter_feature') ?? String(DEFAULT_STORE.counters.feature), 10),
+      management: parseInt(meta.get('counter_management') ?? String(DEFAULT_STORE.counters.management), 10),
     };
   }
 
@@ -274,6 +274,7 @@ export class SqliteTicketFeatureRepository implements ITicketFeatureRepository {
       (row) => JSON.parse(row.data as string) as FeatureRecord,
     );
   }
+
 }
 
 // ============================================================================

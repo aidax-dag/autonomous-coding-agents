@@ -2,7 +2,7 @@
 
 > 프로젝트 현재 진행 상황
 
-**Last Updated**: 2026-02-15
+**Last Updated**: 2026-02-18
 
 ---
 
@@ -94,8 +94,8 @@ Phase B (프로덕션 준비) 구현 완료.
 ## 2. Test Coverage
 
 ```
-Total Tests: 3,715
-Test Suites: 227
+Total Tests: 7,279
+Test Suites: 348
 Type Check: ✅ Clean (npx tsc --noEmit)
 Test Runner: Jest + ts-jest
 ```
@@ -103,6 +103,22 @@ Test Runner: Jest + ts-jest
 ---
 
 ## 3. Recent Changes
+
+### 2026-02-18 (Stability: test/runtime cleanup)
+- ✅ worker force-exit 경고 제거 (`npm test` 전체 실행 기준 0건)
+- ✅ timeout 정리 보강:
+  - `src/core/skills/skill-pipeline.ts`
+  - `src/shared/telemetry/otlp-exporter.ts`
+  - `src/shared/llm/cli/ollama-client.ts`
+  - `src/core/security/windows-sandbox.ts`
+- ✅ 테스트 안정화:
+  - `tests/unit/core/orchestrator/*` 누수/레이스 정리
+  - `tests/unit/core/persistence/postgres-client.test.ts` 모킹 안정화
+  - `tests/unit/core/validation/confidence-checker.test.ts` 플래키 임계값 보정
+- ✅ Full validation:
+  - `npm run lint` 통과
+  - `npm run type-check` 통과
+  - `npm test` 통과 (342 passed, 6 skipped / total 348 suites)
 
 ### 2026-02-15 (I-15/I-16/D1: 백엔드 실전 연동)
 - ✅ **I-15**: PostgreSQL/SQLite 실전 연동 — `module-initializer.ts` ServiceRegistry 배선 수정 (`dbConfig` 전달), migration `down()` 실구현, 통합 테스트, 운영 가이드, docker-compose PostgreSQL 서비스
@@ -149,7 +165,7 @@ Test Runner: Jest + ts-jest
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| Worker leak warning in Jest | Low | Cosmetic (테스트 결과 무영향) |
+| 없음 (critical/high 이슈 없음) | - | - |
 
 ---
 
@@ -161,7 +177,7 @@ Test Runner: Jest + ts-jest
 | Enhancement Strategy Phase A-F (T1-T17) | ✅ COMPLETED | 100% |
 | Phase B: 프로덕션 준비 (B-1 ~ B-6) | ✅ COMPLETED | 100% |
 | Phase C: 기능 확장 (C-1 ~ C-4) | ✅ COMPLETED | 100% |
-| Phase D: 플랫폼 확장 | 📋 PLANNED | 0% |
+| Phase D: 플랫폼 확장 | ✅ COMPLETED | 100% |
 
 ---
 

@@ -19,12 +19,13 @@ import {
   HookResultReducer,
   HookExecutionRecord,
 } from '../interfaces/hook.interface';
+import { MAX_EXECUTION_HISTORY, DEFAULT_HOOK_TIMEOUT_MS } from './constants';
 
 /**
  * Default execution options
  */
 const DEFAULT_OPTIONS: Required<HookExecutionOptions> = {
-  timeout: 5000,
+  timeout: DEFAULT_HOOK_TIMEOUT_MS,
   stopOnError: false,
   stopOnAction: [HookAction.ABORT],
   parallel: false,
@@ -48,7 +49,7 @@ export class HookExecutor implements IHookExecutor {
     private readonly registry: IHookRegistry,
     options?: { maxHistorySize?: number }
   ) {
-    this.maxHistorySize = options?.maxHistorySize ?? 500;
+    this.maxHistorySize = options?.maxHistorySize ?? MAX_EXECUTION_HISTORY;
   }
 
   /**

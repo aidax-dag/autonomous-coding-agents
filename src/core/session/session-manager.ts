@@ -80,6 +80,9 @@ export class SessionManager extends EventEmitter implements ISessionManager {
           this.emit('session:error', id, err instanceof Error ? err : new Error(String(err)));
         });
       }, this.autoCheckpointMs);
+      if (this.checkpointTimer.unref) {
+        this.checkpointTimer.unref();
+      }
     }
 
     return id;

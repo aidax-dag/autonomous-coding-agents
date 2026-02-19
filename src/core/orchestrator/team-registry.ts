@@ -16,6 +16,7 @@ import {
   TeamCapability,
   TeamMetrics,
 } from './team-agent';
+import { STATUS_POLL_INTERVAL_MS } from './constants';
 
 /**
  * Registry events
@@ -317,7 +318,10 @@ export class TeamRegistry extends EventEmitter implements ITeamRegistry {
         this.emit('team:status-changed', team, lastStatus, currentStatus);
         lastStatus = currentStatus;
       }
-    }, 1000);
+    }, STATUS_POLL_INTERVAL_MS);
+    if (intervalId.unref) {
+      intervalId.unref();
+    }
 
     // Store cleanup function
     this.statusListeners.set(team.teamType, () => {

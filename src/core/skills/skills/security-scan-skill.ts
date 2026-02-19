@@ -6,12 +6,8 @@
  * @module core/skills/skills
  */
 
-import type {
-  ISkill,
-  SkillContext,
-  SkillResult,
-} from '../interfaces/skill.interface';
-import { createSkillFallback } from '../skill-fallback';
+import type { SkillContext } from '../interfaces/skill.interface';
+import { BaseSkill } from '../base-skill';
 
 /**
  * Security finding from a scan
@@ -49,92 +45,28 @@ export interface SecurityScanSkillOutput {
 /**
  * Security scan skill — analyzes code for OWASP-style vulnerabilities
  */
-export class SecurityScanSkill
-  implements ISkill<SecurityScanSkillInput, SecurityScanSkillOutput>
-{
+export class SecurityScanSkill extends BaseSkill<SecurityScanSkillInput, SecurityScanSkillOutput> {
   readonly name = 'security-scan';
   readonly description = 'Scans code for security vulnerabilities including injection, XSS, auth, and crypto issues';
   readonly tags = ['security', 'scan', 'owasp'] as const;
-  readonly version = '1.0.0';
-
-  private readonly executor?: (
-    input: SecurityScanSkillInput,
-    context: SkillContext,
-  ) => Promise<SecurityScanSkillOutput>;
-
-  constructor(options?: {
-    executor?: (
-      input: SecurityScanSkillInput,
-      context: SkillContext,
-    ) => Promise<SecurityScanSkillOutput>;
-  }) {
-    this.executor = options?.executor;
-  }
+  protected readonly validationError = 'Invalid input: files array is required';
 
   validate(input: SecurityScanSkillInput): boolean {
     return Array.isArray(input.files) && input.files.length > 0;
   }
 
-  canHandle(input: unknown): boolean {
-    const typed = input as SecurityScanSkillInput;
-    return (
-      typed !== null &&
-      typeof typed === 'object' &&
-      Array.isArray(typed.files) &&
-      typed.files.length > 0
-    );
+  protected createFallbackOutput(input: SecurityScanSkillInput): SecurityScanSkillOutput {
+    const checks = input.checks ?? ['injection', 'xss', 'auth', 'crypto'];
+    return {
+      findings: [],
+      summary: `Scanned ${input.files.length} file(s) for ${checks.join(', ')} vulnerabilities`,
+      score: 100,
+    };
   }
 
-  async execute(
-    input: SecurityScanSkillInput,
-    context: SkillContext,
-  ): Promise<SkillResult<SecurityScanSkillOutput>> {
-    const start = Date.now();
-
-    if (!this.validate(input)) {
-      return {
-        success: false,
-        error: 'Invalid input: files array is required',
-        duration: Date.now() - start,
-      };
-    }
-
-    try {
-      if (this.executor) {
-        const output = await this.executor(input, context);
-        return {
-          success: true,
-          output,
-          duration: Date.now() - start,
-        };
-      }
-
-      // Default stub output — no findings, perfect score
-      const checks = input.checks ?? ['injection', 'xss', 'auth', 'crypto'];
-      const fallback = createSkillFallback('security-scan', 'no_executor', {
-        files: input.files,
-        checks,
-      });
-
-      const output: SecurityScanSkillOutput = {
-        findings: [],
-        summary: `Scanned ${input.files.length} file(s) for ${checks.join(', ')} vulnerabilities`,
-        score: 100,
-      };
-
-      return {
-        success: true,
-        output,
-        duration: Date.now() - start,
-        metadata: { fallback },
-      };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-        duration: Date.now() - start,
-      };
-    }
+  protected createFallbackContext(input: SecurityScanSkillInput): Record<string, unknown> {
+    const checks = input.checks ?? ['injection', 'xss', 'auth', 'crypto'];
+    return { files: input.files, checks };
   }
 }
 

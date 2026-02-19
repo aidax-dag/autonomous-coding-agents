@@ -8,6 +8,8 @@
  * @module core/skills
  */
 
+import { FALLBACK_CONFIDENCE_SCORE } from './constants';
+
 /**
  * Reason why a skill is operating in fallback mode
  */
@@ -222,7 +224,7 @@ export function createSkillFallback(
 
   return {
     output: `[Fallback] ${skillName}: ${reasonDesc}. Results are stub data with no analytical value.${contextInfo}`,
-    confidence: 0.1,
+    confidence: FALLBACK_CONFIDENCE_SCORE,
     limitations,
     nextActions,
     fallbackReason: reason,

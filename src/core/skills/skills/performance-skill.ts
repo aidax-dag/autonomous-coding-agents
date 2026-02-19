@@ -6,12 +6,8 @@
  * @module core/skills/skills
  */
 
-import type {
-  ISkill,
-  SkillContext,
-  SkillResult,
-} from '../interfaces/skill.interface';
-import { createSkillFallback } from '../skill-fallback';
+import type { SkillContext } from '../interfaces/skill.interface';
+import { BaseSkill } from '../base-skill';
 
 /**
  * A performance finding
@@ -50,92 +46,32 @@ export interface PerformanceSkillOutput {
 /**
  * Performance skill — analyzes code for bottlenecks and optimization opportunities
  */
-export class PerformanceSkill
-  implements ISkill<PerformanceSkillInput, PerformanceSkillOutput>
-{
+export class PerformanceSkill extends BaseSkill<PerformanceSkillInput, PerformanceSkillOutput> {
   readonly name = 'performance';
   readonly description = 'Analyzes code for performance bottlenecks and optimization opportunities';
   readonly tags = ['performance', 'optimization', 'profiling'] as const;
-  readonly version = '1.0.0';
-
-  private readonly executor?: (
-    input: PerformanceSkillInput,
-    context: SkillContext,
-  ) => Promise<PerformanceSkillOutput>;
-
-  constructor(options?: {
-    executor?: (
-      input: PerformanceSkillInput,
-      context: SkillContext,
-    ) => Promise<PerformanceSkillOutput>;
-  }) {
-    this.executor = options?.executor;
-  }
+  protected readonly validationError = 'Invalid input: files array is required';
 
   validate(input: PerformanceSkillInput): boolean {
     return Array.isArray(input.files) && input.files.length > 0;
   }
 
-  canHandle(input: unknown): boolean {
-    const typed = input as PerformanceSkillInput;
-    return (
-      typed !== null &&
-      typeof typed === 'object' &&
-      Array.isArray(typed.files) &&
-      typed.files.length > 0
-    );
+  protected createFallbackOutput(_input: PerformanceSkillInput): PerformanceSkillOutput {
+    return {
+      findings: [],
+      overallScore: 100,
+      bottlenecks: [],
+    };
   }
 
-  async execute(
-    input: PerformanceSkillInput,
-    context: SkillContext,
-  ): Promise<SkillResult<PerformanceSkillOutput>> {
-    const start = Date.now();
+  protected createFallbackContext(input: PerformanceSkillInput): Record<string, unknown> {
+    const metrics = input.metrics ?? ['time', 'memory', 'cpu', 'io'];
+    return { files: input.files, metrics };
+  }
 
-    if (!this.validate(input)) {
-      return {
-        success: false,
-        error: 'Invalid input: files array is required',
-        duration: Date.now() - start,
-      };
-    }
-
-    try {
-      if (this.executor) {
-        const output = await this.executor(input, context);
-        return {
-          success: true,
-          output,
-          duration: Date.now() - start,
-        };
-      }
-
-      // Default stub output — no issues found
-      const metrics = input.metrics ?? ['time', 'memory', 'cpu', 'io'];
-      const fallback = createSkillFallback('performance', 'no_executor', {
-        files: input.files,
-        metrics,
-      });
-
-      const output: PerformanceSkillOutput = {
-        findings: [],
-        overallScore: 100,
-        bottlenecks: [],
-      };
-
-      return {
-        success: true,
-        output,
-        duration: Date.now() - start,
-        metadata: { metricsAnalyzed: metrics, fallback },
-      };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-        duration: Date.now() - start,
-      };
-    }
+  protected createExtraMetadata(input: PerformanceSkillInput): Record<string, unknown> {
+    const metrics = input.metrics ?? ['time', 'memory', 'cpu', 'io'];
+    return { metricsAnalyzed: metrics };
   }
 }
 

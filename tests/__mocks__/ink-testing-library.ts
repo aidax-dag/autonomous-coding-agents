@@ -7,6 +7,20 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 
+// React 18+/19 act() warnings are suppressed when this flag is set in the test env.
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+const originalConsoleError = console.error.bind(console);
+const REACT_TEST_RENDERER_DEPRECATION = 'react-test-renderer is deprecated';
+
+console.error = (...args: unknown[]): void => {
+  const firstArg = args[0];
+  if (typeof firstArg === 'string' && firstArg.includes(REACT_TEST_RENDERER_DEPRECATION)) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+
 interface RenderResult {
   lastFrame: () => string;
   frames: string[];

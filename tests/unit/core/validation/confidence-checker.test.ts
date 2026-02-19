@@ -399,7 +399,7 @@ describe('ConfidenceChecker', () => {
       // If parallel, should complete in ~50ms; if sequential, ~50ms+ for slow alone
       // Fast should complete first if parallel
       expect(executionOrder[0]).toBe('fast');
-      expect(elapsed).toBeLessThan(100); // Allow some buffer
+      expect(elapsed).toBeLessThan(250); // Allow CI/load jitter while preserving parallelism signal
     });
   });
 

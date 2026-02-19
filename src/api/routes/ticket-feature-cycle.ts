@@ -24,11 +24,9 @@ export class TicketFeatureCycleAPI {
   private readonly service: TicketFeatureService;
 
   constructor(options: TicketFeatureCycleAPIOptions) {
-    this.server = options.server;
-    this.service = createTicketFeatureService({
-      dataDir: options.dataDir,
-      requireMCP: options.requireMCP,
-    });
+    const { server, ...serviceOptions } = options;
+    this.server = server;
+    this.service = createTicketFeatureService(serviceOptions);
     this.registerRoutes();
   }
 

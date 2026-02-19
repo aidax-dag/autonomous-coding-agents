@@ -9,6 +9,7 @@
 
 import type { WebServer } from '../../ui/web/web-server';
 import type { WebRequest, WebResponse } from '../../ui/web/interfaces/web.interface';
+import { HTTP_STATUS } from '../constants';
 
 /**
  * Standardized API error response
@@ -24,26 +25,26 @@ export interface APIErrorResponse {
  */
 function classifyError(status: number): string {
   switch (status) {
-    case 400:
+    case HTTP_STATUS.BAD_REQUEST:
       return 'BAD_REQUEST';
-    case 401:
+    case HTTP_STATUS.UNAUTHORIZED:
       return 'UNAUTHORIZED';
-    case 403:
+    case HTTP_STATUS.FORBIDDEN:
       return 'FORBIDDEN';
-    case 404:
+    case HTTP_STATUS.NOT_FOUND:
       return 'NOT_FOUND';
-    case 409:
+    case HTTP_STATUS.CONFLICT:
       return 'CONFLICT';
-    case 422:
+    case HTTP_STATUS.VALIDATION_ERROR:
       return 'VALIDATION_ERROR';
-    case 429:
+    case HTTP_STATUS.RATE_LIMITED:
       return 'RATE_LIMITED';
-    case 500:
+    case HTTP_STATUS.INTERNAL_ERROR:
       return 'INTERNAL_ERROR';
-    case 503:
+    case HTTP_STATUS.SERVICE_UNAVAILABLE:
       return 'SERVICE_UNAVAILABLE';
     default:
-      return status >= 500 ? 'SERVER_ERROR' : 'CLIENT_ERROR';
+      return status >= HTTP_STATUS.INTERNAL_ERROR ? 'SERVER_ERROR' : 'CLIENT_ERROR';
   }
 }
 
@@ -62,7 +63,7 @@ function normalizeErrorBody(status: number, body: unknown): APIErrorResponse {
   }
 
   return {
-    error: status >= 500 ? 'Internal server error' : 'Request failed',
+    error: status >= HTTP_STATUS.INTERNAL_ERROR ? 'Internal server error' : 'Request failed',
     code,
     status,
   };

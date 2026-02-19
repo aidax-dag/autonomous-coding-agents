@@ -8,6 +8,7 @@
  */
 
 import { createLogger, ILogger } from '../services/logger';
+import { MAX_TASK_RETRIES, MAX_CONSECUTIVE_ERRORS, ERROR_PATTERNS } from './constants';
 
 // ============================================================================
 // Types
@@ -75,8 +76,8 @@ export type ErrorClassifier = (error: Error, context: string) => ErrorClassifica
 // ============================================================================
 
 const DEFAULT_CONFIG: ErrorEscalatorConfig = {
-  maxTaskRetries: 2,
-  maxConsecutiveErrors: 5,
+  maxTaskRetries: MAX_TASK_RETRIES,
+  maxConsecutiveErrors: MAX_CONSECUTIVE_ERRORS,
 };
 
 export class ErrorEscalator {
@@ -205,7 +206,7 @@ export class ErrorEscalator {
     const message = error.message.toLowerCase();
 
     // Critical: system-level failures
-    if (message.includes('enospc') || message.includes('out of memory') || message.includes('heap')) {
+    if (ERROR_PATTERNS.SYSTEM.some((p) => message.includes(p))) {
       return {
         severity: ErrorSeverity.CRITICAL,
         action: EscalationAction.STOP_RUNNER,
@@ -216,7 +217,7 @@ export class ErrorEscalator {
     }
 
     // High: team/agent not found
-    if (message.includes('no team registered') || message.includes('not running')) {
+    if (ERROR_PATTERNS.ROUTING.some((p) => message.includes(p))) {
       return {
         severity: ErrorSeverity.HIGH,
         action: EscalationAction.FAIL_TASK,
@@ -227,13 +228,7 @@ export class ErrorEscalator {
     }
 
     // Medium: LLM/network transient errors
-    if (
-      message.includes('timeout') ||
-      message.includes('rate limit') ||
-      message.includes('503') ||
-      message.includes('429') ||
-      message.includes('econnreset')
-    ) {
+    if (ERROR_PATTERNS.TRANSIENT.some((p) => message.includes(p))) {
       return {
         severity: ErrorSeverity.MEDIUM,
         action: EscalationAction.RETRY,

@@ -149,6 +149,7 @@ export async function createAndRegisterAgents(
   const planning = createPlanningAgent(queue, {
     config: {
       maxConcurrentTasks: Math.ceil(maxConcurrentTasks / 3),
+      autoStart: false,
     },
   });
 
@@ -165,6 +166,7 @@ export async function createAndRegisterAgents(
   const development = createDevelopmentAgent(queue, {
     config: {
       maxConcurrentTasks: Math.ceil(maxConcurrentTasks / 2),
+      autoStart: false,
     },
   });
 
@@ -181,6 +183,7 @@ export async function createAndRegisterAgents(
   const qa = createQAAgent(queue, {
     config: {
       maxConcurrentTasks: Math.ceil(maxConcurrentTasks / 3),
+      autoStart: false,
     },
   });
 
@@ -201,44 +204,44 @@ export async function createAndRegisterAgents(
 
     // Architecture Agent (teamType: 'design')
     const architecture = createArchitectureAgent(queue, {
-      config: { maxConcurrentTasks: expandedConcurrency },
+      config: { maxConcurrentTasks: expandedConcurrency, autoStart: false },
     });
     orchestrator.registerTeam(architecture);
 
     // Security Agent (teamType: 'security')
     const security = createSecurityAgent(queue, {
-      config: { maxConcurrentTasks: expandedConcurrency },
+      config: { maxConcurrentTasks: expandedConcurrency, autoStart: false },
     });
     orchestrator.registerTeam(security);
 
     // Debugging Agent (teamType: 'issue-response')
     const debugging = createDebuggingAgent(queue, {
-      config: { maxConcurrentTasks: expandedConcurrency },
+      config: { maxConcurrentTasks: expandedConcurrency, autoStart: false },
     });
     orchestrator.registerTeam(debugging);
 
     // Documentation Agent (teamType: 'documentation')
     const documentation = createDocumentationAgent(queue, {
-      config: { maxConcurrentTasks: expandedConcurrency },
+      config: { maxConcurrentTasks: expandedConcurrency, autoStart: false },
     });
     orchestrator.registerTeam(documentation);
 
     // Exploration Agent (teamType: 'operations')
     const exploration = createExplorationAgent(queue, {
-      config: { maxConcurrentTasks: expandedConcurrency },
+      config: { maxConcurrentTasks: expandedConcurrency, autoStart: false },
     });
     orchestrator.registerTeam(exploration);
 
     // Integration Agent (teamType: 'testing')
     const integration = createIntegrationAgent(queue, {
-      config: { maxConcurrentTasks: expandedConcurrency },
+      config: { maxConcurrentTasks: expandedConcurrency, autoStart: false },
     });
     orchestrator.registerTeam(integration);
 
     // Code Quality Agent (teamType: 'code-quality')
     const codeQuality = createCodeQualityAgent(queue, {
       teamType: 'code-quality',
-      config: { maxConcurrentTasks: expandedConcurrency },
+      config: { maxConcurrentTasks: expandedConcurrency, autoStart: false },
     });
     orchestrator.registerTeam(codeQuality);
 

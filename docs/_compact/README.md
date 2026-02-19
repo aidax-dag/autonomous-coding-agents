@@ -1,10 +1,10 @@
 # Docs Compact Index
 
-- Generated: 2026-02-16T09:31:22.220Z
+- Generated: 2026-02-18T12:36:49.175Z
 - Source: `docs`
 - Total docs: **147**
-- Total size: **1350.7 KB**
-- Estimated full-context cost: **~345,846 tokens**
+- Total size: **1351.4 KB**
+- Estimated full-context cost: **~346,020 tokens**
 
 ## Token-Efficient Workflow
 
@@ -43,7 +43,7 @@
 | Section | Files | Size (KB) | Est. Tokens |
 |---|---:|---:|---:|
 | `05-specifications` | 37 | 501.7 | 128,463 |
-| `06-roadmap` | 72 | 277.3 | 71,009 |
+| `06-roadmap` | 72 | 278.0 | 71,183 |
 | `03-guides` | 11 | 168.9 | 43,245 |
 | `01-vision` | 3 | 167.6 | 42,916 |
 | `api` | 2 | 86.9 | 22,246 |
@@ -119,7 +119,7 @@
 | `05-specifications/v3/F024-Program-Roadmap.md` | 447 | 1. Project A - ACA Core v3 2. Project B - Agent Exchange Service 3. Project C - Economic Settlement Service 4. Project... |
 | `06-roadmap/tasks/TASK1_IMPLEMENTATION_PLAN.md` | 6,517 | > 기존 TASK1_WEB_DASHBOARD_API.md 문서 분석 후 실제 코드베이스에 맞게 수정된 구현 계획 |
 | `06-roadmap/P5_PLATFORM.md` | 5,595 | > CodeAvengers 멀티 플랫폼 지원을 위한 상세 계획서 |
-| `06-roadmap/STATUS.md` | 2,331 | Last Updated: 2026-02-15 |
+| `06-roadmap/STATUS.md` | 2,505 | Last Updated: 2026-02-18 |
 | `06-roadmap/ROADMAP.md` | 2,170 | > ACA (Autonomous Coding Agents) 개발 로드맵 |
 | `06-roadmap/tasks/TASK2_EPIC_CAPABILITY_FEATURE_TICKET_TREE.md` | 1,695 | > 기준 문서: docs/05-specifications/v3/F027-ACA-Platform-Final-Definition.md |
 | `06-roadmap/REFERENCE.md` | 1,159 | Source: oh-my-opencode/src/hooks/*/storage.ts |

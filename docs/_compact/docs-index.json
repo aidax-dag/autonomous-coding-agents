@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-02-16T09:31:22.220Z",
+  "generatedAt": "2026-02-18T12:36:49.175Z",
   "sourceDir": "docs",
   "totals": {
     "docs": 147,
-    "bytes": 1383152,
-    "lines": 47355,
-    "estimatedTokens": 345846
+    "bytes": 1383847,
+    "lines": 47371,
+    "estimatedTokens": 346020
   },
   "sections": [
     {
@@ -17,8 +17,8 @@
     {
       "name": "06-roadmap",
       "docs": 72,
-      "bytes": 283926,
-      "estimatedTokens": 71009
+      "bytes": 284621,
+      "estimatedTokens": 71183
     },
     {
       "name": "03-guides",
@@ -93,9 +93,9 @@
         "도구",
         "분석",
         "비교",
+        "ai",
         "에이전트",
         "코딩",
-        "ai",
         "검증",
         "통합",
         "프로젝트",
@@ -126,16 +126,16 @@
       "keywords": [
         "01-vision",
         "핵심",
+        "ai",
+        "ceo인",
+        "human-in-the-loop",
+        "layer",
+        "md",
         "가치",
         "구성된",
         "구축",
         "단계",
-        "명과",
-        "목록",
-        "문서",
-        "비전",
-        "설계",
-        "소프트웨어"
+        "명과"
       ]
     },
     {
@@ -159,17 +159,17 @@
       "synopsis": "> 버전: 3.0 (통합 완료) > 작성일: 2026-01-25 > 상태: 활성 전략 문서 > 최종 목표: CEO인 인간 한 명과 AI 에이전트로 구성된 완전 자율 소프트웨어 회사 구축",
       "keywords": [
         "비전",
+        "part",
         "문서",
         "통합",
-        "part",
-        "핵심",
         "agents",
         "autonomous",
         "coding",
+        "핵심",
         "01-vision",
         "2026-01-25",
-        "가치",
-        "계획"
+        "ai",
+        "ceo인"
       ]
     },
     {
@@ -195,13 +195,13 @@
         "core",
         "src",
         "module",
-        "모듈",
-        "현재",
         "di",
         "kernel",
         "md",
         "reference",
         "system",
+        "모듈",
+        "현재",
         "02-architecture",
         "2026-02-15"
       ]
@@ -232,12 +232,12 @@
         "coding",
         "concept",
         "02-architecture",
-        "개발하는",
-        "기반으로",
-        "문서",
-        "소프트웨어를",
-        "에이전트",
-        "자율적으로"
+        "agent",
+        "ai",
+        "core",
+        "hierarchy",
+        "key",
+        "md"
       ]
     },
     {
@@ -261,13 +261,13 @@
         "문서",
         "15분",
         "30분",
+        "module_reference",
+        "system_design",
         "관련",
         "구현",
         "목록",
         "상세",
-        "설계",
-        "순서",
-        "아키텍처"
+        "설계"
       ]
     },
     {
@@ -363,13 +363,13 @@
         "code",
         "requirements",
         "03-guides",
-        "개발을",
-        "원칙",
-        "위한",
-        "코드",
-        "표준",
-        "품질",
-        "핵심"
+        "architecture",
+        "checkpoints",
+        "code_quality",
+        "development",
+        "error",
+        "guards",
+        "handling"
       ]
     },
     {
@@ -464,14 +464,14 @@
         "순서",
         "의존성",
         "03-guides",
+        "critical",
+        "implementation_guide",
+        "md",
+        "p0",
+        "p0-1",
         "가이드",
         "검증",
-        "구체적",
-        "구현",
-        "그래프",
-        "단계",
-        "목차",
-        "버그"
+        "구체적"
       ]
     },
     {
@@ -564,16 +564,16 @@
       "keywords": [
         "md",
         "03-guides",
-        "명령어",
         "cli",
+        "명령어",
         "10분",
         "15분",
         "5분",
+        "cli_usage",
+        "interactive_mode",
+        "user_guide",
         "가이드",
-        "개발자",
-        "모드",
-        "목록",
-        "문서"
+        "개발자"
       ]
     },
     {
@@ -599,15 +599,15 @@
         "테스트",
         "testing",
         "03-guides",
+        "acp",
+        "md",
+        "messagebus",
+        "watch",
         "가능",
         "메시징",
         "모드",
         "모킹",
-        "서버",
-        "실행",
-        "없이",
-        "인프라",
-        "전체"
+        "서버"
       ]
     },
     {
@@ -635,13 +635,13 @@
         "설정",
         "설치",
         "03-guides",
-        "목차",
-        "변수",
-        "사용까지",
-        "설치부터",
-        "시스템",
-        "요구사항",
-        "의존성"
+        "aca",
+        "agents",
+        "api",
+        "autonomous",
+        "coding",
+        "env",
+        "github"
       ]
     },
     {
@@ -699,15 +699,15 @@
       "synopsis": "> ACA(Autonomous Coding Agents) 경쟁 분석 문서의 현행화/축약판 > > 작성일: 2026-02-16 > 버전: 7.0 (Ticket/Feature 런타임 + MCP 게이트 + OpenAPI 구현 반영) > 목적: 대용량 원문을 유지하지 않고, 프로젝트 현황 중심으로 관리",
       "keywords": [
         "sprint",
-        "기준",
-        "문서",
-        "재평가",
         "analysis",
         "competitive",
         "condensed",
         "enhancement",
         "strategy",
         "v7",
+        "기준",
+        "문서",
+        "재평가",
         "04-planning",
         "2026-02-16"
       ]
@@ -769,15 +769,15 @@
         "완료",
         "구현",
         "우선순위",
-        "리스트",
-        "문서",
-        "버전",
-        "전체",
-        "통합",
         "integration",
         "list",
         "md",
-        "new"
+        "new",
+        "p3",
+        "phase",
+        "priority",
+        "sprint",
+        "v3"
       ]
     },
     {
@@ -801,14 +801,14 @@
         "문서",
         "프로젝트",
         "2026-02-15",
+        "md",
         "개선",
         "경쟁",
         "계획",
         "관련",
         "분석",
         "순서",
-        "읽기",
-        "전략"
+        "읽기"
       ]
     },
     {
@@ -832,17 +832,17 @@
       "synopsis": "> 버전: 1.0 > 작성일: 2026-02-07 > 목적: 체계적인 스펙 기반 개발 프로세스 정의",
       "keywords": [
         "spec-driven",
+        "development",
         "정리",
         "현재",
-        "development",
         "04-planning",
         "2026-02-07",
+        "development란",
+        "md",
+        "spec_driven_development",
         "개발",
         "개요",
-        "구조",
-        "기반",
-        "대상",
-        "디렉토리"
+        "구조"
       ]
     },
     {
@@ -869,14 +869,14 @@
         "완료",
         "specifications",
         "05-specifications",
-        "기능",
-        "리팩토링",
-        "문서",
-        "스펙",
         "agent",
         "context",
         "feature-level",
-        "learning"
+        "learning",
+        "md",
+        "of",
+        "p0",
+        "p1"
       ]
     },
     {
@@ -902,12 +902,12 @@
         "요약",
         "문서",
         "프로젝트",
-        "상태",
-        "종합",
-        "핵심",
         "agents",
         "autonomous",
         "coding",
+        "상태",
+        "종합",
+        "핵심",
         "00_project_summary_and_next_steps",
         "05-specifications",
         "2026-01-25"
@@ -933,18 +933,18 @@
       ],
       "synopsis": "> 작성일: 2026-01-25 > 버전: 1.0 > 목적: VISION.md 구현을 위한 상용 프로덕트 수준의 모듈 및 기능 정의",
       "keywords": [
-        "모듈",
         "module",
-        "기능",
-        "상용",
-        "프로덕트",
+        "모듈",
         "feature",
         "knowledge",
         "md",
+        "기능",
+        "상용",
+        "프로덕트",
         "01_module_feature_specification",
         "05-specifications",
         "2026-01-25",
-        "구조"
+        "agents"
       ]
     },
     {
@@ -969,16 +969,16 @@
       "keywords": [
         "patterns",
         "design",
+        "architecture",
+        "technical",
         "기술적",
         "설계",
         "아키텍처",
         "패턴",
-        "architecture",
-        "technical",
         "02_technical_design_patterns",
         "05-specifications",
         "2026-01-25",
-        "디자인"
+        "agent"
       ]
     },
     {
@@ -1002,17 +1002,17 @@
       "synopsis": "> 작성일: 2026-01-25 > 버전: 1.0 > 목적: 각 모듈의 구현 수준 상세 정의 (함수, 메서드, 알고리즘)",
       "keywords": [
         "정의",
+        "details",
         "구현",
         "상세",
-        "details",
         "03_implementation_details",
         "05-specifications",
         "2026-01-25",
-        "구조",
-        "레벨",
-        "메서드",
-        "모듈별",
-        "모듈의"
+        "agents",
+        "autonomous",
+        "client",
+        "coding",
+        "knowledge"
       ]
     },
     {
@@ -1036,17 +1036,17 @@
       "synopsis": "> 작성일: 2026-01-25 > 버전: 1.0 > 목적: 단계별 구현 계획 및 검증 기준 정의",
       "keywords": [
         "1-2",
+        "week",
         "계획",
         "구현",
-        "week",
         "04_implementation_roadmap",
         "05-specifications",
         "2026-01-25",
-        "검증",
-        "기준",
-        "단계별",
-        "로드맵",
-        "마일스톤"
+        "agents",
+        "autonomous",
+        "coding",
+        "core",
+        "day"
       ]
     },
     {
@@ -1070,17 +1070,17 @@
       "synopsis": "> 우선순위: P0 (Critical Path) > 모듈: src/core/validation/ > 예상 ROI: 25-250x > 출처 패턴: SuperClaude ConfidenceChecker > 현재 코드 상태 (As-Is, 2026-02-06): ✅ 구현 및 단위 테스트 존재",
       "keywords": [
         "confidencechecker",
+        "f001",
         "검사",
         "사전",
         "신뢰도",
         "실행",
         "출처",
         "패턴",
-        "f001",
         "05-specifications",
         "2026-02-06",
         "25-250x",
-        "개요"
+        "as-is"
       ]
     },
     {
@@ -1103,18 +1103,18 @@
       ],
       "synopsis": "> 우선순위: P0 (Critical Path) > 모듈: src/core/validation/ > 효과: 환각 탐지, 완료 검증 강화 > 출처 패턴: SuperClaude SelfCheckProtocol > 현재 코드 상태 (As-Is, 2026-02-06): ✅ 구현 및 단위 테스트 존재",
       "keywords": [
-        "검사",
         "selfcheckprotocol",
+        "검사",
+        "f002",
         "사후",
         "실행",
         "자체",
         "출처",
         "패턴",
-        "f002",
         "05-specifications",
         "2026-02-06",
         "4대",
-        "강화"
+        "as-is"
       ]
     },
     {
@@ -1138,17 +1138,17 @@
       "synopsis": "> 우선순위: P0 (Critical Path) > 모듈: src/core/validation/ > 효과: Task Completion → Goal Achievement 검증 전환 > 출처 패턴: get-shit-done Goal-Backward Verification > 현재 코드 상태 (As-Is, 2026-02-06): ⚠️ 구현됨 (WIRED 검증은 스펙 대비 완화)",
       "keywords": [
         "검증",
+        "f003",
+        "goalbackwardverifier",
         "목표",
         "스펙",
         "역방향",
         "출처",
         "패턴",
-        "f003",
-        "goalbackwardverifier",
         "05-specifications",
         "2026-02-06",
         "3단계",
-        "개념"
+        "achievement"
       ]
     },
     {
@@ -1171,15 +1171,15 @@
       ],
       "synopsis": "> 우선순위: P1 (High Value) > 모듈: src/core/learning/ > 효과: 에러 재발률 <10%, 캐시 히트 시 0 토큰 > 출처 패턴: SuperClaude ReflexionPattern > 현재 코드 상태 (As-Is, 2026-02-06): ✅ 구현 및 단위 테스트 존재",
       "keywords": [
-        "에러",
         "reflexionpattern",
+        "에러",
+        "f004",
         "시스템",
         "출처",
         "토큰",
         "패턴",
         "학습",
         "효과",
-        "f004",
         "05-specifications",
         "10",
         "2026-02-06"
@@ -1205,18 +1205,18 @@
       ],
       "synopsis": "> 우선순위: P1 (High Value) > 모듈: src/core/learning/ > 상태: ⏳ 대기 > 의존성: F004 (ReflexionPattern), learning 인터페이스 > 출처 패턴: everything-claude-code (Instinct System) > 현재 코드 상태 (As-Is, 2026-02-06): ✅ 구현 및 단위 테스트 존재",
       "keywords": [
+        "f005",
+        "instinctstore",
+        "learning",
         "상태",
         "인터페이스",
         "출처",
         "패턴",
-        "f005",
-        "instinctstore",
-        "learning",
         "05-specifications",
         "2026-02-06",
-        "가치",
-        "개요",
-        "구현"
+        "as-is",
+        "core",
+        "everything-claude-code"
       ]
     },
     {
@@ -1239,18 +1239,18 @@
       ],
       "synopsis": "> 우선순위: P1 (High Value) > 모듈: src/core/learning/ > 상태: ⏳ 대기 > 의존성: F004 (ReflexionPattern) > 효과: 0토큰 조회 (캐시 히트 시) > 현재 코드 상태 (As-Is, 2026-02-06): ✅ 구현 및 단위 테스트 존재",
       "keywords": [
-        "상태",
         "f006",
         "solutionscache",
+        "상태",
         "05-specifications",
         "0토큰",
         "2026-02-06",
-        "가치",
-        "개요",
-        "관계",
-        "구현",
-        "단위",
-        "대기"
+        "as-is",
+        "core",
+        "f004",
+        "f006-solutionscache",
+        "high",
+        "learning"
       ]
     },
     {
@@ -1274,17 +1274,17 @@
       "synopsis": "> 우선순위: P2 (Optimization) > 모듈: src/core/context/ > 상태: ✅ 완료 > 의존성: P0, P1 완료 후 > 출처 패턴: get-shit-done (Context Engineering) > 현재 코드 상태: ✅ 구현 완료 (371줄), 단위 테스트 통과",
       "keywords": [
         "완료",
-        "상태",
-        "출처",
-        "패턴",
         "context",
         "f007",
         "qualitycurve",
+        "상태",
+        "출처",
+        "패턴",
         "05-specifications",
         "371줄",
-        "가치",
-        "개요",
-        "곡선"
+        "core",
+        "engineering",
+        "f007-qualitycurve"
       ]
     },
     {
@@ -1308,17 +1308,17 @@
       "synopsis": "> 우선순위: P2 (Optimization) > 모듈: src/core/context/ > 상태: ✅ 완료 > 의존성: F007 (QualityCurve) > 리스크: Medium (기존 코드 이동 필요) > 현재 코드 상태: ✅ 통합 완료 (1,963줄), 단위 테스트 106개 통과",
       "keywords": [
         "통합",
-        "상태",
         "context",
+        "상태",
+        "f008",
+        "module",
         "완료",
         "코드",
         "현재",
-        "f008",
-        "module",
         "05-specifications",
         "106개",
         "963줄",
-        "가치"
+        "core"
       ]
     },
     {
@@ -1345,10 +1345,10 @@
         "완료",
         "상태",
         "2026-02-08",
-        "구조",
-        "현재",
         "agent",
         "f009",
+        "구조",
+        "현재",
         "05-specifications",
         "10",
         "254줄",
@@ -1745,12 +1745,12 @@
         "v2",
         "2026-02-06",
         "2026-02-08",
-        "대조",
-        "코드",
         "p0",
         "p1",
         "p2",
-        "refactor"
+        "refactor",
+        "specifications",
+        "대조"
       ]
     },
     {
@@ -1781,10 +1781,10 @@
         "llm",
         "multi",
         "05-specifications",
-        "구조는",
-        "목표",
-        "문제",
-        "배경"
+        "aca는",
+        "adapter",
+        "claude-cli",
+        "cli"
       ]
     },
     {
@@ -1813,12 +1813,12 @@
         "working",
         "f022",
         "05-specifications",
-        "가능하게",
-        "것이다",
-        "결과를",
-        "규칙",
-        "기반으로",
-        "모든"
+        "executor",
+        "f022-ticket-feature-cycle",
+        "feature화",
+        "md",
+        "planner",
+        "v3"
       ]
     },
     {
@@ -1842,8 +1842,6 @@
       "synopsis": "단순 Skill 파일 공유는 중복/품질 편차/프라이버시 리스크가 크다. 목표는 \"Skill 원문 판매\"가 아니라 \"Persona가 적용된 Agent 서비스 사용\" 중심 경제를 만드는 것이다.",
       "keywords": [
         "agent",
-        "신규",
-        "프로젝트",
         "collaboration",
         "economy",
         "f023",
@@ -1851,8 +1849,10 @@
         "secure",
         "service",
         "skill",
+        "신규",
+        "프로젝트",
         "05-specifications",
-        "것이다"
+        "aca"
       ]
     },
     {
@@ -1909,18 +1909,18 @@
       ],
       "synopsis": "Ticket 완료 산출물을 재사용 가능한 Feature 자산으로 축적하려면, 등록/조회 수준을 넘어 버전관리와 운영 관리 API가 필요하다.",
       "keywords": [
-        "구현",
         "feature",
-        "관리",
+        "구현",
         "f025",
         "management",
         "service",
         "ticket",
+        "관리",
         "05-specifications",
-        "가능한",
-        "규칙",
-        "기준",
-        "넘어"
+        "api",
+        "api가",
+        "f025-feature-management-service",
+        "md"
       ]
     },
     {
@@ -1946,14 +1946,14 @@
         "feature",
         "mcp",
         "ticket",
-        "구현",
-        "범위",
-        "적용",
         "api",
         "enforcement",
         "f026",
         "runtime",
         "working",
+        "구현",
+        "범위",
+        "적용",
         "05-specifications"
       ]
     },
@@ -1979,15 +1979,15 @@
       "keywords": [
         "v1",
         "aca",
-        "제품",
         "final",
-        "최종",
+        "제품",
         "definition",
         "f027",
         "line",
         "lock",
         "platform",
         "scope",
+        "최종",
         "05-specifications"
       ]
     },
@@ -2013,7 +2013,6 @@
       "keywords": [
         "db",
         "aca",
-        "설계",
         "api",
         "design",
         "f028",
@@ -2021,8 +2020,9 @@
         "integration",
         "saas",
         "schema",
+        "설계",
         "05-specifications",
-        "공식"
+        "autonomous-coding-agents"
       ]
     },
     {
@@ -2045,17 +2045,17 @@
       "synopsis": "F028-Feature-SaaS-Design.md의 DB 설계를 ERD 관점으로 상세화한다. 이 문서는 구현 전 DB 설계 리뷰 기준 문서다.",
       "keywords": [
         "erd",
-        "리뷰",
         "appendix",
         "db",
         "detailed",
         "f028",
         "feature",
         "saas",
+        "리뷰",
         "05-specifications",
-        "관점으로",
-        "구현",
-        "권장"
+        "f028-feature-saas-design",
+        "f028-feature-saas-erd",
+        "md"
       ]
     },
     {
@@ -2079,15 +2079,15 @@
         "v3",
         "specifications",
         "05-specifications",
-        "구성",
-        "목적",
-        "문서",
-        "상태",
-        "스키마",
-        "스펙",
-        "연결",
-        "코드베이스와",
-        "포인트"
+        "aca",
+        "agent",
+        "cycle",
+        "economy",
+        "feature",
+        "mal",
+        "md",
+        "next",
+        "program"
       ]
     },
     {
@@ -2104,18 +2104,18 @@
       ],
       "synopsis": "> 최종 수정: 2026-02-14 (Phase J 완료, v3.1 Production Polish)",
       "keywords": [
+        "phase",
         "다음",
         "리스트",
         "작업",
-        "phase",
         "06-roadmap",
         "2026-02-14",
-        "수정",
-        "완료",
-        "완료된",
-        "요약",
-        "최종",
-        "md"
+        "md",
+        "next_tasks",
+        "polish",
+        "production",
+        "v3",
+        "수정"
       ]
     },
     {
@@ -2139,17 +2139,17 @@
       "synopsis": "> CodeAvengers 멀티 플랫폼 지원을 위한 상세 계획서",
       "keywords": [
         "플랫폼",
-        "시작",
         "phase",
         "platform",
+        "시작",
         "06-roadmap",
+        "api",
+        "codeavengers",
+        "md",
+        "p5_platform",
         "개요",
         "계획서",
-        "대시보드",
-        "멀티",
-        "목차",
-        "목표",
-        "방법"
+        "대시보드"
       ]
     },
     {
@@ -2175,14 +2175,14 @@
         "06-roadmap",
         "문서",
         "5분",
-        "확인",
         "phase",
+        "확인",
         "10분",
         "15분",
-        "개요",
-        "관련",
-        "다음",
-        "로드맵"
+        "next_tasks",
+        "p5_platform",
+        "status",
+        "개요"
       ]
     },
     {
@@ -2244,13 +2244,13 @@
         "development",
         "0-4",
         "06-roadmap",
-        "개발",
-        "로드맵",
         "a-f",
         "aca",
         "agents",
         "api",
-        "autonomous"
+        "autonomous",
+        "coding",
+        "core"
       ]
     },
     {
@@ -2258,9 +2258,9 @@
       "section": "06-roadmap",
       "ext": ".md",
       "title": "Current Status",
-      "lines": 175,
-      "bytes": 9323,
-      "estimatedTokens": 2331,
+      "lines": 191,
+      "bytes": 10018,
+      "estimatedTokens": 2505,
       "headings": [
         "Current Status",
         "1. Implementation Status",
@@ -2271,20 +2271,20 @@
         "Web Dashboard",
         "DX"
       ],
-      "synopsis": "Last Updated: 2026-02-15",
+      "synopsis": "Last Updated: 2026-02-18",
       "keywords": [
         "status",
-        "구현",
-        "완료",
         "current",
         "modules",
+        "구현",
+        "완료",
         "06-roadmap",
-        "2026-02-15",
-        "전체",
+        "2026-02-18",
         "api",
         "core",
         "dashboard",
-        "dx"
+        "dx",
+        "last"
       ]
     },
     {
@@ -2316,9 +2316,9 @@
         "ticket",
         "to",
         "05-specifications",
-        "계약",
-        "공용",
-        "권장"
+        "adapter",
+        "adapters",
+        "agent"
       ]
     },
     {
@@ -2345,14 +2345,14 @@
         "t0101",
         "c01",
         "e01",
-        "작성",
-        "초안",
         "contract",
         "external",
         "github",
         "interface",
         "issue",
-        "jira"
+        "jira",
+        "mal",
+        "작성"
       ]
     },
     {
@@ -2379,14 +2379,14 @@
         "t0102",
         "c01",
         "e01",
-        "정의",
         "contract",
         "external",
         "github",
         "issue",
         "jira",
         "json",
-        "schema"
+        "schema",
+        "정의"
       ]
     },
     {
@@ -2413,14 +2413,14 @@
         "t0103",
         "c01",
         "e01",
-        "작성",
         "contract",
         "external",
         "github",
         "issue",
         "jira",
         "test",
-        "validation"
+        "validation",
+        "작성"
       ]
     },
     {
@@ -2447,14 +2447,14 @@
         "t0104",
         "c02",
         "e01",
-        "구현",
         "adapterbase",
         "external",
         "github",
         "issue",
         "jira",
+        "구현",
         "06-roadmap",
-        "공용"
+        "assignee"
       ]
     },
     {
@@ -2481,14 +2481,14 @@
         "t0105",
         "c02",
         "e01",
-        "연동",
         "capabilityregistry",
         "external",
         "github",
         "issue",
         "jira",
+        "연동",
         "06-roadmap",
-        "공용"
+        "assignee"
       ]
     },
     {
@@ -2515,14 +2515,14 @@
         "t0106",
         "c02",
         "e01",
-        "문서",
-        "샘플",
-        "작성",
         "adapter",
         "external",
         "github",
         "issue",
-        "jira"
+        "jira",
+        "sdk",
+        "문서",
+        "샘플"
       ]
     },
     {
@@ -2685,14 +2685,14 @@
         "t0111",
         "c03",
         "e01",
-        "공통",
         "adapter",
         "external",
         "github",
         "integration",
         "issue",
         "jira",
-        "test"
+        "test",
+        "공통"
       ]
     },
     {
@@ -2725,8 +2725,8 @@
         "ready",
         "to",
         "05-specifications",
-        "공용",
-        "권장"
+        "c04",
+        "c05"
       ]
     },
     {
@@ -2753,14 +2753,14 @@
         "t0201",
         "c04",
         "e02",
-        "상태",
-        "전이",
-        "정책",
-        "확정",
         "external",
         "github",
         "issue",
-        "jira"
+        "jira",
+        "상태",
+        "전이",
+        "정책",
+        "확정"
       ]
     },
     {
@@ -2787,14 +2787,14 @@
         "t0202",
         "c04",
         "e02",
-        "구현",
-        "모듈",
         "external",
         "gate",
         "github",
         "issue",
         "jira",
-        "validation"
+        "validation",
+        "구현",
+        "모듈"
       ]
     },
     {
@@ -2821,13 +2821,13 @@
         "t0203",
         "c04",
         "e02",
-        "구현",
         "assignment",
         "external",
         "github",
         "issue",
         "jira",
         "role-based",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -2855,13 +2855,13 @@
         "t0204",
         "c05",
         "e02",
-        "구현",
         "external",
         "github",
         "issue",
         "jira",
         "model",
         "queue",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -2890,12 +2890,12 @@
         "c05",
         "e02",
         "priority",
-        "구현",
         "external",
         "github",
         "issue",
         "jira",
         "qos",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -2923,14 +2923,14 @@
         "t0206",
         "c05",
         "e02",
-        "처리",
         "cancel",
         "external",
         "github",
         "issue",
         "jira",
         "pause",
-        "resume"
+        "resume",
+        "처리"
       ]
     },
     {
@@ -2957,14 +2957,14 @@
         "t0207",
         "c06",
         "e02",
-        "구현",
         "external",
         "github",
         "issue",
         "jira",
         "manager",
         "session",
-        "tmux"
+        "tmux",
+        "구현"
       ]
     },
     {
@@ -2991,14 +2991,14 @@
         "t0208",
         "c06",
         "e02",
-        "복구",
-        "저장",
         "checkpoint",
         "external",
         "github",
         "issue",
         "jira",
-        "session"
+        "session",
+        "복구",
+        "저장"
       ]
     },
     {
@@ -3025,14 +3025,14 @@
         "t0209",
         "c06",
         "e02",
-        "복구",
-        "시나리오",
-        "장애",
-        "테스트",
         "external",
         "github",
         "issue",
-        "jira"
+        "jira",
+        "복구",
+        "시나리오",
+        "장애",
+        "테스트"
       ]
     },
     {
@@ -3064,8 +3064,8 @@
         "ticket",
         "to",
         "05-specifications",
-        "공용",
-        "권장"
+        "c07",
+        "c08"
       ]
     },
     {
@@ -3092,14 +3092,14 @@
         "t0301",
         "c07",
         "e03",
-        "정의",
         "envelope",
         "external",
         "github",
         "ipc",
         "issue",
         "jira",
-        "schema"
+        "schema",
+        "정의"
       ]
     },
     {
@@ -3126,14 +3126,14 @@
         "t0302",
         "c07",
         "e03",
-        "구현",
-        "기반",
-        "라우팅",
         "correlation-id",
         "external",
         "github",
         "issue",
-        "jira"
+        "jira",
+        "구현",
+        "기반",
+        "라우팅"
       ]
     },
     {
@@ -3160,14 +3160,14 @@
         "t0303",
         "c07",
         "e03",
-        "처리",
         "abort",
         "external",
         "github",
         "ipc",
         "issue",
         "jira",
-        "timeout"
+        "timeout",
+        "처리"
       ]
     },
     {
@@ -3194,14 +3194,14 @@
         "t0304",
         "c08",
         "e03",
-        "구현",
         "external",
         "github",
         "health",
         "issue",
         "jira",
         "network",
-        "probe"
+        "probe",
+        "구현"
       ]
     },
     {
@@ -3228,14 +3228,14 @@
         "t0305",
         "c08",
         "e03",
-        "적용",
         "degraded",
         "external",
         "github",
         "issue",
         "jira",
         "mode",
-        "policy"
+        "policy",
+        "적용"
       ]
     },
     {
@@ -3262,14 +3262,14 @@
         "t0306",
         "c08",
         "e03",
-        "전환",
-        "테스트",
         "external",
         "github",
         "issue",
         "jira",
         "offline",
-        "online"
+        "online",
+        "전환",
+        "테스트"
       ]
     },
     {
@@ -3301,9 +3301,9 @@
         "ticket",
         "to",
         "05-specifications",
-        "공용",
-        "권장",
-        "기준"
+        "c09",
+        "c10",
+        "c11"
       ]
     },
     {
@@ -3330,13 +3330,13 @@
         "t0401",
         "c09",
         "e04",
-        "구현",
         "external",
         "github",
         "idempotency",
         "issue",
         "jira",
         "store",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -3364,14 +3364,14 @@
         "t0402",
         "c09",
         "e04",
-        "구현",
         "engine",
         "external",
         "github",
         "issue",
         "jira",
         "policy",
-        "retry"
+        "retry",
+        "구현"
       ]
     },
     {
@@ -3398,13 +3398,13 @@
         "t0403",
         "c09",
         "e04",
-        "구현",
         "breaker",
         "circuit",
         "external",
         "github",
         "issue",
         "jira",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -3432,14 +3432,14 @@
         "t0404",
         "c10",
         "e04",
-        "정의",
         "external",
         "github",
         "issue",
         "jira",
         "policy",
         "rule",
-        "schema"
+        "schema",
+        "정의"
       ]
     },
     {
@@ -3466,14 +3466,14 @@
         "t0405",
         "c10",
         "e04",
-        "구현",
         "check",
         "external",
         "github",
         "issue",
         "jira",
         "policy",
-        "pre-execution"
+        "pre-execution",
+        "구현"
       ]
     },
     {
@@ -3500,14 +3500,14 @@
         "t0406",
         "c10",
         "e04",
-        "구현",
         "audit",
         "external",
         "github",
         "issue",
         "jira",
         "log",
-        "violation"
+        "violation",
+        "구현"
       ]
     },
     {
@@ -3534,13 +3534,13 @@
         "t0407",
         "c11",
         "e04",
-        "구현",
         "budget",
         "external",
         "github",
         "issue",
         "jira",
         "ledger",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -3568,14 +3568,14 @@
         "t0408",
         "c11",
         "e04",
-        "구현",
-        "전략",
         "agent",
         "external",
         "fallback",
         "github",
         "issue",
-        "jira"
+        "jira",
+        "model",
+        "구현"
       ]
     },
     {
@@ -3602,14 +3602,14 @@
         "t0409",
         "c11",
         "e04",
-        "리포트",
-        "비용",
-        "추가",
         "api",
         "external",
         "github",
         "issue",
-        "jira"
+        "jira",
+        "리포트",
+        "비용",
+        "추가"
       ]
     },
     {
@@ -3641,9 +3641,9 @@
         "ticket",
         "to",
         "05-specifications",
-        "공용",
-        "권장",
-        "기준"
+        "c12",
+        "c13",
+        "c14"
       ]
     },
     {
@@ -3670,14 +3670,14 @@
         "t0501",
         "c12",
         "e05",
-        "정의",
         "event",
         "external",
         "github",
         "history",
         "issue",
         "jira",
-        "schema"
+        "schema",
+        "정의"
       ]
     },
     {
@@ -3704,13 +3704,13 @@
         "t0502",
         "c12",
         "e05",
-        "구현",
         "external",
         "github",
         "history",
         "issue",
         "jira",
         "store",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -3738,14 +3738,14 @@
         "t0503",
         "c12",
         "e05",
-        "구현",
         "api",
         "external",
         "github",
         "history",
         "issue",
         "jira",
-        "query"
+        "query",
+        "구현"
       ]
     },
     {
@@ -3772,13 +3772,13 @@
         "t0504",
         "c13",
         "e05",
-        "구현",
         "external",
         "github",
         "issue",
         "jira",
         "recorder",
         "trace",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -3806,13 +3806,13 @@
         "t0505",
         "c13",
         "e05",
-        "구현",
         "external",
         "github",
         "issue",
         "jira",
         "replay",
         "runner",
+        "구현",
         "06-roadmap"
       ]
     },
@@ -3840,14 +3840,14 @@
         "t0506",
         "c13",
         "e05",
-        "구현",
         "analyzer",
         "diff",
         "external",
         "github",
         "issue",
         "jira",
-        "replay"
+        "replay",
+        "구현"
       ]
     },
     {
@@ -3874,14 +3874,14 @@
         "t0507",
         "c14",
         "e05",
-        "정리",
         "api",
         "external",
         "github",
         "issue",
         "jira",
         "metrics",
-        "runtime"
+        "runtime",
+        "정리"
       ]
     },
     {
@@ -3908,13 +3908,13 @@
         "t0508",
         "c14",
         "e05",
-        "추가",
         "dashboard",
         "external",
         "github",
         "issue",
         "jira",
         "panels",
+        "추가",
         "06-roadmap"
       ]
     },
@@ -3942,14 +3942,14 @@
         "t0509",
         "c14",
         "e05",
-        "구성",
-        "초안",
         "alert",
         "external",
         "github",
         "issue",
         "jira",
-        "rule"
+        "rule",
+        "구성",
+        "초안"
       ]
     },
     {
@@ -3983,7 +3983,7 @@
         "to",
         "v1",
         "05-specifications",
-        "공용"
+        "c15"
       ]
     },
     {
@@ -4011,13 +4011,13 @@
         "t0601",
         "c15",
         "e06",
-        "구현",
         "external",
         "issue",
         "mapper",
+        "구현",
         "06-roadmap",
-        "공용",
-        "메타데이터"
+        "assignee",
+        "capability"
       ]
     },
     {
@@ -4044,14 +4044,14 @@
         "t0602",
         "c15",
         "e06",
-        "구현",
         "external",
         "github",
         "issue",
         "mode",
         "pull",
         "push",
-        "sync"
+        "sync",
+        "구현"
       ]
     },
     {
@@ -4085,7 +4085,7 @@
         "sync",
         "test",
         "06-roadmap",
-        "공용"
+        "assignee"
       ]
     },
     {
@@ -4113,13 +4113,13 @@
         "t0604",
         "c16",
         "e06",
-        "정의",
         "connector",
         "contract",
         "external",
         "issue",
+        "정의",
         "06-roadmap",
-        "공용"
+        "assignee"
       ]
     },
     {
@@ -4147,13 +4147,13 @@
         "t0605",
         "c16",
         "e06",
-        "구현",
         "external",
         "issue",
         "mapper",
+        "구현",
         "06-roadmap",
-        "공용",
-        "메타데이터"
+        "assignee",
+        "capability"
       ]
     },
     {
@@ -4187,7 +4187,7 @@
         "sync",
         "test",
         "06-roadmap",
-        "공용"
+        "assignee"
       ]
     },
     {
@@ -4215,13 +4215,13 @@
         "c16",
         "e06",
         "provider",
-        "반영",
         "api",
         "common",
         "external",
         "issue",
         "option",
-        "ui"
+        "ui",
+        "반영"
       ]
     },
     {
@@ -4283,13 +4283,13 @@
         "c17",
         "e07",
         "feature",
-        "도메인",
-        "설계",
-        "스키마",
         "common",
         "db",
         "external",
-        "issue"
+        "issue",
+        "도메인",
+        "설계",
+        "스키마"
       ]
     },
     {
@@ -4317,13 +4317,13 @@
         "c17",
         "e07",
         "feature",
-        "검색",
-        "계약",
-        "설계",
         "api",
         "common",
         "external",
-        "issue"
+        "issue",
+        "검색",
+        "계약",
+        "설계"
       ]
     },
     {
@@ -4350,14 +4350,14 @@
         "t0703",
         "c17",
         "e07",
-        "동기화",
-        "설계",
-        "연동",
         "aca",
         "common",
         "external",
         "issue",
-        "mcp"
+        "mcp",
+        "sdk",
+        "동기화",
+        "설계"
       ]
     },
     {
@@ -4384,14 +4384,14 @@
         "t0704",
         "c18",
         "e07",
+        "common",
+        "external",
+        "issue",
         "검증",
         "버전",
         "설계",
         "스냅샷",
-        "정합성",
-        "common",
-        "external",
-        "issue"
+        "정합성"
       ]
     },
     {
@@ -4418,13 +4418,13 @@
         "t0705",
         "c18",
         "e07",
+        "common",
+        "external",
+        "issue",
         "검증",
         "롤백",
         "설계",
         "정책",
-        "common",
-        "external",
-        "issue",
         "06-roadmap"
       ]
     },
@@ -4452,13 +4452,13 @@
         "t0706",
         "c18",
         "e07",
-        "검증",
-        "설계",
         "common",
         "external",
         "issue",
         "telemetry",
         "usage",
+        "검증",
+        "설계",
         "06-roadmap"
       ]
     },
@@ -4485,15 +4485,15 @@
         "구현",
         "수정된",
         "계획",
+        "api",
+        "md",
         "기존",
         "대시보드",
         "문서",
         "변경",
         "분석",
         "사항",
-        "연동",
-        "api",
-        "md"
+        "연동"
       ]
     },
     {
@@ -4552,14 +4552,14 @@
         "workflow",
         "00_workflow",
         "07-worklists",
-        "가능하게",
-        "구현",
-        "문서",
-        "분석",
-        "실행",
-        "완성을",
-        "위해",
-        "유지한다"
+        "always",
+        "do",
+        "each",
+        "execution",
+        "format",
+        "goal",
+        "inputs",
+        "md"
       ]
     },
     {
@@ -4586,12 +4586,12 @@
         "verified",
         "07-worklists",
         "10_status_baseline",
-        "계획",
-        "구현",
-        "구현된",
-        "기능을",
-        "기준선을",
-        "맞춘다"
+        "be",
+        "code-first",
+        "documents",
+        "exists",
+        "gaps",
+        "implemented"
       ]
     },
     {
@@ -4622,10 +4622,10 @@
         "worklist",
         "07-worklists",
         "20_runtime_and_connectors",
-        "가능한",
-        "런타임",
-        "로컬",
-        "사이클을"
+        "abstraction",
+        "adapter",
+        "commands",
+        "external"
       ]
     },
     {
@@ -4648,17 +4648,17 @@
       "synopsis": "현재 스텁인 분석/문서생성 모듈을 실제 코드베이스 분석 결과를 반환하는 모듈로 전환한다.",
       "keywords": [
         "analyzer",
-        "분석",
         "generator",
         "worklist",
+        "분석",
         "07-worklists",
         "30_analyzer_and_generator_implementation",
-        "결과를",
-        "모듈로",
-        "모듈을",
-        "문서생성",
-        "반환하는",
-        "스텁인"
+        "a1",
+        "a2",
+        "backend",
+        "brownfield",
+        "commands",
+        "docsgenerator"
       ]
     },
     {
@@ -4686,13 +4686,13 @@
         "worklist",
         "07-worklists",
         "40_benchmark_and_deepworker",
-        "가능한",
-        "개선한다",
-        "결과",
-        "기본",
-        "기본값",
-        "동작을",
-        "모듈의"
+        "b1",
+        "b2",
+        "b3",
+        "commands",
+        "default",
+        "evidence",
+        "executor"
       ]
     },
     {
@@ -4723,10 +4723,10 @@
         "worklist",
         "07-worklists",
         "50_stub_productionization",
-        "강화",
-        "기본",
-        "기준으로",
-        "모듈의"
+        "commands",
+        "contracts",
+        "detection",
+        "gate"
       ]
     },
     {
@@ -4757,10 +4757,10 @@
         "worklist",
         "07-worklists",
         "60_doc_sync_and_token_policy",
-        "문서와",
-        "불일치를",
-        "사용을",
-        "상태"
+        "commands",
+        "compact",
+        "d1",
+        "d2"
       ]
     },
     {
@@ -4782,15 +4782,15 @@
         "07",
         "worklists",
         "07-worklists",
+        "documents",
+        "low-token",
+        "md",
+        "order",
+        "reading",
+        "rule",
+        "worklist",
         "구현",
-        "기능",
-        "매번",
-        "목적",
-        "문서",
-        "문서를",
-        "미구현",
-        "바로",
-        "분석부터"
+        "기능"
       ]
     },
     {
@@ -4883,16 +4883,16 @@
       "keywords": [
         "게이트",
         "구현",
-        "정의되었다",
         "checklist",
         "cycle",
         "gate",
         "sprint",
-        "가능하다",
-        "기능정의",
-        "기록되었다",
-        "명확히",
-        "목표"
+        "정의되었다",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "approved"
       ]
     },
     {
@@ -4914,17 +4914,17 @@
       "synopsis": "- [ ] 구현 범위가 승인된 스펙과 일치한다. - [ ] 임시 코드/하드코딩/디버그 코드가 제거되었다. - [ ] 예외/에러 처리 경로가 정의되어 있다. - [ ] 로그/관찰성 정보가 필요한 수준으로 남아 있다. - [ ] 문서/코드 링크가 티켓에 첨부되었다.",
       "keywords": [
         "점검",
+        "checklist",
+        "test",
         "구현",
         "있다",
         "코드",
-        "checklist",
-        "test",
+        "checklists",
+        "feature",
+        "implementation_test_checklist",
+        "md",
         "경로가",
-        "관찰성",
-        "남아",
-        "디버그",
-        "로그",
-        "링크가"
+        "관찰성"
       ]
     },
     {
@@ -4943,6 +4943,7 @@
       "synopsis": "스프린트 게이트 기반 운영용 체크리스트 모음.",
       "keywords": [
         "checklists",
+        "md",
         "게이트",
         "권장",
         "기반",
@@ -4952,8 +4953,7 @@
         "순서",
         "스프린트",
         "운영용",
-        "체크리스트",
-        "파일"
+        "체크리스트"
       ]
     },
     {
@@ -4975,18 +4975,18 @@
       ],
       "synopsis": "- [ ] 스프린트 목표 대비 달성률을 기록했다. - [ ] 완료/미완료 티켓 목록을 정리했다. - [ ] 주요 산출물 링크를 정리했다.",
       "keywords": [
-        "분석",
-        "정리했다",
         "analysis",
         "checklist",
         "result",
         "sprint",
+        "분석",
+        "정리했다",
+        "checklists",
+        "md",
+        "sprint_result_analysis_checklist",
         "결과정리",
         "기록했다",
-        "달성률을",
-        "대비",
-        "리스크",
-        "링크를"
+        "달성률을"
       ]
     },
     {
@@ -5009,18 +5009,18 @@
       ],
       "synopsis": "> ACA(Autonomous Coding Agents) 프로젝트 문서",
       "keywords": [
-        "문서",
         "compact",
         "md",
+        "문서",
         "01",
         "02",
-        "관련",
-        "문서만",
-        "비전",
-        "생성",
-        "아키텍처",
-        "요약",
-        "인덱스"
+        "aca",
+        "agents",
+        "architecture",
+        "autonomous",
+        "coding",
+        "docs-index",
+        "json"
       ]
     }
   ]

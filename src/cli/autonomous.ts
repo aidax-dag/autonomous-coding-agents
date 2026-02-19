@@ -17,6 +17,7 @@ import type { OrchestratorRunner, GoalResult, WorkflowResult } from '@/core/orch
 import { logger } from '@/shared/logging/logger';
 import type { TeamType } from '@/core/workspace/task-document';
 import { startAPIServer } from '@/api/server';
+import { DEFAULT_API_PORT, DEFAULT_API_HOST } from '@/api/constants';
 import { createACPMessageBus } from '@/core/protocols/acp-message-bus';
 import { RunnerDataSource } from '@/core/orchestrator/runner-data-source';
 import { renderTUI } from '@/ui/tui/ink/render';
@@ -40,8 +41,8 @@ function printGoalResult(result: GoalResult): void {
   console.log(`  Tasks: ${result.completedTasks} passed, ${result.failedTasks} failed`);
 
   if (result.verification) {
-    const v = result.verification;
-    console.log(`  Verification: ${v.passed ? chalk.green('passed') : chalk.yellow('partial')}`);
+    const verification = result.verification;
+    console.log(`  Verification: ${verification.passed ? chalk.green('passed') : chalk.yellow('partial')}`);
   }
 
   if (result.tasks.length > 0) {
@@ -152,7 +153,7 @@ export function createAutonomousCLI(): Command {
             const result = await runner.executeGoal(goal, goal, {
               priority: opts.priority,
               projectId: opts.project,
-              tags: opts.tags?.split(',').map((t: string) => t.trim()),
+              tags: opts.tags?.split(',').map((tag: string) => tag.trim()),
               waitForCompletion: opts.wait !== false,
             });
 
@@ -168,7 +169,7 @@ export function createAutonomousCLI(): Command {
             const result = await runner.executeGoal(goal, goal, {
               priority: opts.priority,
               projectId: opts.project,
-              tags: opts.tags?.split(',').map((t: string) => t.trim()),
+              tags: opts.tags?.split(',').map((tag: string) => tag.trim()),
               waitForCompletion: opts.wait !== false,
             });
 
@@ -177,8 +178,8 @@ export function createAutonomousCLI(): Command {
           }
         });
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.error(chalk.red(`Error: ${msg}`));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(`Error: ${errorMessage}`));
         process.exitCode = 1;
       }
     });
@@ -217,8 +218,8 @@ export function createAutonomousCLI(): Command {
           process.exitCode = result.success ? 0 : 1;
         });
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.error(chalk.red(`Error: ${msg}`));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(`Error: ${errorMessage}`));
         process.exitCode = 1;
       }
     });
@@ -235,8 +236,8 @@ export function createAutonomousCLI(): Command {
         console.log(chalk.cyan('Runner Configuration:'));
         console.log(JSON.stringify(config, null, 2));
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.error(chalk.red(`Error loading config: ${msg}`));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(`Error loading config: ${errorMessage}`));
         process.exitCode = 1;
       }
     });
@@ -247,8 +248,8 @@ export function createAutonomousCLI(): Command {
   program
     .command('serve')
     .description('Start the web dashboard API server')
-    .option('--port <port>', 'Port to listen on', '3000')
-    .option('--host <host>', 'Host to bind to', 'localhost')
+    .option('--port <port>', 'Port to listen on', String(DEFAULT_API_PORT))
+    .option('--host <host>', 'Host to bind to', DEFAULT_API_HOST)
     .action(async (opts) => {
       const port = parseInt(opts.port, 10);
       const host = opts.host as string;
@@ -272,8 +273,8 @@ export function createAutonomousCLI(): Command {
         shutdownFn = shutdown;
         console.log(chalk.green(`API server listening on http://${host}:${port}`));
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.error(chalk.red(`Failed to start server: ${msg}`));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(`Failed to start server: ${errorMessage}`));
         process.exitCode = 1;
       }
     });
@@ -328,8 +329,8 @@ export function createAutonomousCLI(): Command {
           process.exitCode = EXIT_CODES.GOAL_FAILED;
         }
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.error(chalk.red(`Error: ${msg}`));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(`Error: ${errorMessage}`));
         process.exitCode = EXIT_CODES.RUNTIME_ERROR;
       }
     });

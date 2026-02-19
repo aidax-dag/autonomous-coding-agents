@@ -120,10 +120,6 @@ export class SQLiteClient implements IDBClient {
 
   async transaction<T>(fn: (client: IDBClient) => Promise<T>): Promise<T> {
     this.assertConnected();
-    const sqliteTx = this.db.transaction(() => {
-      // better-sqlite3 transactions are synchronous wrappers,
-      // but our fn is async — we run it inside the sync boundary.
-    });
     // Use manual BEGIN/COMMIT for async compatibility
     this.db.prepare('BEGIN').run();
     try {

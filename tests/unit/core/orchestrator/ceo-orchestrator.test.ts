@@ -210,13 +210,15 @@ describe('CEOOrchestrator', () => {
       expect(mockQueueStop).toHaveBeenCalled();
     });
 
-    it('should not stop again if already STOPPED', async () => {
+    it('should still perform cleanup even if already STOPPED', async () => {
       const orchestrator = new CEOOrchestrator();
       mockRegistryStopAll.mockClear();
+      mockQueueStop.mockClear();
 
       await orchestrator.stop();
 
-      expect(mockRegistryStopAll).not.toHaveBeenCalled();
+      expect(mockRegistryStopAll).toHaveBeenCalledTimes(1);
+      expect(mockQueueStop).toHaveBeenCalledTimes(1);
     });
 
     it('should emit stopped event', async () => {

@@ -19,15 +19,15 @@ export class PromptRegistry implements IPromptRegistry {
   }
 
   get(id: string): PromptTemplate | undefined {
-    const t = this.templates.get(id);
-    return t ? { ...t } : undefined;
+    const template = this.templates.get(id);
+    return template ? { ...template } : undefined;
   }
 
   findByCategory(category: PromptTemplate['category']): PromptTemplate[] {
     return Array.from(this.templates.values())
-      .filter((t) => t.category === category)
-      .sort((a, b) => b.priority - a.priority)
-      .map((t) => ({ ...t }));
+      .filter((template) => template.category === category)
+      .sort((leftTemplate, rightTemplate) => rightTemplate.priority - leftTemplate.priority)
+      .map((template) => ({ ...template }));
   }
 
   list(): string[] {

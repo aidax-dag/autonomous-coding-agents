@@ -7,6 +7,7 @@
  */
 
 import type { IAgentPool, PoolStats } from './interfaces/parallel.interface';
+import { DEFAULT_AGENT_POOL_MAX, GLOBAL_AGENT_POOL_MAX } from './constants';
 
 /**
  * Agent Pool Configuration
@@ -33,8 +34,8 @@ export class AgentPool implements IAgentPool {
   private waitQueue: Map<string, Array<() => void>> = new Map();
 
   constructor(config?: AgentPoolConfig) {
-    this.defaultMax = config?.defaultMaxPerProvider ?? 3;
-    this.globalMax = config?.globalMax ?? 10;
+    this.defaultMax = config?.defaultMaxPerProvider ?? DEFAULT_AGENT_POOL_MAX;
+    this.globalMax = config?.globalMax ?? GLOBAL_AGENT_POOL_MAX;
 
     if (config?.providerLimits) {
       for (const [provider, limit] of Object.entries(config.providerLimits)) {

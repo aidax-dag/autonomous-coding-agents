@@ -19,6 +19,14 @@ import type {
   DeepWorkerContext,
   ExplorationResult,
 } from './interfaces/deep-worker.interface';
+import {
+  SCORE_EXACT_MATCH,
+  SCORE_CONTAINS,
+  SCORE_PATH_SEGMENT,
+  SCORE_EXTENSION,
+  DEFAULT_EXPLORATION_TIMEOUT_MS,
+  MAX_FILES_FOR_IMPORT_PARSING,
+} from './constants';
 
 /**
  * Exploration executor — pluggable function for actual exploration logic
@@ -173,27 +181,27 @@ export function scoreFile(filePath: string, keywords: string[]): number {
   for (const keyword of keywords) {
     // Exact basename match (without extension)
     if (nameWithoutExt === keyword) {
-      score += 10;
+      score += SCORE_EXACT_MATCH;
       continue;
     }
 
     // Basename (without extension) contains keyword
     if (nameWithoutExt.includes(keyword)) {
-      score += 5;
+      score += SCORE_CONTAINS;
       continue;
     }
 
     // Any path segment (excluding the filename) contains keyword
     const dirSegments = segments.slice(0, -1);
     if (dirSegments.some((seg) => seg.includes(keyword))) {
-      score += 3;
+      score += SCORE_PATH_SEGMENT;
       continue;
     }
 
     // Extension match (e.g., keyword "ts" matches .ts files)
     const ext = path.extname(filePath).replace('.', '').toLowerCase();
     if (ext === keyword) {
-      score += 1;
+      score += SCORE_EXTENSION;
     }
   }
 
@@ -351,7 +359,7 @@ export class PreExploration implements IPreExploration {
   constructor(options: PreExplorationOptions = {}) {
     this.executor = options.executor;
     this.maxFiles = options.maxFiles ?? 50;
-    this.timeout = options.timeout ?? 30000;
+    this.timeout = options.timeout ?? DEFAULT_EXPLORATION_TIMEOUT_MS;
   }
 
   async explore(context: DeepWorkerContext): Promise<ExplorationResult> {
@@ -425,7 +433,7 @@ export class PreExploration implements IPreExploration {
     // 5. Extract dependencies from top relevant files
     const depSet = new Set<string>();
     // Only parse imports from the top files (limit I/O)
-    const filesToParse = scored.slice(0, Math.min(20, this.maxFiles));
+    const filesToParse = scored.slice(0, Math.min(MAX_FILES_FOR_IMPORT_PARSING, this.maxFiles));
 
     for (const entry of filesToParse) {
       const imports = extractImports(entry.filePath);

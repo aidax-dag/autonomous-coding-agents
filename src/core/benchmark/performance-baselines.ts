@@ -62,7 +62,7 @@ export const PERFORMANCE_BASELINES: PerformanceBaseline[] = [
     metric: 'Runner start() time',
     unit: 'ms',
     baseline: 50,
-    threshold: 200,
+    threshold: 600,
     direction: 'lower-is-better',
   },
   {

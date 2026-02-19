@@ -6,12 +6,8 @@
  * @module core/skills/skills
  */
 
-import type {
-  ISkill,
-  SkillContext,
-  SkillResult,
-} from '../interfaces/skill.interface';
-import { createSkillFallback } from '../skill-fallback';
+import type { SkillContext } from '../interfaces/skill.interface';
+import { BaseSkill } from '../base-skill';
 
 /**
  * A migration change entry
@@ -52,27 +48,11 @@ export interface MigrationSkillOutput {
 /**
  * Migration skill — handles framework and library migrations
  */
-export class MigrationSkill
-  implements ISkill<MigrationSkillInput, MigrationSkillOutput>
-{
+export class MigrationSkill extends BaseSkill<MigrationSkillInput, MigrationSkillOutput> {
   readonly name = 'migration';
   readonly description = 'Handles framework and library migrations with compatibility analysis';
   readonly tags = ['migration', 'upgrade', 'framework'] as const;
-  readonly version = '1.0.0';
-
-  private readonly executor?: (
-    input: MigrationSkillInput,
-    context: SkillContext,
-  ) => Promise<MigrationSkillOutput>;
-
-  constructor(options?: {
-    executor?: (
-      input: MigrationSkillInput,
-      context: SkillContext,
-    ) => Promise<MigrationSkillOutput>;
-  }) {
-    this.executor = options?.executor;
-  }
+  protected readonly validationError = 'Invalid input: from, to, and files are required';
 
   validate(input: MigrationSkillInput): boolean {
     return (
@@ -85,75 +65,25 @@ export class MigrationSkill
     );
   }
 
-  canHandle(input: unknown): boolean {
-    const typed = input as MigrationSkillInput;
-    return (
-      typed !== null &&
-      typeof typed === 'object' &&
-      typeof typed.from === 'string' &&
-      typed.from.length > 0 &&
-      typeof typed.to === 'string' &&
-      typed.to.length > 0 &&
-      Array.isArray(typed.files) &&
-      typed.files.length > 0
-    );
+  protected createFallbackOutput(input: MigrationSkillInput): MigrationSkillOutput {
+    const changes: MigrationChange[] = input.files.map((file) => ({
+      file,
+      description: `Pending migration from ${input.from} to ${input.to}`,
+    }));
+
+    return {
+      changes,
+      warnings: [],
+      incompatible: [],
+    };
   }
 
-  async execute(
-    input: MigrationSkillInput,
-    context: SkillContext,
-  ): Promise<SkillResult<MigrationSkillOutput>> {
-    const start = Date.now();
+  protected createFallbackContext(input: MigrationSkillInput): Record<string, unknown> {
+    return { from: input.from, to: input.to, fileCount: input.files.length };
+  }
 
-    if (!this.validate(input)) {
-      return {
-        success: false,
-        error: 'Invalid input: from, to, and files are required',
-        duration: Date.now() - start,
-      };
-    }
-
-    try {
-      if (this.executor) {
-        const output = await this.executor(input, context);
-        return {
-          success: true,
-          output,
-          duration: Date.now() - start,
-        };
-      }
-
-      // Default stub output
-      const fallback = createSkillFallback('migration', 'no_executor', {
-        from: input.from,
-        to: input.to,
-        fileCount: input.files.length,
-      });
-
-      const changes: MigrationChange[] = input.files.map((file) => ({
-        file,
-        description: `Pending migration from ${input.from} to ${input.to}`,
-      }));
-
-      const output: MigrationSkillOutput = {
-        changes,
-        warnings: [],
-        incompatible: [],
-      };
-
-      return {
-        success: true,
-        output,
-        duration: Date.now() - start,
-        metadata: { dryRun: input.dryRun ?? false, fallback },
-      };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-        duration: Date.now() - start,
-      };
-    }
+  protected createExtraMetadata(input: MigrationSkillInput): Record<string, unknown> {
+    return { dryRun: input.dryRun ?? false };
   }
 }
 

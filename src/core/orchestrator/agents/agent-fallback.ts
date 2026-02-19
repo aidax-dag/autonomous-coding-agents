@@ -215,11 +215,10 @@ function discoverProjectFiles(projectPath: string): string[] {
 /**
  * Detect project characteristics from discovered files.
  *
- * @param projectPath - Path to the project root
  * @param files - Discovered file paths
  * @returns Brief analysis string
  */
-function analyzeProjectStructure(projectPath: string, files: string[]): string {
+function analyzeProjectStructure(files: string[]): string {
   const characteristics: string[] = [];
 
   // Detect language distribution
@@ -278,7 +277,7 @@ export function createAgentFallback(
   reason: string,
 ): AgentFallbackResult {
   const sourceFiles = discoverProjectFiles(projectPath);
-  const structureAnalysis = analyzeProjectStructure(projectPath, sourceFiles);
+  const structureAnalysis = analyzeProjectStructure(sourceFiles);
 
   const limitations = AGENT_LIMITATIONS[agentType] ?? [
     `Cannot perform full ${agentType} analysis without an LLM executor`,

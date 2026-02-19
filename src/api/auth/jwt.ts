@@ -9,6 +9,7 @@
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { logger } from '../../shared/logging/logger';
+import { MIN_JWT_SECRET_LENGTH, DEFAULT_ACCESS_TTL_SEC, DEFAULT_REFRESH_TTL_SEC } from '../constants';
 
 export interface JWTPayload {
   sub: string;
@@ -55,12 +56,12 @@ export class JWTService {
   private readonly refreshTokenTTL: number;
 
   constructor(config: JWTConfig) {
-    if (!config.secret || config.secret.length < 16) {
-      throw new Error('JWT secret must be at least 16 characters');
+    if (!config.secret || config.secret.length < MIN_JWT_SECRET_LENGTH) {
+      throw new Error(`JWT secret must be at least ${MIN_JWT_SECRET_LENGTH} characters`);
     }
     this.secret = config.secret;
-    this.accessTokenTTL = config.accessTokenTTL ?? 3600;
-    this.refreshTokenTTL = config.refreshTokenTTL ?? 604800;
+    this.accessTokenTTL = config.accessTokenTTL ?? DEFAULT_ACCESS_TTL_SEC;
+    this.refreshTokenTTL = config.refreshTokenTTL ?? DEFAULT_REFRESH_TTL_SEC;
   }
 
   /**

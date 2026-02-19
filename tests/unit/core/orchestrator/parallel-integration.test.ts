@@ -57,6 +57,29 @@ function makeMockClient(): ILLMClient {
   };
 }
 
+let runnersToDestroy: OrchestratorRunner[] = [];
+
+function createRunner(config: ConstructorParameters<typeof OrchestratorRunner>[0]): OrchestratorRunner {
+  const runner = new OrchestratorRunner(config);
+  runnersToDestroy.push(runner);
+  return runner;
+}
+
+beforeEach(() => {
+  runnersToDestroy = [];
+});
+
+afterEach(async () => {
+  await Promise.all(runnersToDestroy.map(async (runner) => {
+    try {
+      await runner.destroy();
+    } catch {
+      // Ignore teardown errors to avoid masking assertion failures.
+    }
+  }));
+  runnersToDestroy = [];
+});
+
 // ---------------------------------------------------------------------------
 // AgentPool + ParallelExecutor integration
 // ---------------------------------------------------------------------------
@@ -288,17 +311,17 @@ describe('Pool stats during execution', () => {
 
 describe('BackgroundManager + Runner integration', () => {
   it('should create a background manager in OrchestratorRunner', () => {
-    const runner = new OrchestratorRunner({ llmClient: makeMockClient() });
+    const runner = createRunner({ llmClient: makeMockClient() });
     expect(runner.getBackgroundManager()).toBeInstanceOf(BackgroundManager);
   });
 
   it('should return empty background tasks when none launched', () => {
-    const runner = new OrchestratorRunner({ llmClient: makeMockClient() });
+    const runner = createRunner({ llmClient: makeMockClient() });
     expect(runner.getBackgroundTasks()).toEqual([]);
   });
 
   it('should expose getAgentPool when parallel execution is enabled', () => {
-    const runner = new OrchestratorRunner({
+    const runner = createRunner({
       llmClient: makeMockClient(),
       enableParallelExecution: true,
       parallelConcurrency: 3,
@@ -307,7 +330,7 @@ describe('BackgroundManager + Runner integration', () => {
   });
 
   it('should return null for getAgentPool when parallel is disabled', () => {
-    const runner = new OrchestratorRunner({
+    const runner = createRunner({
       llmClient: makeMockClient(),
       enableParallelExecution: false,
     });
@@ -315,7 +338,7 @@ describe('BackgroundManager + Runner integration', () => {
   });
 
   it('should accept new config options (providerLimits, globalMax, enableBackgroundGoals)', () => {
-    const runner = new OrchestratorRunner({
+    const runner = createRunner({
       llmClient: makeMockClient(),
       enableParallelExecution: true,
       parallelConcurrency: 5,
@@ -328,16 +351,14 @@ describe('BackgroundManager + Runner integration', () => {
   });
 
   it('should cancel background tasks on destroy', async () => {
-    const runner = new OrchestratorRunner({
+    const runner = createRunner({
       llmClient: makeMockClient(),
       enableBackgroundGoals: true,
     });
 
     const bgManager = runner.getBackgroundManager();
     const handle = bgManager.launch(
-      () => new Promise<WorkflowResult>((resolve) =>
-        setTimeout(() => resolve(mockResult('bg-1')), 5000),
-      ),
+      () => new Promise<WorkflowResult>(() => {}),
       'bg-task-1',
     );
 
@@ -356,7 +377,7 @@ describe('BackgroundManager + Runner integration', () => {
 
 describe('Parallel disabled - sequential fallback', () => {
   it('should still support sequential execution when flag is off', () => {
-    const runner = new OrchestratorRunner({
+    const runner = createRunner({
       llmClient: makeMockClient(),
       enableParallelExecution: false,
     });
@@ -365,11 +386,11 @@ describe('Parallel disabled - sequential fallback', () => {
   });
 
   it('should create runner with both modes', () => {
-    const parallel = new OrchestratorRunner({
+    const parallel = createRunner({
       llmClient: makeMockClient(),
       enableParallelExecution: true,
     });
-    const sequential = new OrchestratorRunner({
+    const sequential = createRunner({
       llmClient: makeMockClient(),
       enableParallelExecution: false,
     });
@@ -395,6 +416,7 @@ describe('Factory integration with new config options', () => {
       globalMax: 6,
       enableBackgroundGoals: true,
     });
+    runnersToDestroy.push(runner);
 
     expect(runner).toBeInstanceOf(OrchestratorRunner);
     expect(runner.getAgentPool()).toBeInstanceOf(AgentPool);

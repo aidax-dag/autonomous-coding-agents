@@ -62,7 +62,7 @@ export class LSPClient implements ILSPClient {
     );
 
     // Wire up message handlers before connecting
-    this.transport.onMessage((msg) => this.handleMessage(msg));
+    this.transport.onMessage((message) => this.handleMessage(message));
     this.transport.onNotification((method, params) => {
       for (const handler of this.notificationHandlers) {
         handler(method, params);
@@ -196,15 +196,15 @@ export class LSPClient implements ILSPClient {
   // Internal
   // ============================================================================
 
-  private handleMessage(msg: LspJsonRpcMessage): void {
-    if (msg.id !== undefined) {
-      const pending = this.pendingRequests.get(msg.id);
+  private handleMessage(message: LspJsonRpcMessage): void {
+    if (message.id !== undefined) {
+      const pending = this.pendingRequests.get(message.id);
       if (pending) {
-        this.pendingRequests.delete(msg.id);
-        if (msg.error) {
-          pending.reject(new Error(msg.error.message));
+        this.pendingRequests.delete(message.id);
+        if (message.error) {
+          pending.reject(new Error(message.error.message));
         } else {
-          pending.resolve(msg.result);
+          pending.resolve(message.result);
         }
       }
     }

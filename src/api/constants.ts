@@ -1,0 +1,21 @@
+/**
+ * API Constants
+ */
+
+export const HTTP_STATUS = {
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  VALIDATION_ERROR: 422,
+  RATE_LIMITED: 429,
+  INTERNAL_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503,
+} as const;
+
+export const MIN_JWT_SECRET_LENGTH = 16;
+export const DEFAULT_ACCESS_TTL_SEC = 3_600;
+export const DEFAULT_REFRESH_TTL_SEC = 604_800;
+export const DEFAULT_API_PORT = 3000;
+export const DEFAULT_API_HOST = 'localhost';

@@ -93,15 +93,17 @@ describe('PerformanceBaselines', () => {
     });
 
     it('should pass for lower-is-better value exactly at threshold', () => {
-      const result = checkBaseline('runner-start-latency', 200);
+      const threshold = getBaseline('runner-start-latency')!.threshold;
+      const result = checkBaseline('runner-start-latency', threshold);
       expect(result.passed).toBe(true);
     });
 
     it('should fail for lower-is-better value exceeding threshold', () => {
-      const result = checkBaseline('runner-start-latency', 300);
+      const threshold = getBaseline('runner-start-latency')!.threshold;
+      const result = checkBaseline('runner-start-latency', threshold + 100);
       expect(result.passed).toBe(false);
-      expect(result.actual).toBe(300);
-      expect(result.threshold).toBe(200);
+      expect(result.actual).toBe(threshold + 100);
+      expect(result.threshold).toBe(threshold);
     });
 
     it('should pass for higher-is-better value above threshold', () => {

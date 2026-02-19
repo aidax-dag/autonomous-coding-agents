@@ -117,6 +117,9 @@ export class SolutionsCache implements ISolutionsCache {
       this.autoSaveTimer = setInterval(() => {
         this.persist().catch((err) => logger.error('Auto-save failed', { error: err }));
       }, this.config.autoSaveInterval);
+      if (this.autoSaveTimer.unref) {
+        this.autoSaveTimer.unref();
+      }
     }
   }
 

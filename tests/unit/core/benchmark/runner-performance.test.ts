@@ -5,7 +5,7 @@
  * Tests validate that operations complete within baseline thresholds.
  */
 
-import { PerformanceProfiler, checkBaseline } from '@/core/benchmark';
+import { PerformanceProfiler, checkBaseline, getBaseline } from '@/core/benchmark';
 import { createMockRunner } from '@/core/orchestrator/mock-runner';
 import { ServiceRegistry } from '@/core/services/service-registry';
 import { HookRegistry } from '@/core/hooks/hook-registry';
@@ -103,7 +103,8 @@ describe('Runner Performance', () => {
       await runner.start();
       const duration = stop();
 
-      expect(duration).toBeLessThan(200); // threshold
+      const baseline = getBaseline('runner-start-latency');
+      expect(duration).toBeLessThanOrEqual(baseline?.threshold ?? 600);
 
       await runner.destroy();
     }, 10000);

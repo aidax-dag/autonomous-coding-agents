@@ -18,7 +18,7 @@ export class StdioTransport implements IMCPTransport {
   private command: string;
   private args: string[];
   private process: ChildProcess | null = null;
-  private messageHandler: ((msg: JsonRpcMessage) => void) | null = null;
+  private messageHandler: ((message: JsonRpcMessage) => void) | null = null;
   private buffer = '';
 
   constructor(command: string, args: string[] = []) {
@@ -90,8 +90,8 @@ export class StdioTransport implements IMCPTransport {
     for (const line of lines) {
       if (line.trim()) {
         try {
-          const msg = JSON.parse(line) as JsonRpcMessage;
-          this.messageHandler?.(msg);
+          const message = JSON.parse(line) as JsonRpcMessage;
+          this.messageHandler?.(message);
         } catch {
           // Invalid JSON, skip
         }

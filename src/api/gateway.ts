@@ -79,12 +79,12 @@ export class APIGateway {
     this.healthTimeout = options.healthTimeout ?? 5000;
 
     // Subscribe to task results for event forwarding
-    this.bus.on('task:result', async (msg) => {
+    this.bus.on('task:result', async (message) => {
       this.emitEvent({
-        type: (msg.payload as TaskResultPayload).success
+        type: (message.payload as TaskResultPayload).success
           ? 'task:completed'
           : 'task:failed',
-        data: msg.payload,
+        data: message.payload,
         timestamp: new Date().toISOString(),
       });
     });

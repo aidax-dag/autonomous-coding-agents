@@ -238,11 +238,13 @@ export class OllamaClient implements ILLMClient {
     }
 
     const timeoutMs = options?.timeout || DEFAULT_TIMEOUT_MS;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    if (timeout.unref) {
+      timeout.unref();
+    }
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
       const response = await fetch(`${this.host}/api/generate`, {
         method: 'POST',
         headers: {
@@ -251,8 +253,6 @@ export class OllamaClient implements ILLMClient {
         body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
-
-      clearTimeout(timeout);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -287,6 +287,8 @@ export class OllamaClient implements ILLMClient {
       }
 
       throw new OllamaServerError(error instanceof Error ? error.message : String(error));
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -336,11 +338,13 @@ export class OllamaClient implements ILLMClient {
     }
 
     const timeoutMs = options?.timeout || DEFAULT_TIMEOUT_MS;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    if (timeout.unref) {
+      timeout.unref();
+    }
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
       const response = await fetch(`${this.host}/api/generate`, {
         method: 'POST',
         headers: {
@@ -349,8 +353,6 @@ export class OllamaClient implements ILLMClient {
         body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
-
-      clearTimeout(timeout);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -436,6 +438,8 @@ export class OllamaClient implements ILLMClient {
       }
 
       throw new OllamaServerError(error instanceof Error ? error.message : String(error));
+    } finally {
+      clearTimeout(timeout);
     }
   }
 }

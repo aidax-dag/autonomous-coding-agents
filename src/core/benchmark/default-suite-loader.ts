@@ -9,7 +9,7 @@
  */
 
 import { readdir, readFile } from 'node:fs/promises';
-import { join, extname, basename } from 'node:path';
+import { join, extname } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { BenchmarkTask } from './interfaces/benchmark.interface';
 import type { SuiteLoader } from './benchmark-runner';

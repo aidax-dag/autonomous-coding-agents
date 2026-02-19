@@ -17,7 +17,7 @@ import type { ILSPTransport, LspJsonRpcMessage } from './interfaces/lsp.interfac
 export class LspStdioTransport implements ILSPTransport {
   private process: ChildProcess | null = null;
   private buffer = Buffer.alloc(0);
-  private messageHandler: ((msg: LspJsonRpcMessage) => void) | null = null;
+  private messageHandler: ((message: LspJsonRpcMessage) => void) | null = null;
   private notificationHandler: ((method: string, params: unknown) => void) | null = null;
 
   constructor(
@@ -116,20 +116,20 @@ export class LspStdioTransport implements ILSPTransport {
       this.buffer = this.buffer.subarray(bodyStart + contentLength);
 
       try {
-        const msg = JSON.parse(bodyBuf.toString()) as LspJsonRpcMessage;
-        this.dispatchMessage(msg);
+        const message = JSON.parse(bodyBuf.toString()) as LspJsonRpcMessage;
+        this.dispatchMessage(message);
       } catch {
         // Invalid JSON, skip
       }
     }
   }
 
-  private dispatchMessage(msg: LspJsonRpcMessage): void {
+  private dispatchMessage(message: LspJsonRpcMessage): void {
     // Responses have an id; notifications have method but no id
-    if (msg.id !== undefined) {
-      this.messageHandler?.(msg);
-    } else if (msg.method) {
-      this.notificationHandler?.(msg.method, msg.params);
+    if (message.id !== undefined) {
+      this.messageHandler?.(message);
+    } else if (message.method) {
+      this.notificationHandler?.(message.method, message.params);
     }
   }
 }

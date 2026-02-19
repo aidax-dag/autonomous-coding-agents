@@ -27,9 +27,10 @@
  * Feature: Document-based Task Queue for Agent OS
  */
 
-import * as fs from 'fs/promises';
 import * as path from 'path';
 import { TeamType, TeamTypeSchema } from './task-document';
+import type { IFileSystem } from '@/shared/fs/file-system';
+import { nodeFileSystem } from '@/shared/fs/file-system';
 
 /**
  * Workspace directory names
@@ -76,6 +77,8 @@ export interface WorkspaceConfig {
   workspaceName?: string;
   /** Auto-create directories on initialization */
   autoCreate?: boolean;
+  /** Optional filesystem adapter for testing/mocking */
+  fileSystem?: IFileSystem;
 }
 
 /**
@@ -96,12 +99,14 @@ export class WorkspaceManager {
   private readonly baseDir: string;
   private readonly workspaceName: string;
   private readonly autoCreate: boolean;
+  private readonly fileSystem: IFileSystem;
   private initialized: boolean = false;
 
   constructor(config: WorkspaceConfig = {}) {
     this.baseDir = config.baseDir || process.cwd();
     this.workspaceName = config.workspaceName || WORKSPACE_DIRS.ROOT;
     this.autoCreate = config.autoCreate ?? true;
+    this.fileSystem = config.fileSystem ?? nodeFileSystem;
   }
 
   /**
@@ -180,7 +185,7 @@ export class WorkspaceManager {
     }
 
     // Create root directory
-    await fs.mkdir(this.rootPath, { recursive: true });
+    await this.fileSystem.mkdir(this.rootPath, { recursive: true });
 
     // Create main directories
     const mainDirs = [
@@ -194,18 +199,18 @@ export class WorkspaceManager {
     ];
 
     for (const dir of mainDirs) {
-      await fs.mkdir(this.getPath(dir), { recursive: true });
+      await this.fileSystem.mkdir(this.getPath(dir), { recursive: true });
     }
 
     // Create team inbox directories
     const teams = TeamTypeSchema.options;
     for (const team of teams) {
-      await fs.mkdir(this.getInboxPath(team), { recursive: true });
+      await this.fileSystem.mkdir(this.getInboxPath(team), { recursive: true });
 
       // Create subdirectories for teams that have them
       const subdirs = TEAM_SUBDIRS[team];
       for (const subdir of subdirs) {
-        await fs.mkdir(this.getInboxPath(team, subdir), { recursive: true });
+        await this.fileSystem.mkdir(this.getInboxPath(team, subdir), { recursive: true });
       }
     }
 
@@ -231,9 +236,9 @@ export class WorkspaceManager {
     for (const dir of directories) {
       const gitkeepPath = path.join(dir, '.gitkeep');
       try {
-        await fs.access(gitkeepPath);
+        await this.fileSystem.access(gitkeepPath);
       } catch {
-        await fs.writeFile(gitkeepPath, '');
+        await this.fileSystem.writeFile(gitkeepPath, '');
       }
     }
   }
@@ -243,7 +248,7 @@ export class WorkspaceManager {
    */
   async exists(): Promise<boolean> {
     try {
-      await fs.access(this.rootPath);
+      await this.fileSystem.access(this.rootPath);
       return true;
     } catch {
       return false;
@@ -271,7 +276,7 @@ export class WorkspaceManager {
     await this.ensureInitialized();
 
     try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      const entries = await this.fileSystem.readdir(dirPath, { withFileTypes: true });
       const files: WorkspaceFile[] = [];
 
       for (const entry of entries) {
@@ -281,7 +286,7 @@ export class WorkspaceManager {
           }
 
           const filePath = path.join(dirPath, entry.name);
-          const stats = await fs.stat(filePath);
+          const stats = await this.fileSystem.stat(filePath);
 
           files.push({
             path: filePath,
@@ -308,7 +313,7 @@ export class WorkspaceManager {
    */
   async readFile(filePath: string): Promise<string> {
     await this.ensureInitialized();
-    return fs.readFile(filePath, 'utf-8');
+    return this.fileSystem.readFile(filePath, 'utf-8');
   }
 
   /**
@@ -319,9 +324,9 @@ export class WorkspaceManager {
 
     // Ensure directory exists
     const dir = path.dirname(filePath);
-    await fs.mkdir(dir, { recursive: true });
+    await this.fileSystem.mkdir(dir, { recursive: true });
 
-    await fs.writeFile(filePath, content, 'utf-8');
+    await this.fileSystem.writeFile(filePath, content, 'utf-8');
   }
 
   /**
@@ -334,9 +339,9 @@ export class WorkspaceManager {
     const destPath = path.join(destDir, fileName);
 
     // Ensure destination directory exists
-    await fs.mkdir(destDir, { recursive: true });
+    await this.fileSystem.mkdir(destDir, { recursive: true });
 
-    await fs.rename(sourcePath, destPath);
+    await this.fileSystem.rename(sourcePath, destPath);
     return destPath;
   }
 
@@ -350,9 +355,9 @@ export class WorkspaceManager {
     const destPath = path.join(destDir, fileName);
 
     // Ensure destination directory exists
-    await fs.mkdir(destDir, { recursive: true });
+    await this.fileSystem.mkdir(destDir, { recursive: true });
 
-    await fs.copyFile(sourcePath, destPath);
+    await this.fileSystem.copyFile(sourcePath, destPath);
     return destPath;
   }
 
@@ -361,7 +366,7 @@ export class WorkspaceManager {
    */
   async deleteFile(filePath: string): Promise<void> {
     await this.ensureInitialized();
-    await fs.unlink(filePath);
+    await this.fileSystem.unlink(filePath);
   }
 
   /**
@@ -369,7 +374,7 @@ export class WorkspaceManager {
    */
   async fileExists(filePath: string): Promise<boolean> {
     try {
-      await fs.access(filePath);
+      await this.fileSystem.access(filePath);
       return true;
     } catch {
       return false;
@@ -381,7 +386,7 @@ export class WorkspaceManager {
    */
   async getFileStats(filePath: string): Promise<WorkspaceFile | null> {
     try {
-      const stats = await fs.stat(filePath);
+      const stats = await this.fileSystem.stat(filePath);
       return {
         path: filePath,
         name: path.basename(filePath),
@@ -481,7 +486,7 @@ export class WorkspaceManager {
    * Destroy workspace (delete entire directory)
    */
   async destroy(): Promise<void> {
-    await fs.rm(this.rootPath, { recursive: true, force: true });
+    await this.fileSystem.rm(this.rootPath, { recursive: true, force: true });
     this.initialized = false;
   }
 }

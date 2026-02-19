@@ -16,7 +16,7 @@ import type { IMCPTransport, JsonRpcMessage } from '../interfaces/mcp.interface'
 export class SSETransport implements IMCPTransport {
   private url: string;
   private connected = false;
-  private messageHandler: ((msg: JsonRpcMessage) => void) | null = null;
+  private messageHandler: ((message: JsonRpcMessage) => void) | null = null;
   private abortController: AbortController | null = null;
 
   constructor(url: string) {
@@ -96,7 +96,7 @@ export class SSETransport implements IMCPTransport {
         for (const event of lines) {
           const dataLine = event
             .split('\n')
-            .find((l) => l.startsWith('data:'));
+            .find((line) => line.startsWith('data:'));
           if (dataLine) {
             try {
               const data = JSON.parse(dataLine.slice(5).trim()) as JsonRpcMessage;

@@ -19,6 +19,8 @@ import type {
   ISelfCheckProtocol,
 } from './interfaces/validation.interface';
 
+import { DANGER_SIGNAL_CONTEXT_CHARS } from './constants';
+
 // ============================================================================
 // Constants: 4 Essential Self-Check Questions
 // ============================================================================
@@ -239,8 +241,8 @@ export class SelfCheckProtocol implements ISelfCheckProtocol {
       if (match) {
         // Extract context around matched pattern
         const index = match.index ?? 0;
-        const start = Math.max(0, index - 50);
-        const end = Math.min(text.length, index + match[0].length + 50);
+        const start = Math.max(0, index - DANGER_SIGNAL_CONTEXT_CHARS);
+        const end = Math.min(text.length, index + match[0].length + DANGER_SIGNAL_CONTEXT_CHARS);
         const context = text.substring(start, end);
 
         results.push({

@@ -15,6 +15,7 @@ import {
   HookAction,
   HookCondition,
 } from '../interfaces/hook.interface';
+import { DEFAULT_HOOK_PRIORITY, DEFAULT_HOOK_TIMEOUT_MS } from './constants';
 
 /**
  * Abstract base class for hooks
@@ -40,9 +41,9 @@ export abstract class BaseHook<TContext = unknown, TResult = unknown>
   protected readonly conditions: HookCondition[];
 
   constructor(config?: Partial<HookConfig>) {
-    this.priority = config?.priority ?? 100;
+    this.priority = config?.priority ?? DEFAULT_HOOK_PRIORITY;
     this.enabled = config?.enabled ?? true;
-    this.timeout = config?.timeout ?? 5000;
+    this.timeout = config?.timeout ?? DEFAULT_HOOK_TIMEOUT_MS;
     this.retryOnError = config?.retryOnError ?? false;
     this.conditions = config?.conditions ?? [];
   }

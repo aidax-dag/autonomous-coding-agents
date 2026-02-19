@@ -22,6 +22,11 @@ import type {
   ExternalSyncResult,
   GitHubSyncConfig,
 } from './external-sync.interface';
+import {
+  HTTP_STATUS_NO_CONTENT,
+  HTTP_STATUS_RATE_LIMIT,
+  HTTP_STATUS_SERVER_ERROR_MIN,
+} from '../constants';
 
 // ============================================================================
 // Constants
@@ -239,7 +244,7 @@ export class GitHubSyncAdapter implements IExternalSyncAdapter {
       '',
       '## Expected Artifacts',
       ...ticket.expectedArtifacts.map(
-        (a) => `- **${a.name}** (${a.type}): ${a.description}`,
+        (artifact) => `- **${artifact.name}** (${artifact.type}): ${artifact.description}`,
       ),
       '',
       '## Verification',
@@ -345,9 +350,9 @@ export class GitHubSyncAdapter implements IExternalSyncAdapter {
       return;
     }
 
-    const currentLabels = labelsResult.data.map((l) => l.name);
+    const currentLabels = labelsResult.data.map((label) => label.name);
     const nextLabels = currentLabels
-      .filter((l) => l !== oldLabel)
+      .filter((label) => label !== oldLabel)
       .concat(newLabel);
 
     // Deduplicate
@@ -390,7 +395,7 @@ export class GitHubSyncAdapter implements IExternalSyncAdapter {
 
       if (response.ok) {
         // Handle 204 No Content
-        if (response.status === 204) {
+        if (response.status === HTTP_STATUS_NO_CONTENT) {
           return { ok: true, data: undefined as unknown as T };
         }
         const data = (await response.json()) as T;
@@ -398,7 +403,7 @@ export class GitHubSyncAdapter implements IExternalSyncAdapter {
       }
 
       // Determine retryability
-      const retryable = response.status >= 500 || response.status === 429;
+      const retryable = response.status >= HTTP_STATUS_SERVER_ERROR_MIN || response.status === HTTP_STATUS_RATE_LIMIT;
       let errorMessage = `GitHub API ${response.status}`;
 
       try {

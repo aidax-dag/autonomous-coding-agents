@@ -43,7 +43,7 @@ describe('BackgroundManager', () => {
 
   it('should cancel running tasks', () => {
     const handle = manager.launch(
-      () => new Promise<WorkflowResult>((resolve) => setTimeout(() => resolve(mockResult('t1')), 5000)),
+      () => new Promise<WorkflowResult>(() => {}),
     );
     const cancelled = manager.cancel(handle.id);
     expect(cancelled).toBe(true);
@@ -59,14 +59,14 @@ describe('BackgroundManager', () => {
 
   it('should get running tasks', () => {
     manager.launch(
-      () => new Promise<WorkflowResult>((resolve) => setTimeout(() => resolve(mockResult('t1')), 5000)),
+      () => new Promise<WorkflowResult>(() => {}),
     );
     expect(manager.getRunning()).toHaveLength(1);
   });
 
   it('should clear all tasks', () => {
     manager.launch(
-      () => new Promise<WorkflowResult>((resolve) => setTimeout(() => resolve(mockResult('t1')), 5000)),
+      () => new Promise<WorkflowResult>(() => {}),
     );
     manager.clear();
     expect(manager.count()).toBe(0);

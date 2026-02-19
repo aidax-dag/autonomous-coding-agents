@@ -9,6 +9,7 @@
  */
 
 import { type PerformanceBaseline, getBaseline } from './performance-baselines';
+import { P95_PERCENTILE } from './constants';
 
 /**
  * Statistical summary for a named measurement
@@ -141,7 +142,7 @@ export class PerformanceProfiler {
     const min = sorted[0];
     const max = sorted[count - 1];
     const avg = sorted.reduce((sum, v) => sum + v, 0) / count;
-    const p95Index = Math.ceil(count * 0.95) - 1;
+    const p95Index = Math.ceil(count * P95_PERCENTILE) - 1;
     const p95 = sorted[Math.min(p95Index, count - 1)];
 
     return { min, max, avg, p95, count };

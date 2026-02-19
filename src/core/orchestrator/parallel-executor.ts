@@ -17,6 +17,7 @@ import type {
   TaskExecutorFn,
   ParallelExecutorConfig,
 } from './interfaces/parallel.interface';
+import { DEFAULT_PARALLEL_CONCURRENCY, DEFAULT_TASK_TIMEOUT_MS } from './constants';
 
 /**
  * Parallel Executor
@@ -39,8 +40,8 @@ export class ParallelExecutor implements IParallelExecutor {
 
   constructor(config?: ParallelExecutorConfig) {
     this.config = {
-      maxConcurrency: config?.maxConcurrency ?? 5,
-      taskTimeout: config?.taskTimeout ?? 300000,
+      maxConcurrency: config?.maxConcurrency ?? DEFAULT_PARALLEL_CONCURRENCY,
+      taskTimeout: config?.taskTimeout ?? DEFAULT_TASK_TIMEOUT_MS,
       failFast: config?.failFast ?? false,
       agentPool: config?.agentPool,
       emitter: config?.emitter,

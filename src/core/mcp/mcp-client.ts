@@ -44,7 +44,7 @@ export class MCPClient implements IMCPClient {
       this.transport = new SSETransport(config.url);
     }
 
-    this.transport.onMessage((msg) => this.handleMessage(msg));
+    this.transport.onMessage((message) => this.handleMessage(message));
     await this.transport.connect();
 
     // Initialize handshake
@@ -116,15 +116,15 @@ export class MCPClient implements IMCPClient {
     });
   }
 
-  private handleMessage(msg: JsonRpcMessage): void {
-    if (msg.id !== undefined) {
-      const pending = this.pendingRequests.get(msg.id);
+  private handleMessage(message: JsonRpcMessage): void {
+    if (message.id !== undefined) {
+      const pending = this.pendingRequests.get(message.id);
       if (pending) {
-        this.pendingRequests.delete(msg.id);
-        if (msg.error) {
-          pending.reject(new Error(msg.error.message));
+        this.pendingRequests.delete(message.id);
+        if (message.error) {
+          pending.reject(new Error(message.error.message));
         } else {
-          pending.resolve(msg.result);
+          pending.resolve(message.result);
         }
       }
     }

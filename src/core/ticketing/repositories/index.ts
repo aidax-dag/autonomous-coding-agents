@@ -11,3 +11,9 @@ export { JsonTicketFeatureRepository, createJsonTicketFeatureRepository } from '
 
 export type { SqliteTicketFeatureRepositoryOptions } from './sqlite-repository';
 export { SqliteTicketFeatureRepository, createSqliteTicketFeatureRepository } from './sqlite-repository';
+
+export type {
+  TicketFeatureRepositoryFactory,
+  TicketFeatureRepositoryFactoryOptions,
+} from './repository-factory';
+export { createDefaultTicketFeatureRepository } from './repository-factory';

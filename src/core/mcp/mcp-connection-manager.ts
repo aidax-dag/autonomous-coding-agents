@@ -281,77 +281,100 @@ export class MCPConnectionManager {
    * Internal method to connect to a single server entry.
    */
   private async connectServerInternal(entry: MCPServerEntry): Promise<void> {
-    // Guard against duplicate names — keep last connection
-    if (this.connections.has(entry.name)) {
-      log.warn(`Duplicate MCP server name '${entry.name}', replacing existing connection`);
-      await this.disconnectServer(entry.name);
-    }
-
+    await this.replaceConnectionIfExists(entry.name);
     const client = createMCPClient();
 
-    // Inject env vars into process.env for stdio child process inheritance
-    const envBackup: Record<string, string | undefined> = {};
-    if (entry.env) {
-      for (const [key, value] of Object.entries(entry.env)) {
-        envBackup[key] = process.env[key];
-        process.env[key] = value;
+    await this.withTemporaryEnvironment(entry.env, async () => {
+      try {
+        await this.connectAndStore(entry, client);
+      } catch (error) {
+        const errorMessage = (error as Error).message;
+        log.error(`Failed to connect to MCP server '${entry.name}'`, undefined, {
+          error: errorMessage,
+          transport: entry.transport,
+        });
+        this.recordFailedConnection(entry, client, errorMessage);
+        throw error;
       }
+    });
+  }
+
+  private async replaceConnectionIfExists(serverName: string): Promise<void> {
+    if (!this.connections.has(serverName)) {
+      return;
+    }
+
+    log.warn(`Duplicate MCP server name '${serverName}', replacing existing connection`);
+    await this.disconnectServer(serverName);
+  }
+
+  private async withTemporaryEnvironment<T>(
+    environment: Record<string, string> | undefined,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    if (!environment) {
+      return operation();
+    }
+
+    const environmentBackup: Record<string, string | undefined> = {};
+    for (const [key, value] of Object.entries(environment)) {
+      environmentBackup[key] = process.env[key];
+      process.env[key] = value;
     }
 
     try {
-      log.info(`Connecting to MCP server '${entry.name}'`, {
-        transport: entry.transport,
-      });
-
-      await client.connect({
-        name: entry.name,
-        transport: entry.transport,
-        command: entry.command,
-        args: entry.args,
-        url: entry.url,
-        headers: entry.headers,
-      });
-
-      const tools = await client.listTools();
-
-      this.connections.set(entry.name, {
-        client,
-        entry,
-        tools,
-      });
-
-      log.info(`MCP server '${entry.name}' connected`, {
-        toolCount: tools.length,
-        toolNames: tools.map((t) => t.name),
-      });
-    } catch (error) {
-      const message = (error as Error).message;
-      log.error(`Failed to connect to MCP server '${entry.name}'`, undefined, {
-        error: message,
-        transport: entry.transport,
-      });
-
-      // Store the failed connection info for status reporting
-      this.connections.set(entry.name, {
-        client,
-        entry,
-        tools: [],
-        error: message,
-      });
-
-      throw error;
+      return await operation();
     } finally {
-      // Restore env vars
-      if (entry.env) {
-        for (const [key] of Object.entries(entry.env)) {
-          if (envBackup[key] === undefined) {
-            delete process.env[key];
-          } else {
-            process.env[key] = envBackup[key];
-          }
+      for (const [key] of Object.entries(environment)) {
+        const previousValue = environmentBackup[key];
+        if (previousValue === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = previousValue;
         }
       }
     }
+  }
+
+  private async connectAndStore(entry: MCPServerEntry, client: MCPClient): Promise<void> {
+    log.info(`Connecting to MCP server '${entry.name}'`, {
+      transport: entry.transport,
+    });
+
+    await client.connect({
+      name: entry.name,
+      transport: entry.transport,
+      command: entry.command,
+      args: entry.args,
+      url: entry.url,
+      headers: entry.headers,
+    });
+
+    const tools = await client.listTools();
+
+    this.connections.set(entry.name, {
+      client,
+      entry,
+      tools,
+    });
+
+    log.info(`MCP server '${entry.name}' connected`, {
+      toolCount: tools.length,
+      toolNames: tools.map((tool) => tool.name),
+    });
+  }
+
+  private recordFailedConnection(
+    entry: MCPServerEntry,
+    client: MCPClient,
+    errorMessage: string,
+  ): void {
+    this.connections.set(entry.name, {
+      client,
+      entry,
+      tools: [],
+      error: errorMessage,
+    });
   }
 }
 

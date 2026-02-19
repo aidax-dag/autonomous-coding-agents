@@ -8,6 +8,7 @@
 
 import { TestResults, TestFailure } from './types';
 import { createAgentLogger } from '../logging/logger';
+import { COVERAGE_GOOD_PCT, COVERAGE_WARN_PCT } from '../constants';
 
 const logger = createAgentLogger('CI', 'test-parser');
 
@@ -250,7 +251,7 @@ export class TestResultParser {
         results.coverage.branches
       ) / 4;
 
-      const coverageIcon = avgCoverage >= 80 ? '✅' : avgCoverage >= 60 ? '⚠️' : '❌';
+      const coverageIcon = avgCoverage >= COVERAGE_GOOD_PCT ? '✅' : avgCoverage >= COVERAGE_WARN_PCT ? '⚠️' : '❌';
       lines.push(`\n${coverageIcon} *Coverage*: ${avgCoverage.toFixed(1)}%`);
     }
 

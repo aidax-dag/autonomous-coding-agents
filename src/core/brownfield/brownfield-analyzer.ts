@@ -19,6 +19,23 @@ import type {
   CodePattern,
 } from './interfaces/brownfield.interface';
 
+import {
+  DEFAULT_MAX_FILES,
+  MAX_REPORTED_FILES,
+  MAX_REPORTED_PATTERN_LOCATIONS,
+  LARGE_FILE_LOC_THRESHOLD,
+  EXCESSIVE_FILE_LENGTH,
+  DEEP_NESTING_LEVEL,
+  TEST_COVERAGE_THRESHOLD,
+  BASE_CONFIDENCE,
+  CONFIDENCE_PER_OCCURRENCE,
+  MAX_CONFIDENCE,
+  HEALTH_DEDUCTION_CRITICAL,
+  HEALTH_DEDUCTION_HIGH,
+  HEALTH_DEDUCTION_MEDIUM,
+  HEALTH_DEDUCTION_LOW_COVERAGE,
+} from './constants';
+
 /**
  * Analysis executor — pluggable function for actual codebase analysis
  */
@@ -305,7 +322,7 @@ export class BrownfieldAnalyzer implements IBrownfieldAnalyzer {
       analyzeDeps: true,
       detectPatterns: true,
       scanTechDebt: true,
-      maxFiles: 1000,
+      maxFiles: DEFAULT_MAX_FILES,
     };
   }
 
@@ -363,7 +380,7 @@ export class BrownfieldAnalyzer implements IBrownfieldAnalyzer {
   // -----------------------------------------------------------------------
 
   private scanFiles(rootPath: string, opts: BrownfieldOptions): ScannedFile[] {
-    const maxFiles = opts.maxFiles ?? 1000;
+    const maxFiles = opts.maxFiles ?? DEFAULT_MAX_FILES;
     const results: ScannedFile[] = [];
 
     try {
@@ -398,11 +415,11 @@ export class BrownfieldAnalyzer implements IBrownfieldAnalyzer {
     const totalFiles = files.length;
     const avgFileSize = totalFiles > 0 ? Math.round(totalLoc / totalFiles) : 0;
 
-    // Largest files (>500 lines), sorted descending
+    // Largest files (above LOC threshold), sorted descending
     const largestFiles = files
-      .filter((f) => f.loc > 500)
+      .filter((f) => f.loc > LARGE_FILE_LOC_THRESHOLD)
       .sort((a, b) => b.loc - a.loc)
-      .slice(0, 20)
+      .slice(0, MAX_REPORTED_FILES)
       .map((f) => ({ path: f.relativePath, loc: f.loc }));
 
     // Estimate test coverage by ratio of test files to source files
@@ -460,20 +477,20 @@ export class BrownfieldAnalyzer implements IBrownfieldAnalyzer {
         }
       }
 
-      // 2. Excessive file length (>300 lines)
-      if (file.loc > 300) {
+      // 2. Excessive file length
+      if (file.loc > EXCESSIVE_FILE_LENGTH) {
         items.push({
           type: 'complexity',
           severity: 'medium',
-          description: `File has ${file.loc} lines (exceeds 300 line threshold)`,
+          description: `File has ${file.loc} lines (exceeds ${EXCESSIVE_FILE_LENGTH} line threshold)`,
           files: [file.relativePath],
           effort: 'medium',
         });
       }
     }
 
-    // 3. Deeply nested directories (>5 levels from root)
-    const deepFiles = files.filter((f) => f.depth > 5);
+    // 3. Deeply nested directories
+    const deepFiles = files.filter((f) => f.depth > DEEP_NESTING_LEVEL);
     if (deepFiles.length > 0) {
       // Group by the deepest directory segment to avoid duplicates
       const deepDirs = new Set(
@@ -483,7 +500,7 @@ export class BrownfieldAnalyzer implements IBrownfieldAnalyzer {
         items.push({
           type: 'complexity',
           severity: 'low',
-          description: `Deeply nested directory (>5 levels): ${dir}`,
+          description: `Deeply nested directory (>${DEEP_NESTING_LEVEL} levels): ${dir}`,
           files: deepFiles
             .filter((f) => path.dirname(path.relative(rootPath, f.absolutePath)) === dir)
             .map((f) => f.relativePath),
@@ -521,13 +538,13 @@ export class BrownfieldAnalyzer implements IBrownfieldAnalyzer {
 
     const patterns: CodePattern[] = [];
     for (const [, { rule, locations }] of patternMap) {
-      // Compute confidence: more occurrences = higher confidence, capped at 0.95
-      const confidence = Math.min(0.95, 0.4 + locations.length * 0.05);
+      // Compute confidence: more occurrences = higher confidence, capped
+      const confidence = Math.min(MAX_CONFIDENCE, BASE_CONFIDENCE + locations.length * CONFIDENCE_PER_OCCURRENCE);
       patterns.push({
         name: rule.name,
         category: rule.category,
         occurrences: locations.length,
-        locations: locations.slice(0, 20), // Cap reported locations
+        locations: locations.slice(0, MAX_REPORTED_PATTERN_LOCATIONS), // Cap reported locations
         confidence: Math.round(confidence * 100) / 100,
       });
     }
@@ -561,11 +578,11 @@ export class BrownfieldAnalyzer implements IBrownfieldAnalyzer {
     const longFiles = metrics.largestFiles.length;
     if (longFiles > 0) {
       recs.push(
-        `Consider splitting ${longFiles} large file(s) exceeding 500 lines`,
+        `Consider splitting ${longFiles} large file(s) exceeding ${LARGE_FILE_LOC_THRESHOLD} lines`,
       );
     }
 
-    if (metrics.testCoverageEstimate < 50) {
+    if (metrics.testCoverageEstimate < TEST_COVERAGE_THRESHOLD) {
       recs.push(
         `Increase test coverage (estimated at ${metrics.testCoverageEstimate}%)`,
       );
@@ -594,13 +611,13 @@ export class BrownfieldAnalyzer implements IBrownfieldAnalyzer {
     const highCount = techDebt.filter((d) => d.severity === 'high').length;
     const mediumCount = techDebt.filter((d) => d.severity === 'medium').length;
 
-    score -= criticalCount * 15;
-    score -= highCount * 8;
-    score -= mediumCount * 3;
+    score -= criticalCount * HEALTH_DEDUCTION_CRITICAL;
+    score -= highCount * HEALTH_DEDUCTION_HIGH;
+    score -= mediumCount * HEALTH_DEDUCTION_MEDIUM;
 
     // Deduct for low test coverage
-    if (metrics.testCoverageEstimate < 50) {
-      score -= 10;
+    if (metrics.testCoverageEstimate < TEST_COVERAGE_THRESHOLD) {
+      score -= HEALTH_DEDUCTION_LOW_COVERAGE;
     }
 
     return Math.max(0, Math.min(100, score));

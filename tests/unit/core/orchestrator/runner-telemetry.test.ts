@@ -31,17 +31,42 @@ function makeMockClient(): ILLMClient {
 
 describe('OrchestratorRunner Telemetry (T13)', () => {
   let tmpDir: string;
+  let runner: ReturnType<typeof createOrchestratorRunner> | null;
+
+  async function removeDirWithRetry(dir: string, maxAttempts: number = 5): Promise<void> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await fs.rm(dir, { recursive: true, force: true });
+        return;
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        const shouldRetry = code === 'ENOTEMPTY' || code === 'EBUSY' || code === 'EPERM';
+        if (!shouldRetry || attempt === maxAttempts) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, attempt * 50));
+      }
+    }
+  }
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'telemetry-test-'));
+    runner = null;
   });
 
   afterEach(async () => {
-    await fs.rm(tmpDir, { recursive: true, force: true });
+    if (runner) {
+      try {
+        await runner.destroy();
+      } catch {
+        // Ignore cleanup failures during teardown.
+      }
+    }
+    await removeDirWithRetry(tmpDir);
   });
 
   it('should return null telemetry when enableTelemetry is false', () => {
-    const runner = createOrchestratorRunner({
+    runner = createOrchestratorRunner({
       llmClient: makeMockClient(),
       workspaceDir: tmpDir,
     });
@@ -49,7 +74,7 @@ describe('OrchestratorRunner Telemetry (T13)', () => {
   });
 
   it('should return OTelProvider when enableTelemetry is true', () => {
-    const runner = createOrchestratorRunner({
+    runner = createOrchestratorRunner({
       llmClient: makeMockClient(),
       workspaceDir: tmpDir,
       enableTelemetry: true,
@@ -61,7 +86,7 @@ describe('OrchestratorRunner Telemetry (T13)', () => {
   });
 
   it('should have trace manager accessible', () => {
-    const runner = createOrchestratorRunner({
+    runner = createOrchestratorRunner({
       llmClient: makeMockClient(),
       workspaceDir: tmpDir,
       enableTelemetry: true,
@@ -72,7 +97,7 @@ describe('OrchestratorRunner Telemetry (T13)', () => {
   });
 
   it('should create spans during executeTask', async () => {
-    const runner = createOrchestratorRunner({
+    runner = createOrchestratorRunner({
       llmClient: makeMockClient(),
       workspaceDir: tmpDir,
       enableTelemetry: true,
@@ -97,10 +122,11 @@ describe('OrchestratorRunner Telemetry (T13)', () => {
     expect(taskSpan!.attributes['task.team']).toBe('planning');
 
     await runner.destroy();
+    runner = null;
   });
 
   it('should shut down telemetry on destroy', async () => {
-    const runner = createOrchestratorRunner({
+    runner = createOrchestratorRunner({
       llmClient: makeMockClient(),
       workspaceDir: tmpDir,
       enableTelemetry: true,
@@ -111,6 +137,7 @@ describe('OrchestratorRunner Telemetry (T13)', () => {
 
     await runner.start();
     await runner.destroy();
+    runner = null;
 
     // After destroy, completed spans should be cleared
     expect(telemetry.getTraceManager().getCompletedSpans()).toEqual([]);

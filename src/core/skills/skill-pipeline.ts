@@ -105,21 +105,13 @@ export class SkillPipeline implements ISkillPipeline {
       // Execute with optional timeout
       try {
         const timeout = step.options.timeout ?? context.timeout;
-        let execPromise = skill.execute(currentInput, context);
-
-        if (timeout) {
-          execPromise = Promise.race([
-            execPromise,
-            new Promise((_, reject) =>
-              setTimeout(
-                () => reject(new Error(`Step '${step.skillName}' timed out after ${timeout}ms`)),
-                timeout,
-              ),
-            ),
-          ]) as typeof execPromise;
-        }
-
-        const skillResult = await execPromise;
+        const skillResult = timeout
+          ? await this.executeWithTimeout(
+            skill.execute(currentInput, context),
+            timeout,
+            step.skillName,
+          )
+          : await skill.execute(currentInput, context);
 
         if (skillResult.success) {
           const output = step.options.transform
@@ -220,6 +212,32 @@ export class SkillPipeline implements ISkillPipeline {
     } catch {
       return { success: false };
     }
+  }
+
+  private executeWithTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    skillName: string,
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Step '${skillName}' timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+      if (timeout.unref) {
+        timeout.unref();
+      }
+
+      promise.then(
+        (value) => {
+          clearTimeout(timeout);
+          resolve(value);
+        },
+        (error: unknown) => {
+          clearTimeout(timeout);
+          reject(error);
+        },
+      );
+    });
   }
 }
 
